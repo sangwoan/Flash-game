@@ -117,10 +117,10 @@
   function fileByName(set, name) { return set.files.find((f) => f.name === name); }
   function meter(item, msg) {
     const base = est(preamble(item));
-    const hist = threadOf(item.key).reduce((s, t) => s + (t.tokens || est(t.content)), 0);
     const att = [...ui.attach].reduce((s, n) => { const f = fileByName(item.set, n); return s + (f ? est(f.content) + 10 : 0); }, 0);
     const m = est(msg || '');
-    return { base, hist, att, msg: m, total: base + hist + att + m };
+    // 한도는 이번 요청에만 적용된다. 이전 대화는 AI가 기억하지만 한도에 쌓이지 않는다.
+    return { base, att, msg: m, total: base + att + m };
   }
   function cooldownLeft() { return Math.max(0, Math.ceil((S.cooldownUntil - Date.now()) / 1000)); }
 
@@ -133,7 +133,7 @@
     if (cd > 0) return `다음 질문까지 ${cd}초 기다려야 해요.`;
     if (!msg.trim()) return '';
     const m = meter(item, msg);
-    if (S.cfg.cap && m.total > S.cfg.cap) return `토큰 한도 초과 (${fmt(m.total)} / ${fmt(S.cfg.cap)}). 첨부를 줄이거나 새 대화를 시작하세요.`;
+    if (S.cfg.cap && m.total > S.cfg.cap) return `토큰 한도 초과 (${fmt(m.total)} / ${fmt(S.cfg.cap)}). 첨부를 줄이거나 나눠서 보내세요.`;
     return '';
   }
 
@@ -315,7 +315,7 @@
           <div class="field"><span class="flabel">제한 시간</span><div class="seg">${opt('minutes', 0, cfg.minutes, '없음')}${opt('minutes', 25, cfg.minutes, '25분')}${opt('minutes', 45, cfg.minutes, '45분')}${opt('minutes', 90, cfg.minutes, '90분')}</div></div>
           <div class="field"><span class="flabel">AI 질문 횟수 (문항 수 ×)</span><div class="seg">${opt('mult', 2, cfg.mult, '×2')}${opt('mult', 2.5, cfg.mult, '×2.5')}${opt('mult', 3, cfg.mult, '×3')}</div><span class="hint">이번 설정: ${nQ}문항 → ${Math.round(nQ * cfg.mult)}회</span></div>
           <div class="field"><span class="flabel">질문 간 쿨다운</span><div class="seg">${opt('cooldown', 0, cfg.cooldown, '없음')}${opt('cooldown', 30, cfg.cooldown, '30초')}${opt('cooldown', 60, cfg.cooldown, '60초')}</div></div>
-          <div class="field"><span class="flabel">요청당 토큰 한도</span><div class="seg">${opt('cap', 1500, cfg.cap, '1,500')}${opt('cap', 2500, cfg.cap, '2,500')}${opt('cap', 4000, cfg.cap, '4,000')}${opt('cap', 0, cfg.cap, '없음')}</div><span class="hint">문항 정보 + 대화 기록 + 첨부 + 질문을 합친 추정치</span></div>
+          <div class="field"><span class="flabel">요청당 토큰 한도</span><div class="seg">${opt('cap', 1500, cfg.cap, '1,500')}${opt('cap', 2500, cfg.cap, '2,500')}${opt('cap', 4000, cfg.cap, '4,000')}${opt('cap', 0, cfg.cap, '없음')}</div><span class="hint">질문 1회마다 문항 정보 + 첨부 + 질문을 합친 추정치. 보내고 나면 다시 0부터</span></div>
           <div class="field"><span class="flabel">AI 모델</span><div class="seg">${opt('tier', 'quick', cfg.tier, '빠름')}${opt('tier', 'default', cfg.tier, '표준')}${opt('tier', 'complex', cfg.tier, '고성능')}</div><span class="hint">실제 시험의 GPT-5.2에 가까운 건 「표준」</span></div>
           <div class="field"><span class="flabel">문제 시드</span><div class="seedrow"><input id="seed" class="input mono" inputmode="numeric" value="${cfg.seed}"><button class="btn ghost" data-act="reseed">새 시드</button></div><span class="hint">같은 시드면 같은 데이터가 나와요</span></div>
         </div>
@@ -327,7 +327,7 @@
         <h2>예비문제에서 확인한 2교시 규칙</h2>
         <ol class="rules">
           <li><b>질문 수 제한</b> 문항 수의 2~3배만 AI에게 물을 수 있다. 쉬운 문항은 AI 없이 읽고 푼다.</li>
-          <li><b>토큰 제한</b> 자료를 전부 넣을 수 없다. 필요한 파일만 골라 첨부한다. 문항이 바뀌면 다시 첨부해야 한다.</li>
+          <li><b>토큰 제한</b> 자료를 전부 넣을 수 없다. 한 번 질문할 때 필요한 파일만 골라 첨부한다. 한도는 질문마다 새로 적용되므로 많으면 나눠서 보낸다. 문항이 바뀌면 다시 첨부해야 한다.</li>
           <li><b>문항 맥락은 자동</b> 문항을 고르면 AI가 지문과 문항을 이미 알고 있다. 프롬프트에는 조건과 원하는 출력만 쓴다.</li>
           <li><b>함정 조건</b> 날짜 기준, 무효 규칙, 단위·통화처럼 지문 한 줄에 숨은 조건을 프롬프트에 직접 적어 준다.</li>
           <li><b>단답형</b> 근거는 쓰지 않는다. 그래도 AI 답은 한 번 더 검산한다. 프롬프트가 채점될 수도 있다.</li>
@@ -461,7 +461,7 @@
     const th = $('#thread'); if (th) th.scrollTop = th.scrollHeight;
   }
   function meterText(m, cap) {
-    return `문항 ${fmt(m.base)} + 기록 ${fmt(m.hist)} + 첨부 ${fmt(m.att)} + 질문 ${fmt(m.msg)} = <b>${fmt(m.total)}</b>${cap ? ' / ' + fmt(cap) : ''}`;
+    return `이번 요청: 문항 ${fmt(m.base)} + 첨부 ${fmt(m.att)} + 질문 ${fmt(m.msg)} = <b>${fmt(m.total)}</b>${cap ? ' / ' + fmt(cap) : ''}`;
   }
   function refreshComposerState() {
     if (!S || ui.view !== 'exam') return;
