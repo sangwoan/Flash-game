@@ -23,6 +23,7 @@ class SolverTest {
             assertEquals(st.perfectClear, r.perfectClear)
             s = r.state
         }
+        if (plan.survives) s = rules.endRound(s)
         assertEquals(plan.finalState, s)
     }
 
@@ -82,8 +83,9 @@ class SolverTest {
     @Test
     fun `퍼펙트 클리어는 점수가 더 높은 비퍼펙트 수열보다 우선한다`() {
         // 일부러 "칸이 많이 남을수록 고득점"으로 왜곡하고 퍼펙트 보너스는 0
-        val w = Weights(perfectClear = 0.0, filledCell = 100.0)
-        val s = Solver(weights = w)
+        val w = Weights(filledCell = 100.0)
+        val model = ScoreModel(perfectBonus = 0.0)
+        val s = Solver(weights = w, scoreModel = model)
         val b = Board.parse("XXXXX...\n" + "........\n".repeat(7))
         val tray = listOf(Piece.parse("XXX"), Piece.parse("X"), Piece.parse("X"))
         val start = GameState(b)
@@ -95,9 +97,9 @@ class SolverTest {
         var path = 0.0
         for ((p, rc) in listOf(tray[0] to (3 to 0), tray[1] to (5 to 0), tray[2] to (5 to 2))) {
             val r = s.rules.apply(st, p.maskAt(rc.first, rc.second))
-            path += MoveScoring.score(w, r); st = r.state
+            path += model.points(r); st = r.state
         }
-        val nonPerfectScore = path + s.evaluator.score(st)
+        val nonPerfectScore = path + s.evaluator.score(s.rules.endRound(st))
         println("[퍼펙트 우선] perfect=${"%.1f".format(best.score)} vs 비퍼펙트=${"%.1f".format(nonPerfectScore)}")
         assertTrue(nonPerfectScore > best.score, "비퍼펙트가 점수상 더 높아야 테스트가 의미 있음")
     }
@@ -157,7 +159,7 @@ class SolverTest {
 
     private data class OracleBest(val perfect: Boolean, val placed: Int, val score: Double)
 
-    private fun oracle(state: GameState, tray: List<Piece?>, w: Weights, ev: Evaluator, rules: Rules): OracleBest {
+    private fun oracle(state: GameState, tray: List<Piece?>, model: ScoreModel, ev: Evaluator, rules: Rules): OracleBest {
         var best: OracleBest? = null
         fun better(a: OracleBest, b: OracleBest?): Boolean {
             if (b == null) return true
@@ -174,11 +176,12 @@ class SolverTest {
                     if ((s.board.bits and m) != 0L) continue
                     any = true
                     val r = rules.apply(s, m)
-                    rec(r.state, remaining and (1 shl slot).inv(), placed + 1, perfect || r.perfectClear, path + MoveScoring.score(w, r))
+                    rec(r.state, remaining and (1 shl slot).inv(), placed + 1, perfect || r.perfectClear, path + model.points(r))
                 }
             }
             if (!any) {
-                val cand = OracleBest(perfect, placed, path + ev.score(s))
+                val fin = if (remaining == 0) rules.endRound(s) else s
+                val cand = OracleBest(perfect, placed, path + ev.score(fin))
                 if (better(cand, best)) best = cand
             }
         }
@@ -193,11 +196,12 @@ class SolverTest {
         val rnd = Random(20261107)
         val w = Weights()
         val ev = HeuristicEvaluator(w)
-        val rules = Rules()
-        val s = Solver(rules, w, ev)
+        val model = ScoreModel()
         var perfectCases = 0
         var deadCases = 0
         repeat(120) { case ->
+            val rules = Rules(RuleConfig(comboMode = if (case % 2 == 0) ComboMode.SLIDING else ComboMode.PER_ROUND))
+            val s = Solver(rules, w, model, ev)
             val density = 0.45 + rnd.nextDouble() * 0.35
             var bits = 0L
             for (i in 0 until 64) if (rnd.nextDouble() < density) bits = bits or (1L shl i)
@@ -214,9 +218,10 @@ class SolverTest {
             }
             val tray = MutableList(3) { Pieces.STANDARD[rnd.nextInt(Pieces.STANDARD.size)] }
             if (case % 10 == 0) tray[rnd.nextInt(3)] = Piece.parse("XXX")
-            val state = GameState(Board(bits), comboStreak = rnd.nextInt(3))
+            val streak = rnd.nextInt(4)
+            val state = GameState(Board(bits), comboStreak = streak, movesSinceClear = if (streak > 0) rnd.nextInt(3) else 0)
             val got = s.solve(state, tray).best
-            val want = oracle(state, tray, w, ev, rules)
+            val want = oracle(state, tray, model, ev, rules)
             replay(state, tray, got, rules)
             assertEquals(want.perfect, got.perfectClear, "case $case perfect")
             assertEquals(want.placed, got.placedCount, "case $case placed")
@@ -224,6 +229,6 @@ class SolverTest {
             if (got.perfectClear) perfectCases++
             if (!got.survives) deadCases++
         }
-        println("[오라클 대조] 120건 일치 (퍼펙트 $perfectCases 건, 생존 실패 $deadCases 건)")
+        println("[오라클 대조] 120건 일치 (SLIDING/PER_ROUND 반반) (퍼펙트 $perfectCases 건, 생존 실패 $deadCases 건)")
     }
 }

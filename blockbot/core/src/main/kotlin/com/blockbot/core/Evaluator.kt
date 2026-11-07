@@ -17,6 +17,7 @@ data class BoardFeatures(
     val smallRegions: Int,
     val roughness: Int,
     val missingProbes: List<String>,
+    val nearLines: Int,
 )
 
 object Features {
@@ -44,6 +45,16 @@ object Features {
         return Bits.popcount(h) + Bits.popcount(v)
     }
 
+    /** 6~7칸이 찬 행·열 수 (꽉 찬 줄은 이미 지워졌으므로 7이 최대). */
+    fun nearLines(bits: Long): Int {
+        var n = 0
+        for (i in 0 until 8) {
+            if (Bits.popcount(bits and Bits.ROW[i]) >= 6) n++
+            if (Bits.popcount(bits and Bits.COL[i]) >= 6) n++
+        }
+        return n
+    }
+
     fun extract(bits: Long, w: Weights): BoardFeatures {
         val sizes = emptyRegionSizes(bits)
         return BoardFeatures(
@@ -52,6 +63,7 @@ object Features {
             smallRegions = sizes.count { it in 2..w.smallRegionMaxSize },
             roughness = roughness(bits),
             missingProbes = w.probes.filterNot { it.piece.fitsAnywhere(bits) }.map { it.label },
+            nearLines = nearLines(bits),
         )
     }
 }
@@ -61,28 +73,18 @@ class HeuristicEvaluator(val weights: Weights = Weights()) : Evaluator {
 
     override fun breakdown(state: GameState): Map<String, Double> {
         val f = Features.extract(state.board.bits, weights)
+        val k = 1.0 + weights.healthPerStreak * state.comboStreak
         val out = LinkedHashMap<String, Double>()
-        out["filled"] = weights.filledCell * f.filled
-        out["isolatedHoles"] = weights.isolatedHole * f.isolatedHoles
-        out["smallRegions"] = weights.smallRegion * f.smallRegions
-        out["roughness"] = weights.roughness * f.roughness
+        out["filled"] = k * weights.filledCell * f.filled
+        out["isolatedHoles"] = k * weights.isolatedHole * f.isolatedHoles
+        out["smallRegions"] = k * weights.smallRegion * f.smallRegions
+        out["roughness"] = k * weights.roughness * f.roughness
         for (p in weights.probes) {
-            out["probeMiss:${p.label}"] = if (p.label in f.missingProbes) p.missPenalty else 0.0
+            out["probeMiss:${p.label}"] = if (p.label in f.missingProbes) k * p.missPenalty else 0.0
         }
+        out["nearLines"] = weights.nearLine * f.nearLines
+        out["combo"] = if (state.comboStreak > 0)
+            state.comboStreak * (weights.comboAlive - weights.comboRisk * state.movesSinceClear) else 0.0
         return out
-    }
-}
-
-/** 배치 1회의 점수 (줄 클리어·콤보·퍼펙트). */
-object MoveScoring {
-    fun score(w: Weights, r: PlacementResult): Double {
-        var s = 0.0
-        if (r.lines > 0) {
-            s += w.lineClear * r.lines
-            s += w.multiLineBonus * (r.lines - 1)
-            if (r.state.comboStreak >= 2) s += w.combo * (r.state.comboStreak - 1)
-        }
-        if (r.perfectClear) s += w.perfectClear
-        return s
     }
 }

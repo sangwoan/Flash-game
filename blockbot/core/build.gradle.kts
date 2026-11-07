@@ -27,3 +27,12 @@ tasks.test {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
+
+// 정책 비교 시뮬레이션: ./gradlew :core:simulate -PsimArgs="게임수 최대라운드 시드 콤보모드"
+tasks.register<JavaExec>("simulate") {
+    group = "verification"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.blockbot.core.SimulatorKt")
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8")
+    args = (project.findProperty("simArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
+}

@@ -9,23 +9,25 @@ data class Probe(val label: String, val pattern: String, val missPenalty: Double
 }
 
 /**
- * 평가 가중치. 앱에서는 JSON 설정에서 읽어 이 객체로 만든다(튜닝 대상).
- * 수(배치)마다 더하는 점수 + 최종 보드 모양 점수의 합으로 평가.
+ * 탐색 끝 상태(라운드 종료)의 평가 가중치. 배치마다 얻는 점수는 [ScoreModel]이 담당.
+ * 단위는 게임 점수와 같은 스케일로 맞춘다. 앱에서는 JSON 설정에서 읽어 튜닝.
  */
 data class Weights(
-    // ── 배치마다 더하는 점수 ──
-    val lineClear: Double = 10.0,       // 지운 줄 1개당
-    val multiLineBonus: Double = 12.0,  // 한 번에 여러 줄: (줄 수 - 1)당
-    val combo: Double = 8.0,            // 연속 클리어: (streak - 1)당
-    val perfectClear: Double = 500.0,   // 보드 전체 비움 (우선순위 규칙과 별개로 점수에도 반영)
-
-    // ── 최종 보드 모양 ──
+    // ── 보드 모양 (생존) ──
     val filledCell: Double = -0.6,      // 남은 채워진 칸 1개당 (적을수록 퍼펙트에 가까움)
     val isolatedHole: Double = -8.0,    // 사방이 막힌 빈칸 1개당
     val smallRegion: Double = -4.0,     // 크기 2..smallRegionMaxSize인 고립 빈 영역 1개당
     val smallRegionMaxSize: Int = 4,
     val roughness: Double = -0.5,       // 인접 칸 사이 채움/빈칸 경계 1개당 (울퉁불퉁함)
     val probes: List<Probe> = DEFAULT_PROBES,
+
+    // ── 콤보 이어가기 (고득점) ──
+    val comboAlive: Double = 6.0,       // 다음 라운드로 가져가는 콤보 1당 가치
+    val comboRisk: Double = 3.0,        // 콤보 1당, 이미 못 지운 배치 수만큼 가치 감소 (SLIDING)
+    val nearLine: Double = 1.5,         // 6~7칸 찬 줄(다음 클리어 재료) 1개당
+    // 콤보가 클수록 죽으면 잃을 미래 점수가 크다 → 보드 모양 항목에 (1 + healthPerStreak × 콤보)를 곱함.
+    // 이게 없으면 높은 콤보에서 당장 점수가 생존 판단을 압도해 일찍 죽는다(시뮬레이션으로 확인).
+    val healthPerStreak: Double = 0.1,
 ) {
     companion object {
         val DEFAULT_PROBES = listOf(

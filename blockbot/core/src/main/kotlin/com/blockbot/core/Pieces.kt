@@ -39,6 +39,8 @@ object Pieces {
         addAll(family("L4", "X./X./XX", withMirror = true)) // L/J 테트로미노
         addAll(family("T4", "XXX/.X."))
         addAll(family("S4", ".XX/XX.", withMirror = true))  // S/Z
+        addAll(family("D2", "X./.X"))            // 대각선 2칸 (떨어진 칸)
+        addAll(family("D3", "X../.X./..X"))      // 대각선 3칸 — 스크린샷에서 확인
     }
 
     fun byName(name: String): Piece = STANDARD.firstOrNull { it.name == name }

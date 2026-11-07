@@ -15,7 +15,7 @@ data class Plan(
     val finalState: GameState,
     val totalPieces: Int,
     val perfectClear: Boolean,  // 수열 중 한 번이라도 보드가 완전히 비었는가
-    val pathScore: Double,      // 배치마다 더한 점수 합
+    val pathScore: Double,      // 이번 수열로 얻는 게임 점수 (ScoreModel)
     val leafScore: Double,      // 최종 상태 평가
 ) {
     val placedCount: Int get() = steps.size
@@ -49,11 +49,14 @@ data class SolveResult(
  * 이 중복 제거는 결과를 바꾸지 않는다(테스트에서 단순 전수 탐색과 대조).
  *
  * 순위(사전식): 퍼펙트 클리어 > 놓은 블록 수(생존) > 점수.
+ * 점수 = 경로의 실제 게임 점수([ScoreModel]) + 최종 상태 평가([Evaluator]: 생존성·콤보 이어가기).
  */
 class Solver(
     val rules: Rules = Rules(),
     val weights: Weights = Weights(),
+    val scoreModel: ScoreModel = ScoreModel(),
     val evaluator: Evaluator = HeuristicEvaluator(weights),
+    val pathScorer: PathScorer = PathScorer.of(scoreModel),
     val topK: Int = 5,
 ) {
     private class Node(
@@ -72,7 +75,8 @@ class Solver(
         val meta = n.remaining.toLong() or
             ((if (n.perfect) 1L else 0L) shl 8) or
             (s.comboStreak.toLong() shl 9) or
-            (s.movesSinceClear.toLong() shl 40)
+            (s.movesSinceClear.toLong() shl 40) or
+            ((if (s.clearedThisRound) 1L else 0L) shl 50)
         return Key(s.board.bits, meta)
     }
 
@@ -108,7 +112,7 @@ class Solver(
                             state = res.state,
                             remaining = node.remaining and (1 shl slot).inv(),
                             perfect = node.perfect || res.perfectClear,
-                            pathScore = node.pathScore + MoveScoring.score(weights, res),
+                            pathScore = node.pathScore + pathScorer.score(res),
                             parent = node,
                             step = Step(slot, piece, piece.rows[i], piece.cols[i], res.lines, res.perfectClear),
                         )
@@ -123,13 +127,15 @@ class Solver(
             layer = next
         }
 
-        val scored = terminals.map { it to evaluator.score(it.state) }
+        // 3개를 다 놓은 경로는 라운드 종료 처리(PER_ROUND 콤보 판정) 후 평가
+        val finalStates = terminals.associateWith { if (it.remaining == 0) rules.endRound(it.state) else it.state }
+        val scored = terminals.map { it to evaluator.score(finalStates.getValue(it)) }
         val ranked = scored.sortedWith(
             compareByDescending<Pair<Node, Double>> { it.first.perfect }
                 .thenByDescending { Integer.bitCount(remaining0) - Integer.bitCount(it.first.remaining) }
                 .thenByDescending { it.first.pathScore + it.second }
         )
-        val plans = ranked.take(maxOf(1, topK)).map { (n, leaf) -> toPlan(n, leaf, total) }
+        val plans = ranked.take(maxOf(1, topK)).map { (n, leaf) -> toPlan(n, finalStates.getValue(n), leaf, total) }
         return SolveResult(
             best = plans.first(),
             top = plans,
@@ -139,11 +145,11 @@ class Solver(
         )
     }
 
-    private fun toPlan(n: Node, leaf: Double, total: Int): Plan {
+    private fun toPlan(n: Node, finalState: GameState, leaf: Double, total: Int): Plan {
         val steps = ArrayList<Step>()
         var cur: Node? = n
         while (cur?.step != null) { steps += cur.step!!; cur = cur.parent }
         steps.reverse()
-        return Plan(steps, n.state, total, n.perfect, n.pathScore, leaf)
+        return Plan(steps, finalState, total, n.perfect, n.pathScore, leaf)
     }
 }

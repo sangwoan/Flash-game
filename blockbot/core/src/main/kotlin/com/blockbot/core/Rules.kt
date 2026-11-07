@@ -1,24 +1,33 @@
 package com.blockbot.core
 
 /**
- * @param comboStreak 연속으로 줄을 지운 횟수 (0 = 콤보 없음)
- * @param movesSinceClear 마지막 클리어 이후 줄을 못 지운 배치 수 (streak이 0이면 항상 0으로 정규화)
+ * @param comboStreak 연속 클리어 횟수 (게임 화면의 "Combo N"). 0 = 콤보 없음
+ * @param movesSinceClear SLIDING 모드: 마지막 클리어 이후 못 지운 배치 수 (streak 0이면 0)
+ * @param clearedThisRound PER_ROUND 모드: 이번 라운드(블록 3개)에 한 줄이라도 지웠는가
  */
 data class GameState(
     val board: Board,
     val comboStreak: Int = 0,
     val movesSinceClear: Int = 0,
+    val clearedThisRound: Boolean = false,
 )
 
 /**
- * 게임 규칙 중 확인되지 않은 부분은 설정으로 둔다.
- * @param comboGrace 줄을 못 지운 배치를 몇 번까지 허용해도 콤보가 유지되는지.
- *   0 = 클리어 못 하면 즉시 끊김. 기본 2 = "3수 안에 다시 지우면 유지" (임시값, 실제 게임으로 확인 필요).
+ * 콤보 유지 방식. 공식 규칙이 공개돼 있지 않아 둘 다 지원하고 실제 게임으로 확인한다.
+ * - SLIDING: 못 지운 배치가 comboGrace번을 넘으면 끊김 (grace 2 = "3수 안에 다시 지우면 유지")
+ * - PER_ROUND: 라운드(블록 3개) 안에 한 번도 못 지우면 라운드 끝에 끊김
  */
-data class RuleConfig(val comboGrace: Int = 2)
+enum class ComboMode { SLIDING, PER_ROUND }
+
+data class RuleConfig(
+    val comboMode: ComboMode = ComboMode.SLIDING,
+    val comboGrace: Int = 2,
+)
 
 data class PlacementResult(
     val state: GameState,
+    val cellsPlaced: Int,
+    val prevStreak: Int,  // 이 배치 전 콤보 수
     val clearedRows: Int, // 비트마스크 (bit r = r행 지움)
     val clearedCols: Int, // 비트마스크 (bit c = c열 지움)
     val lines: Int,
@@ -47,16 +56,24 @@ class Rules(val config: RuleConfig = RuleConfig()) {
         if (lines > 0) {
             streak += 1
             since = 0
-        } else if (streak > 0) {
+        } else if (config.comboMode == ComboMode.SLIDING && streak > 0) {
             since += 1
             if (since > config.comboGrace) { streak = 0; since = 0 }
         }
         return PlacementResult(
-            state = GameState(Board(after), streak, since),
+            state = GameState(Board(after), streak, since, state.clearedThisRound || lines > 0),
+            cellsPlaced = Bits.popcount(mask),
+            prevStreak = state.comboStreak,
             clearedRows = rowsMask,
             clearedCols = colsMask,
             lines = lines,
             perfectClear = lines > 0 && after == 0L,
         )
+    }
+
+    /** 트레이 3개를 모두 놓아 라운드가 끝났을 때. */
+    fun endRound(state: GameState): GameState {
+        val streak = if (config.comboMode == ComboMode.PER_ROUND && !state.clearedThisRound) 0 else state.comboStreak
+        return state.copy(comboStreak = streak, movesSinceClear = if (streak == 0) 0 else state.movesSinceClear, clearedThisRound = false)
     }
 }
