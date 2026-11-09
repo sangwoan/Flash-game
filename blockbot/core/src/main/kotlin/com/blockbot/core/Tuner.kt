@@ -22,11 +22,14 @@ object Tuner {
         Param("isolatedHole", -30.0, 0.0, { it.isolatedHole }, { w, v -> w.copy(isolatedHole = v) }),
         Param("smallRegion", -20.0, 0.0, { it.smallRegion }, { w, v -> w.copy(smallRegion = v) }),
         Param("roughness", -3.0, 0.0, { it.roughness }, { w, v -> w.copy(roughness = v) }),
-        probe("3x3", -50.0), probe("1x5", -30.0), probe("5x1", -30.0), probe("2x2", -20.0),
+        probe("3x3", -120.0), probe("1x5", -30.0), probe("5x1", -30.0), probe("2x2", -20.0),
         Param("comboAlive", 0.0, 30.0, { it.comboAlive }, { w, v -> w.copy(comboAlive = v) }),
         Param("comboRisk", 0.0, 20.0, { it.comboRisk }, { w, v -> w.copy(comboRisk = v) }),
         Param("nearLine", -5.0, 10.0, { it.nearLine }, { w, v -> w.copy(nearLine = v) }),
         Param("healthPerStreak", 0.0, 0.5, { it.healthPerStreak }, { w, v -> w.copy(healthPerStreak = v) }),
+        Param("room3x3", 0.0, 8.0, { it.room3x3 }, { w, v -> w.copy(room3x3 = v) }),
+        Param("roomLine5", 0.0, 4.0, { it.roomLine5 }, { w, v -> w.copy(roomLine5 = v) }),
+        Param("pair3x3", -60.0, 0.0, { it.pair3x3 }, { w, v -> w.copy(pair3x3 = v) }),
     )
 
     fun fitness(w: Weights, dist: PieceDistribution, rules: Rules, seeds: List<Long>, maxRounds: Int): Double {

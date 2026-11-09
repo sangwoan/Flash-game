@@ -64,9 +64,21 @@ object Features {
         return Bits.popcount(bits.inv() and up and down and left and right)
     }
 
-    /** 빔 탐색 정렬용 가벼운 평가 (영역 탐색·블록 들어갈 자리 검사 생략). */
-    fun cheapScore(bits: Long, w: Weights): Double =
-        w.filledCell * Bits.popcount(bits) + w.isolatedHole * isolatedHolesFast(bits) + w.roughness * roughness(bits)
+    private val O3 = Piece.parse("XXX/XXX/XXX")
+
+    /** 서로 겹치지 않는 3×3 자리가 두 곳 이상 있는가. */
+    fun twoDisjoint3x3(bits: Long): Boolean {
+        val fits = O3.masks.filter { (it and bits) == 0L }
+        for (i in fits.indices) for (j in i + 1 until fits.size) if ((fits[i] and fits[j]) == 0L) return true
+        return false
+    }
+
+    /** 빔 탐색 정렬용 가벼운 평가 (영역 탐색 생략). 3×3 자리 유무는 사망 원인 1위라 포함. */
+    fun cheapScore(bits: Long, w: Weights): Double {
+        var s = w.filledCell * Bits.popcount(bits) + w.isolatedHole * isolatedHolesFast(bits) + w.roughness * roughness(bits)
+        if (!O3.fitsAnywhere(bits)) s += w.probes.firstOrNull { it.label == "3x3" }?.missPenalty ?: 0.0
+        return s
+    }
 
     fun extract(bits: Long, w: Weights): BoardFeatures {
         val sizes = emptyRegionSizes(bits)
@@ -80,6 +92,10 @@ object Features {
         )
     }
 }
+
+private val ROOM_O3 = Piece.parse("XXX/XXX/XXX")
+private val ROOM_I5H = Piece.parse("XXXXX")
+private val ROOM_I5V = Piece.parse("X/X/X/X/X")
 
 class HeuristicEvaluator(val weights: Weights = Weights()) : Evaluator {
     override fun score(state: GameState): Double = breakdown(state).values.sum()
@@ -96,6 +112,13 @@ class HeuristicEvaluator(val weights: Weights = Weights()) : Evaluator {
             out["probeMiss:${p.label}"] = if (p.label in f.missingProbes) k * p.missPenalty else 0.0
         }
         out["nearLines"] = weights.nearLine * f.nearLines
+        if (weights.pair3x3 != 0.0) out["pair3x3"] = if (Features.twoDisjoint3x3(state.board.bits)) 0.0 else k * weights.pair3x3
+        if (weights.room3x3 != 0.0 || weights.roomLine5 != 0.0) {
+            val bits = state.board.bits
+            fun count(p: Piece): Int { var n = 0; for (m in p.masks) if ((m and bits) == 0L) { n++; if (n >= weights.roomCap) break }; return n }
+            out["room3x3"] = k * weights.room3x3 * count(ROOM_O3)
+            out["roomLine5"] = k * weights.roomLine5 * minOf(weights.roomCap, count(ROOM_I5H) + count(ROOM_I5V))
+        }
         out["combo"] = if (state.comboStreak > 0)
             state.comboStreak * (weights.comboAlive - weights.comboRisk * state.movesSinceClear) else 0.0
         return out

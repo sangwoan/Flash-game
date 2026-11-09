@@ -76,11 +76,28 @@ fun main(args: Array<String>) {
     val rules = Rules(RuleConfig(comboMode = mode))
     val model = ScoreModel()
 
+    val dist0 = PieceDistribution.DEFAULT
+    var expDistribution: PieceDistribution? = null
     val policies: Map<String, Solver> = if (args.getOrNull(4) == "sweep") {
         // healthPerStreak 튜닝용
         val hs = args.getOrNull(5)?.split(",")?.map { it.toDouble() } ?: listOf(0.0, 0.05, 0.1, 0.2, 0.4, 0.8)
         linkedMapOf<String, Solver>("v1 (이전)" to LegacyPolicy.solver(rules)) +
             hs.associate { h -> "v2 h=$h" to Solver(rules = rules, weights = Weights(healthPerStreak = h)) }
+    } else if (args.getOrNull(4) == "exp") {
+        // 실험: exp <friendly> 이름:키=값;키=값 ...  (키: weights, samples, candidates, death, deathCombo, beam, health)
+        expDistribution = dist0.withFriendly(args[5].toDouble())
+        args.drop(6).associate { spec ->
+            val name = spec.substringBefore(":")
+            val kv = spec.substringAfter(":", "").split(";").filter { it.contains("=") }.associate { it.substringBefore("=") to it.substringAfter("=") }
+            var w = kv["weights"]?.let { Weights.fromText(java.io.File(it).readText()) } ?: Weights()
+            kv["health"]?.let { w = w.copy(healthPerStreak = it.toDouble()) }
+            val la = if (kv["lookahead"] == "off") null else LookaheadConfig(
+                samples = kv["samples"]?.toInt() ?: 24, candidates = kv["candidates"]?.toInt() ?: 20,
+                deathPenalty = kv["death"]?.toDouble() ?: 500.0, deathPenaltyPerCombo = kv["deathCombo"]?.toDouble() ?: 60.0,
+                beamWidth = kv["beam"]?.toInt() ?: 60, timeBudgetMs = 600_000,
+            )
+            name to Solver(rules = rules, weights = w, lookahead = la, distribution = expDistribution!!)
+        }
     } else if (args.getOrNull(4) == "weights") {
         // 가중치 파일 비교 (수읽기 켬): 기본 vs 파일들
         val la = LookaheadConfig(samples = 12, timeBudgetMs = 600_000)
@@ -101,10 +118,10 @@ fun main(args: Array<String>) {
         "v2 수읽기 없음" to Solver(rules = rules),
         "v3 수읽기 (기본)" to Solver(rules = rules, lookahead = LookaheadConfig(timeBudgetMs = 600_000)),
     )
-    println("게임 $games 판 × 최대 $maxRounds 라운드, seed=$seed, 콤보=$mode, 블록 분포=사용자 관찰 기반, 같은 블록 순서로 비교")
+    println("게임 $games 판 × 최대 $maxRounds 라운드, seed=$seed, 콤보=$mode, 블록 분포 friendly=${(expDistribution ?: dist0).friendly}, 같은 블록 순서로 비교")
     println("%-14s %9s %9s %8s %7s %7s %6s %6s".format("정책", "평균점수", "중앙값", "평균R", "사망%", "줄/R", "최대콤보", "퍼펙트"))
     for ((name, solver) in policies) {
-        val sim = Simulator(solver, model)
+        val sim = Simulator(solver, model, expDistribution ?: dist0)
         val t0 = System.currentTimeMillis()
         // 판끼리는 독립이라 병렬 실행
         val stats = (0 until games).toList().parallelStream().map { g -> sim.play(Random(seed * 1000 + g), maxRounds) }.toList()
