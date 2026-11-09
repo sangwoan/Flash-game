@@ -68,15 +68,16 @@ class PipelineTest {
     }
 
     @Test
-    fun `그린 화면만 보고 20라운드를 두며 상태 추적이 실제와 일치한다`() {
+    fun `그린 화면만 보고 두며 상태 추적이 실제와 일치한다 (수읽기 포함, 최대 20라운드)`() {
         val rnd = Random(5)
         val rules = Rules(RuleConfig(comboMode = ComboMode.SLIDING))
-        val solver = Solver(rules = rules)
+        val solver = Solver(rules = rules, lookahead = LookaheadConfig(samples = 8, candidates = 8, timeBudgetMs = 600_000))
         val tracker = GameTracker(rules)
         val colors = IntArray(64) { 0xFF000000.toInt() or palette[rnd.nextInt(palette.size)] }
 
         var truth = GameState(Board.EMPTY)
-        var tray: List<Piece?> = List(3) { Pieces.STANDARD[rnd.nextInt(Pieces.STANDARD.size)] }
+        // 사용자 관찰 분포: 3×3 안의 아무 모양(대각선 포함), 3×3 꽉 찬 블록, 가끔 1×4·1×5
+        var tray: List<Piece?> = PieceDistribution.DEFAULT.sampleTray(rnd)
 
         fun observe(): Pair<VisionResult, TrackEvent> {
             val img = render(truth.board, tray, colors)
@@ -104,7 +105,7 @@ class PipelineTest {
                 val last = i == plan.steps.lastIndex
                 if (last) {
                     truth = rules.endRound(truth)
-                    tray = List(3) { Pieces.STANDARD[rnd.nextInt(Pieces.STANDARD.size)] }
+                    tray = PieceDistribution.DEFAULT.sampleTray(rnd)
                 }
                 val (_, ev) = observe()
                 assertIs<TrackEvent.Placed>(ev, "라운드 $rounds 단계 $i")
@@ -115,6 +116,6 @@ class PipelineTest {
             rounds++
         }
         println("[파이프라인] $rounds 라운드, ${lines}줄 클리어, 최종 콤보 ${truth.comboStreak}")
-        assertEquals(20, rounds)
+        assertTrue(rounds >= 5, "너무 빨리 끝남: $rounds 라운드")
     }
 }

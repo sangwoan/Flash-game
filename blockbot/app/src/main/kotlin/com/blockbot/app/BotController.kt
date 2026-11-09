@@ -11,6 +11,7 @@ import com.blockbot.core.DragPlanner
 import com.blockbot.core.GameState
 import com.blockbot.core.GameTracker
 import com.blockbot.core.HeuristicEvaluator
+import com.blockbot.core.LookaheadConfig
 import com.blockbot.core.Piece
 import com.blockbot.core.PixelImage
 import com.blockbot.core.Plan
@@ -48,7 +49,8 @@ class BotController(
     private val scoreModel = ScoreModel()
     private var rules = Rules(RuleConfig(comboMode = prefs.comboMode))
     private var tracker = GameTracker(rules)
-    private var solver = Solver(rules = rules, weights = weights, scoreModel = scoreModel)
+    private val lookahead = LookaheadConfig()
+    private var solver = newSolver()
 
     private var geo: BoardGeometry? = null
     private var badFrames = 0
@@ -109,9 +111,12 @@ class BotController(
     private fun rebuildRules() {
         rules = Rules(RuleConfig(comboMode = prefs.comboMode))
         tracker = GameTracker(rules)
-        solver = Solver(rules = rules, weights = weights, scoreModel = scoreModel)
+        solver = newSolver()
         plan = null
     }
+
+    /** 다음 라운드 수읽기 포함 솔버. 폰에서는 시간 한도(1.5초) 안에서 샘플 수가 자동 조절됨. */
+    private fun newSolver() = Solver(rules = rules, weights = weights, scoreModel = scoreModel, lookahead = lookahead)
 
     private fun schedule(delayMs: Long) {
         handler.removeCallbacks(tick)
@@ -283,6 +288,9 @@ class BotController(
                 "perfect" to res.best.perfectClear,
                 "path" to res.best.pathScore,
                 "leaf" to res.best.leafScore,
+                "nextValue" to res.best.outlook?.value,
+                "nextDeathRate" to res.best.outlook?.deathRate,
+                "nextSamples" to res.best.outlook?.samples,
                 "leafBreakdown" to HeuristicEvaluator(weights).breakdown(res.best.finalState),
                 "alternatives" to res.top.drop(1).map { "%.1f %s".format(it.score, it.steps.joinToString(" ") { s -> "${s.slot}@${s.row},${s.col}" }) },
                 "ms" to planMs,
@@ -308,7 +316,8 @@ class BotController(
             else -> ""
         }
         val head = if (mode == Mode.AUTO) "자동" else "힌트"
-        return "$head · 콤보 ${st.comboStreak} · 이번 +${p.pathScore.toInt()} · ${planMs}ms\n$order$warn"
+        val next = p.outlook?.let { " · 다음 판 생존 ${((1 - it.deathRate) * 100).toInt()}%" } ?: ""
+        return "$head · 콤보 ${st.comboStreak} · 이번 +${p.pathScore.toInt()}$next · ${planMs}ms\n$order$warn"
     }
 
     private fun execute(step: Step, attempt: Int) {

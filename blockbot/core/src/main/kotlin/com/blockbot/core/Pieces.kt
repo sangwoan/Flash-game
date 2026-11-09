@@ -46,5 +46,30 @@ object Pieces {
     fun byName(name: String): Piece = STANDARD.firstOrNull { it.name == name }
         ?: throw IllegalArgumentException("알 수 없는 블록: $name")
 
+    /** 게임에 나올 수 있는 모양인가: 3×3 안의 어떤 모양이든, 또는 1×4·1×5 직선. */
+    fun isPlausible(p: Piece): Boolean =
+        (p.height <= 3 && p.width <= 3) || ((p.height == 1 || p.width == 1) && p.size == maxOf(p.height, p.width) && p.size <= 5)
+
     fun isKnown(p: Piece): Boolean = p in STANDARD
+
+    /** 8방향(대각선 포함)으로 이어져 있는가. 대각선 블록은 연결로 본다. */
+    fun isConnected8(p: Piece): Boolean {
+        val cells = p.cells.toSet()
+        val seen = HashSet<Cell>()
+        val stack = ArrayDeque(listOf(p.cells.first()))
+        while (stack.isNotEmpty()) {
+            val c = stack.removeLast()
+            if (!seen.add(c)) continue
+            for (dr in -1..1) for (dc in -1..1) {
+                val n = Cell(c.r + dr, c.c + dc)
+                if (n in cells && n !in seen) stack.add(n)
+            }
+        }
+        return seen.size == cells.size
+    }
+
+    /** 3×3 안에 들어가는 서로 다른 모든 모양 (정규화 기준, 연결 여부 무관). */
+    val ALL_WITHIN_3X3: List<Piece> = (1 until (1 shl 9)).map { m ->
+        Piece.of((0 until 9).filter { (m shr it) and 1 == 1 }.map { Cell(it / 3, it % 3) })
+    }.distinct()
 }

@@ -35,7 +35,8 @@ data class VisionResult(
     val cellDistance: DoubleArray,  // 칸별: 가장 어두운 칸(빈칸 기준색)과의 색 거리 — 로그·튜닝용
     val uncertainCells: Int,        // 빈칸/채움 판정이 애매한 칸 수 (애니메이션·글자 겹침 등)
     val tray: List<TrayRead?>,      // 슬롯 0..2, 비었으면 null
-    val issues: List<String>,
+    val issues: List<String>,       // 이 프레임을 믿을 수 없게 만드는 문제
+    val warnings: List<String> = emptyList(), // 기록만 하는 참고 사항 (예: 처음 보는 블록 모양)
 ) {
     /** 이 프레임을 믿어도 되는가. */
     val clean: Boolean get() = uncertainCells == 0 && issues.isEmpty()
@@ -188,11 +189,15 @@ object Vision {
         }
 
         // ── 트레이 ──
-        val tray = readTray(img, geo, cfg, issues)
-        return VisionResult(geo, Board(bits), dist, uncertain, tray, issues)
+        val warnings = ArrayList<String>()
+        val tray = readTray(img, geo, cfg, issues, warnings)
+        return VisionResult(geo, Board(bits), dist, uncertain, tray, issues, warnings)
     }
 
-    private fun readTray(img: PixelImage, geo: BoardGeometry, cfg: VisionConfig, issues: MutableList<String>): List<TrayRead?> {
+    private fun readTray(
+        img: PixelImage, geo: BoardGeometry, cfg: VisionConfig,
+        issues: MutableList<String>, warnings: MutableList<String>,
+    ): List<TrayRead?> {
         val w = img.width
         val top = (geo.bottom + cfg.trayTopCells * geo.cellH).roundToInt().coerceIn(0, img.height)
         val bot = (geo.bottom + cfg.trayBottomCells * geo.cellH).roundToInt().coerceIn(0, img.height)
@@ -266,7 +271,9 @@ object Vision {
             if (cells.isEmpty()) { issues += "슬롯 $slot 블록 칸 없음"; return@map null }
             val piece = Piece.of(cells)
             if (piece.height != nr || piece.width != nc) issues += "슬롯 $slot 모양 경계 불일치"
-            if (!Pieces.isKnown(piece)) issues += "슬롯 $slot 처음 보는 모양 ${piece.pattern()}"
+            // 3×3 안의 어떤 모양이든 나올 수 있으므로 표준 목록에 없다고 막지 않는다
+            if (!Pieces.isPlausible(piece)) issues += "슬롯 $slot 있을 수 없는 모양 ${piece.pattern()} (인식 오류?)"
+            else if (!Pieces.isKnown(piece)) warnings += "슬롯 $slot 처음 보는 모양 ${piece.pattern()}"
             TrayRead(slot, piece, left, tTop, right, tBot)
         }
     }

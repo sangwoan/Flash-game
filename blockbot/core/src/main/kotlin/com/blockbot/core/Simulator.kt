@@ -12,14 +12,14 @@ data class GameStats(
 )
 
 /**
- * 오프라인 자가 대국. 매 라운드 블록 3개를 [pieces]에서 무작위로 뽑는다.
+ * 오프라인 자가 대국. 매 라운드 블록 3개를 [distribution]에서 무작위로 뽑는다.
  * 실제 게임의 블록 출현 분포는 모르므로(균등 가정) 절대 점수보다 정책 간 "비교"에 쓴다.
  * 점수는 항상 [scoreModel](실제 점수 모델)로 매긴다 — 정책이 내부적으로 무엇을 최적화하든.
  */
 class Simulator(
     val solver: Solver,
     val scoreModel: ScoreModel = ScoreModel(),
-    val pieces: List<Piece> = Pieces.STANDARD,
+    val distribution: PieceDistribution = PieceDistribution.DEFAULT,
 ) {
     fun play(rng: Random, maxRounds: Int): GameStats {
         val rules = solver.rules
@@ -29,7 +29,7 @@ class Simulator(
         var maxStreak = 0
         var perfects = 0
         for (round in 1..maxRounds) {
-            val tray = List(3) { pieces[rng.nextInt(pieces.size)] }
+            val tray = distribution.sampleTray(rng)
             val plan = solver.solve(state, tray).best
             for (st in plan.steps) {
                 val r = rules.apply(state, st.piece.maskAt(st.row, st.col))
@@ -66,6 +66,7 @@ object LegacyPolicy {
  * 사용: ./gradlew :core:simulate -PsimArgs="게임수 최대라운드 시드 콤보모드"
  * 예:   ./gradlew :core:simulate -PsimArgs="30 150 1 SLIDING"
  *       ./gradlew :core:simulate -PsimArgs="30 300 7 PER_ROUND sweep 0.05,0.2"   (healthPerStreak 튜닝)
+ *       ./gradlew :core:simulate -PsimArgs="60 300 5 SLIDING lookahead 16/10/500,32/20/1000"   (수읽기 설정 비교)
  */
 fun main(args: Array<String>) {
     val games = args.getOrNull(0)?.toInt() ?: 20
@@ -80,19 +81,30 @@ fun main(args: Array<String>) {
         val hs = args.getOrNull(5)?.split(",")?.map { it.toDouble() } ?: listOf(0.0, 0.05, 0.1, 0.2, 0.4, 0.8)
         linkedMapOf<String, Solver>("v1 (이전)" to LegacyPolicy.solver(rules)) +
             hs.associate { h -> "v2 h=$h" to Solver(rules = rules, weights = Weights(healthPerStreak = h)) }
+    } else if (args.getOrNull(4) == "lookahead") {
+        // 수읽기 설정 비교: 샘플 수 목록 (예: "8,16")
+        // 형식: 샘플수/후보수/게임오버감점 (예: "16/10/500,32/20/1000")
+        val specs = args.getOrNull(5)?.split(",") ?: listOf("8/10/500", "16/10/500")
+        linkedMapOf<String, Solver>("v2 수읽기 없음" to Solver(rules = rules)) +
+            specs.associate { spec ->
+                val (n, c, d) = (spec.split("/") + listOf("10", "500")).let { Triple(it[0].toInt(), it[1].toInt(), it[2].toDouble()) }
+                "v3 $spec" to Solver(rules = rules, lookahead = LookaheadConfig(samples = n, candidates = c, deathPenalty = d, timeBudgetMs = 600_000))
+            }
     } else linkedMapOf(
-        "v1 (이전)" to LegacyPolicy.solver(rules),
-        "v2 (현재)" to Solver(rules = rules),
+        "v2 수읽기 없음" to Solver(rules = rules),
+        "v3 수읽기 (기본)" to Solver(rules = rules, lookahead = LookaheadConfig(timeBudgetMs = 600_000)),
     )
-    println("게임 $games 판 × 최대 $maxRounds 라운드, seed=$seed, 콤보=$mode, 같은 블록 순서로 비교")
+    println("게임 $games 판 × 최대 $maxRounds 라운드, seed=$seed, 콤보=$mode, 블록 분포=사용자 관찰 기반, 같은 블록 순서로 비교")
     println("%-14s %9s %9s %8s %7s %7s %6s %6s".format("정책", "평균점수", "중앙값", "평균R", "사망%", "줄/R", "최대콤보", "퍼펙트"))
     for ((name, solver) in policies) {
         val sim = Simulator(solver, model)
         val t0 = System.currentTimeMillis()
-        val stats = (0 until games).map { g -> sim.play(Random(seed * 1000 + g), maxRounds) }
+        // 판끼리는 독립이라 병렬 실행
+        val stats = (0 until games).toList().parallelStream().map { g -> sim.play(Random(seed * 1000 + g), maxRounds) }.toList()
         val scores = stats.map { it.score }.sorted()
+        val avgMs = (System.currentTimeMillis() - t0).toDouble() / stats.sumOf { it.rounds } * Runtime.getRuntime().availableProcessors()
         println(
-            "%-14s %9.0f %9.0f %8.1f %6.0f%% %7.2f %6d %6d   (%.1fs)".format(
+            "%-14s %9.0f %9.0f %8.1f %6.0f%% %7.2f %6d %6d   (%.1fs, 라운드당 약 %.0fms)".format(
                 name,
                 scores.average(),
                 scores[scores.size / 2],
@@ -102,6 +114,7 @@ fun main(args: Array<String>) {
                 stats.maxOf { it.maxStreak },
                 stats.sumOf { it.perfects },
                 (System.currentTimeMillis() - t0) / 1000.0,
+                avgMs,
             )
         )
     }

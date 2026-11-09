@@ -55,6 +55,19 @@ object Features {
         return n
     }
 
+    /** 사방(벽 포함)이 막힌 빈칸 수 — 비트 연산만으로 빠르게. */
+    fun isolatedHolesFast(bits: Long): Int {
+        val up = (bits shl 8) or Bits.ROW[0]
+        val down = (bits ushr 8) or Bits.ROW[7]
+        val left = ((bits shl 1) and Bits.NOT_COL0) or Bits.COL[0]
+        val right = ((bits ushr 1) and Bits.NOT_COL7) or Bits.COL[7]
+        return Bits.popcount(bits.inv() and up and down and left and right)
+    }
+
+    /** 빔 탐색 정렬용 가벼운 평가 (영역 탐색·블록 들어갈 자리 검사 생략). */
+    fun cheapScore(bits: Long, w: Weights): Double =
+        w.filledCell * Bits.popcount(bits) + w.isolatedHole * isolatedHolesFast(bits) + w.roughness * roughness(bits)
+
     fun extract(bits: Long, w: Weights): BoardFeatures {
         val sizes = emptyRegionSizes(bits)
         return BoardFeatures(
