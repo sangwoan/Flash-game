@@ -21,7 +21,12 @@ class Simulator(
     val scoreModel: ScoreModel = ScoreModel(),
     val distribution: PieceDistribution = PieceDistribution.DEFAULT,
 ) {
-    fun play(rng: Random, maxRounds: Int): GameStats {
+    /** 게임 오버 순간: 보드와 못 놓은 블록. */
+    data class Death(val board: Board, val stuck: List<Piece>)
+
+    fun play(rng: Random, maxRounds: Int): GameStats = playWithDeath(rng, maxRounds).first
+
+    fun playWithDeath(rng: Random, maxRounds: Int): Pair<GameStats, Death?> {
         val rules = solver.rules
         var state = GameState(Board.EMPTY)
         var score = 0.0
@@ -39,10 +44,14 @@ class Simulator(
                 state = r.state
                 maxStreak = maxOf(maxStreak, state.comboStreak)
             }
-            if (!plan.survives) return GameStats(score, round, lines, maxStreak, perfects, died = true)
+            if (!plan.survives) {
+                val placed = plan.steps.map { it.slot }.toSet()
+                val stuck = tray.indices.filter { it !in placed }.map { tray[it] }
+                return GameStats(score, round, lines, maxStreak, perfects, died = true) to Death(state.board, stuck)
+            }
             state = rules.endRound(state)
         }
-        return GameStats(score, maxRounds, lines, maxStreak, perfects, died = false)
+        return GameStats(score, maxRounds, lines, maxStreak, perfects, died = false) to null
     }
 }
 

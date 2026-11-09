@@ -3,6 +3,15 @@ package com.blockbot.core
 import java.io.File
 import kotlin.random.Random
 
+/** 로그 파일 읽기 (.jsonl 또는 압축된 .jsonl.gz). */
+object LogFiles {
+    fun isLog(f: File) = f.isFile && (f.name.endsWith(".jsonl") || f.name.endsWith(".jsonl.gz"))
+    fun find(dir: File): List<File> = dir.walkTopDown().filter { isLog(it) }.sortedBy { it.name }.toList()
+    fun lines(f: File): List<String> =
+        if (f.name.endsWith(".gz")) java.util.zip.GZIPInputStream(f.inputStream()).bufferedReader(Charsets.UTF_8).use { it.readLines() }
+        else f.readLines(Charsets.UTF_8)
+}
+
 /** 실제 게임 한 라운드의 시작: 블록 3개가 새로 나왔을 때의 보드와 트레이. */
 data class RoundRecord(val bits: Long, val tray: List<Piece>)
 
@@ -111,9 +120,9 @@ object LogLearner {
 fun main(args: Array<String>) {
     val logs = File(args.getOrNull(0) ?: "logs-from-phone")
     val out = File(args.getOrNull(1) ?: "model-out").apply { mkdirs() }
-    val files = logs.walkTopDown().filter { it.isFile && it.name.endsWith(".jsonl") }.sortedBy { it.name }.toList()
+    val files = LogFiles.find(logs)
     require(files.isNotEmpty()) { "로그 파일(.jsonl)이 없습니다: ${logs.absolutePath}" }
-    val rounds = files.flatMap { f -> f.useLines { LogLearner.parseRounds(it).toList() } }
+    val rounds = files.flatMap { f -> LogLearner.parseRounds(LogFiles.lines(f).asSequence()) }
     println("로그 ${files.size}개에서 라운드 ${rounds.size}개 읽음")
     val res = LogLearner.learn(rounds)
     println(res.report)

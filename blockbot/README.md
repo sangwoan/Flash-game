@@ -20,7 +20,8 @@
   - `LogLearner` — 폰 로그에서 실제 블록 출현 확률과 게임의 관대함(들어갈 블록을 골라 주는 정도) 학습
   - `Tuner` — 학습한 분포로 자가대국하며 평가 가중치를 (1+λ) 진화 전략으로 튜닝
 - `app/` — 안드로이드 앱: 접근성 서비스 하나로 캡처·오버레이(힌트)·드래그(자동). 로그는 폰에 JSONL로 저장
-- `mac/` — `run.sh`(도구 설치→빌드→설치→접근성 켜기→실행), `learn.sh`(로그→패턴 학습→[튜닝]→폰에 올림), `pull-logs.sh`, `watch.sh`
+- `mac/` — `run.sh`(도구 설치→빌드→설치→접근성 켜기→실행), `sync.sh`(로그를 `blockbot-data` 브랜치로 올리고 클라우드 결과를 폰에 적용), `improve.sh`(맥에서 개선 루프 한 번), `learn.sh`, `feedback.sh`, `pull-logs.sh`, `watch.sh`
+- `cloud/improve-from-data.sh` — 예약 실행: `blockbot-data`의 로그로 학습·분석(`LogAnalyzer`)·튜닝·검증 → `model/`에 결과와 리포트
 
 ## 진행
 1. [x] 솔버 + 단위 테스트

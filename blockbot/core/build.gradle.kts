@@ -56,3 +56,13 @@ tasks.register<JavaExec>("tune") {
     workingDir = rootProject.projectDir
     args = (project.findProperty("tuneArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
 }
+
+// 개선 루프 한 번 (학습→분석→튜닝→검증→리포트): ./gradlew :core:improve -PimproveArgs="로그폴더 출력폴더 튜닝분"
+tasks.register<JavaExec>("improve") {
+    group = "blockbot"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.blockbot.core.LogAnalyzerKt")
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8", "-Xmx2g")
+    workingDir = rootProject.projectDir
+    args = (project.findProperty("improveArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
+}

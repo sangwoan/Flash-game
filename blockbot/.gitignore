@@ -6,3 +6,4 @@ local.properties
 .kotlin/
 logs-from-phone/
 model-out/
+model-cloud/
