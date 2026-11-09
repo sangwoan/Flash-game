@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BlockBot</string>
+    <string name="service_label">BlockBot 블록 퍼즐 도우미</string>
+    <string name="service_description">화면의 8×8 블록 퍼즐을 읽어 최적의 수를 표시(힌트)하거나 대신 둡니다(자동). 화면 캡처와 제스처 실행에 접근성 권한을 사용하며, 데이터는 폰 밖으로 보내지 않습니다.</string>
+</resources>
