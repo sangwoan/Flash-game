@@ -7,7 +7,8 @@ import kotlin.random.Random
 /**
  * 평가 가중치 자동 튜닝: 블록 분포로 자기 자신과 대국(시뮬레이션)하며 (1+λ) 진화 전략으로 가중치를 고른다.
  * 목표 = 판별 log(1+점수)의 평균 (오래 살아남고 콤보를 길게 끄는 쪽이 커진다).
- * 세대마다 새 판(시드)으로 부모와 자식을 같은 조건에서 비교 → 운에 과적합 방지.
+ * 세대마다 새 판(시드)으로 부모와 자식을 같은 조건에서 비교하고, 최고 자식은 또 다른 새 판에서 한 번 더 이겨야 채택
+ * → 운에 과적합(승자의 저주) 방지. 마지막에 수읽기를 켠 검증에서 기존보다 나을 때만 저장.
  */
 object Tuner {
     class Param(val name: String, val lo: Double, val hi: Double, val get: (Weights) -> Double, val set: (Weights, Double) -> Weights)
@@ -57,10 +58,18 @@ object Tuner {
                 val f = fitness(child, dist, rules, seeds, maxRounds)
                 if (f > fBest) { best = child; fBest = f }
             }
-            val improved = best !== parent
-            parent = best
+            // 승자의 저주 방지: 6개 중 최고는 운이 좋았을 수 있으므로, 새 판들에서 다시 부모를 이겨야 채택
+            var improved = false
+            if (best !== parent) {
+                val fresh = List(games) { rng.nextLong() }
+                val fp = fitness(parent, dist, rules, fresh, maxRounds)
+                val fc = fitness(best, dist, rules, fresh, maxRounds)
+                improved = fc > fp
+                if (improved) fBest = fc
+            }
+            if (improved) parent = best
             sigma = maxOf(0.05, sigma * if (improved) 1.0 else 0.85)
-            log("세대 %2d: 부모 %.3f → 최선 %.3f %s (σ=%.2f, %ds)".format(g, fParent, fBest, if (improved) "✔" else "", sigma, (System.currentTimeMillis() - t0) / 1000))
+            log("세대 %2d: 부모 %.3f, 후보 재검증 %.3f %s (σ=%.2f, %ds)".format(g, fParent, fBest, if (improved) "✔ 채택" else "", sigma, (System.currentTimeMillis() - t0) / 1000))
         }
         return parent
     }

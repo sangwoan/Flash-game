@@ -47,13 +47,23 @@ class MainActivity : Activity() {
             setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         })
         col.addView(body("맥에서 mac/run.sh로 설치했다면 자동으로 켜져 있습니다. 꺼져 있으면 위 버튼 → 설치된 앱 → BlockBot → 켜기."))
+        col.addView(Button(this).apply {
+            text = "화면 패널 다시 열기"
+            setOnClickListener {
+                val svc = BotService.instance
+                if (svc != null) { svc.reopenPanel(); android.widget.Toast.makeText(this@MainActivity, "패널을 열었습니다. 게임으로 돌아가세요.", android.widget.Toast.LENGTH_SHORT).show() }
+                else android.widget.Toast.makeText(this@MainActivity, "접근성 서비스가 꺼져 있습니다", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        })
 
         col.addView(title("2. 사용법"))
         col.addView(body(
             "• 게임을 열면 화면 위쪽에 [힌트][자동][정지] 패널이 뜹니다. 패널은 ⠿를 끌어 옮길 수 있습니다(보드·블록 영역은 피해서).\n" +
             "• 힌트: 놓을 자리를 ①분홍 ②하늘 ③노랑 테두리로 표시. 직접 두면 다음 수를 다시 계산합니다.\n" +
             "• 자동: 봇이 직접 드래그합니다. 처음 몇 수는 드래그 위치를 스스로 보정하느라 한두 칸 빗나갈 수 있습니다.\n" +
-            "• 정지: 모든 동작 중지."
+            "• 정지: 모든 동작 중지.\n" +
+            "• 📷: 지금 화면과 인식 상태를 저장 (문제가 보이면 누르고 맥에서 mac/pull-logs.sh).\n" +
+            "• —: 패널을 작은 BB 칩으로 접기 (칩을 탭하면 펼침).  ✕: 멈추고 패널 닫기 (이 화면의 \"화면 패널 다시 열기\"로 복구)."
         ))
 
         col.addView(title("3. 콤보 규칙"))

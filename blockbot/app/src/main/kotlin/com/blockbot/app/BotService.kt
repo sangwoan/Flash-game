@@ -45,6 +45,8 @@ class BotService : AccessibilityService() {
 
     override fun onInterrupt() {}
 
+    fun reopenPanel() = ui?.reopenPanel()
+
     /** 맨 앞 앱 패키지. 서비스가 켜지기 전에 이미 열려 있던 앱이면 활성 창에서 읽는다. */
     fun activePackage(): String? =
         runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()

@@ -81,6 +81,13 @@ fun main(args: Array<String>) {
         val hs = args.getOrNull(5)?.split(",")?.map { it.toDouble() } ?: listOf(0.0, 0.05, 0.1, 0.2, 0.4, 0.8)
         linkedMapOf<String, Solver>("v1 (이전)" to LegacyPolicy.solver(rules)) +
             hs.associate { h -> "v2 h=$h" to Solver(rules = rules, weights = Weights(healthPerStreak = h)) }
+    } else if (args.getOrNull(4) == "weights") {
+        // 가중치 파일 비교 (수읽기 켬): 기본 vs 파일들
+        val la = LookaheadConfig(samples = 12, timeBudgetMs = 600_000)
+        linkedMapOf<String, Solver>("기본 가중치" to Solver(rules = rules, lookahead = la)) +
+            args.drop(5).associate { f ->
+                java.io.File(f).name to Solver(rules = rules, weights = Weights.fromText(java.io.File(f).readText()), lookahead = la)
+            }
     } else if (args.getOrNull(4) == "lookahead") {
         // 수읽기 설정 비교: 샘플 수 목록 (예: "8,16")
         // 형식: 샘플수/후보수/게임오버감점 (예: "16/10/500,32/20/1000")

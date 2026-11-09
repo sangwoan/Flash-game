@@ -116,6 +116,40 @@ class BotController(
         }
     }
 
+    private var reports = 0
+
+    /**
+     * 📷 버튼: 지금 화면(패널·힌트 포함, 사용자가 보는 그대로)과 인식·추적·계획 상태를 함께 저장.
+     * 맥에서 mac/pull-logs.sh로 가져오면 logs-from-phone의 screens 폴더에 report 이름의 PNG로 들어 있다.
+     */
+    fun saveReport() {
+        handler.post {
+            val wait = (MIN_SHOT_INTERVAL_MS - (now() - lastShotAt)).coerceAtLeast(0)
+            handler.postDelayed({
+                lastShotAt = now()
+                service.capture(executor) { bmp, err ->
+                    reports++
+                    val name = bmp?.let { log.screenshot(it, "report") }
+                    val v = lastVision
+                    val st = tracker.state
+                    log.event("report", json(
+                        "n" to reports, "screen" to name, "captureError" to (if (bmp == null) err else null),
+                        "mode" to mode.name, "status" to ui.currentStatus,
+                        "visionIssues" to v?.issues, "visionWarnings" to v?.warnings, "uncertain" to v?.uncertainCells,
+                        "board" to v?.board?.toAscii(), "tray" to v?.trayPieces?.map { it?.pattern() },
+                        "bevel" to v?.cellBevel?.map { it.toInt() },
+                        "trackedBoard" to st?.board?.toAscii(), "combo" to st?.comboStreak,
+                        "plan" to plan?.steps?.map { "slot${it.slot}@${it.row},${it.col}" },
+                        "geometry" to geo?.let { "%.0f,%.0f,%.1f".format(it.x0, it.y0, it.cell) },
+                        "drag" to dragModel.describe(),
+                    ))
+                    bmp?.recycle()
+                    ui.status(if (name != null) "📷 저장됨 #$reports — 맥에서 mac/pull-logs.sh 로 가져오기" else "📷 캡처 실패 (코드 $err)")
+                }
+            }, wait)
+        }
+    }
+
     fun shutdown() {
         handler.removeCallbacksAndMessages(null)
         thread.quitSafely()

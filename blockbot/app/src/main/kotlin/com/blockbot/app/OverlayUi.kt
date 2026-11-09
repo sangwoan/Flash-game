@@ -50,11 +50,18 @@ class OverlayUi(private val service: BotService, private val prefs: Prefs) {
         }
     }
 
-    fun status(text: String) = main.post { statusView?.text = text }
+    @Volatile var currentStatus: String = ""
+        private set
+
+    fun status(text: String) {
+        currentStatus = text
+        main.post { statusView?.text = text }
+    }
     fun showPlan(geo: BoardGeometry?, plan: Plan?) = main.post { hintView?.set(geo, plan) }
     fun setHintsVisible(visible: Boolean) = main.post { hintView?.visibility = if (visible) View.VISIBLE else View.INVISIBLE }
 
     fun modeChanged(m: Mode) = main.post {
+        miniView?.text = when (m) { Mode.HINT -> "BB 힌트"; Mode.AUTO -> "BB 자동"; Mode.OFF -> "BB" }
         for ((mode, b) in buttons) {
             val on = mode == m
             (b.background as GradientDrawable).setColor(if (on) ACTIVE[mode]!! else 0x33FFFFFF)
@@ -83,35 +90,48 @@ class OverlayUi(private val service: BotService, private val prefs: Prefs) {
         hintView = v
     }
 
+    /** 패널을 닫았다가 다시 열기 (BlockBot 앱의 "화면 패널 다시 열기" 버튼). */
+    fun reopenPanel() = main.post { if (panel == null) addPanel() }
+
+    private fun chip(label: String, onClick: () -> Unit) = TextView(service).apply {
+        text = label
+        setTextColor(Color.WHITE)
+        textSize = 14f
+        typeface = Typeface.DEFAULT_BOLD
+        setPadding(dp(11f), dp(6f), dp(11f), dp(6f))
+        background = GradientDrawable().apply { cornerRadius = dp(10f).toFloat(); setColor(0x33FFFFFF) }
+        setOnClickListener { onClick() }
+    }
+
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
     private fun addPanel() {
         val root = LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(10f), dp(8f), dp(10f), dp(8f))
+            setPadding(dp(8f), dp(7f), dp(8f), dp(7f))
             background = GradientDrawable().apply { cornerRadius = dp(14f).toFloat(); setColor(0xDD111827.toInt()) }
         }
+        // ── 펼친 상태: 버튼 줄 + 상태 글자 ──
+        val expanded = LinearLayout(service).apply { orientation = LinearLayout.VERTICAL }
         val row = LinearLayout(service).apply { orientation = LinearLayout.HORIZONTAL }
+        fun add(v: View) = row.addView(v, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { rightMargin = dp(5f) })
+        buttons.clear()
         for ((mode, label) in listOf(Mode.HINT to "힌트", Mode.AUTO to "자동", Mode.OFF to "정지")) {
-            val b = TextView(service).apply {
-                text = label
-                setTextColor(Color.WHITE)
-                textSize = 14f
-                typeface = Typeface.DEFAULT_BOLD
-                setPadding(dp(14f), dp(6f), dp(14f), dp(6f))
-                background = GradientDrawable().apply { cornerRadius = dp(10f).toFloat(); setColor(0x33FFFFFF) }
-                setOnClickListener { controller?.setMode(mode) }
-            }
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { rightMargin = dp(6f) }
-            row.addView(b, lp)
+            val b = chip(label) { controller?.setMode(mode) }
+            add(b)
             buttons[mode] = b
         }
+        // 📷 = 지금 화면 + 인식 상태 저장(문제 신고용), — = 작게 접기, ✕ = 닫기
+        add(chip("📷") { controller?.saveReport() })
+        val collapseBtn = chip("—") {}
+        add(collapseBtn)
+        add(chip("✕") { closePanel() })
         val handle = TextView(service).apply {
-            text = "  ⠿"
+            text = " ⠿"
             setTextColor(0xAAFFFFFF.toInt())
             textSize = 18f
         }
         row.addView(handle)
-        root.addView(row)
+        expanded.addView(row)
         val status = TextView(service).apply {
             text = "BlockBot 준비됨 — [힌트] 또는 [자동]"
             setTextColor(Color.WHITE)
@@ -119,7 +139,19 @@ class OverlayUi(private val service: BotService, private val prefs: Prefs) {
             maxWidth = (service.resources.displayMetrics.widthPixels * 0.8).toInt()
             setPadding(0, dp(6f), 0, 0)
         }
-        root.addView(status)
+        expanded.addView(status)
+        root.addView(expanded)
+
+        // ── 접은 상태: 작은 칩 하나 (탭하면 펼침, 끌어서 이동) ──
+        val mini = TextView(service).apply {
+            text = "BB"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(6f), dp(2f), dp(6f), dp(2f))
+            visibility = View.GONE
+        }
+        root.addView(mini)
 
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -133,9 +165,9 @@ class OverlayUi(private val service: BotService, private val prefs: Prefs) {
             y = prefs.panelY
         }
 
-        // 손잡이(⠿)나 상태 글자를 끌면 패널 이동
+        // 손잡이(⠿)·상태 글자·접힌 칩을 끌면 패널 이동. 접힌 칩은 거의 안 움직이고 떼면 탭으로 보고 펼침.
         var downX = 0f; var downY = 0f; var startX = 0; var startY = 0
-        val mover = View.OnTouchListener { _, e ->
+        val mover = View.OnTouchListener { v, e ->
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> { downX = e.rawX; downY = e.rawY; startX = lp.x; startY = lp.y; true }
                 MotionEvent.ACTION_MOVE -> {
@@ -144,18 +176,43 @@ class OverlayUi(private val service: BotService, private val prefs: Prefs) {
                     runCatching { wm.updateViewLayout(root, lp) }
                     true
                 }
-                MotionEvent.ACTION_UP -> { prefs.panelX = lp.x; prefs.panelY = lp.y; true }
+                MotionEvent.ACTION_UP -> {
+                    prefs.panelX = lp.x; prefs.panelY = lp.y
+                    val moved = kotlin.math.abs(e.rawX - downX) + kotlin.math.abs(e.rawY - downY) > dp(8f)
+                    if (v === mini && !moved) setCollapsed(false)
+                    true
+                }
                 else -> false
             }
         }
         handle.setOnTouchListener(mover)
         status.setOnTouchListener(mover)
+        mini.setOnTouchListener(mover)
+        collapseBtn.setOnClickListener { setCollapsed(true) }
 
         wm.addView(root, lp)
         panel = root
         panelParams = lp
         statusView = status
-        modeChanged(Mode.OFF)
+        expandedView = expanded
+        miniView = mini
+        modeChanged(controller?.mode ?: Mode.OFF)
+    }
+
+    private var expandedView: View? = null
+    private var miniView: TextView? = null
+
+    private fun setCollapsed(collapsed: Boolean) {
+        expandedView?.visibility = if (collapsed) View.GONE else View.VISIBLE
+        miniView?.visibility = if (collapsed) View.VISIBLE else View.GONE
+    }
+
+    /** ✕: 동작을 멈추고 패널·힌트를 화면에서 치운다. 다시 열려면 BlockBot 앱 → "화면 패널 다시 열기". */
+    private fun closePanel() {
+        controller?.setMode(Mode.OFF)
+        panel?.let { runCatching { wm.removeView(it) } }
+        panel = null; statusView = null; expandedView = null; miniView = null
+        hintView?.set(null, null)
     }
 
     companion object {
