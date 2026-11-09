@@ -190,8 +190,9 @@ class HintView(context: Context) : View(context) {
         p.steps.forEachIndexed { i, s ->
             val color = COLORS[i % COLORS.size]
             stroke.color = color
-            stroke.strokeWidth = (g.cell * if (i == 0) 0.07 else 0.045).toFloat()
-            val inset = g.cell * 0.10
+            // 테두리는 칸의 15~22% 안쪽에: 인식이 보는 영역(윗변 5~11%, 아랫변 86~93%, 중앙 30~70%)을 피함
+            stroke.strokeWidth = (g.cell * if (i == 0) 0.06 else 0.04).toFloat()
+            val inset = g.cell * 0.185
             for (c in s.piece.cells) {
                 val x = g.x0 + (s.col + c.c) * g.cellW
                 val y = g.y0 + (s.row + c.r) * g.cellH

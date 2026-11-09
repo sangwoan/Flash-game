@@ -8,6 +8,9 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowInsets
+import android.widget.FrameLayout
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
@@ -90,7 +93,20 @@ class MainActivity : Activity() {
         })
         col.addView(body("로그 위치: Android/data/$packageName/files/logs\n맥에서 mac/pull-logs.sh 로 가져올 수 있습니다."))
 
-        setContentView(ScrollView(this).apply { setBackgroundColor(Color.WHITE); addView(col) })
+        // Android 15부터 앱이 상태바·내비게이션 바 아래까지 그려지므로(edge-to-edge) 그 높이만큼 여백을 줘야
+        // 맨 위·맨 아래 내용이 가려지지 않고 끝까지 스크롤된다.
+        val scroll = ScrollView(this).apply {
+            setBackgroundColor(Color.WHITE)
+            isFillViewport = true
+            isVerticalScrollBarEnabled = true
+            addView(col, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+            setOnApplyWindowInsetsListener { _, insets ->
+                val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                col.setPadding(pad, pad + bars.top, pad, pad * 3 + bars.bottom)
+                insets
+            }
+        }
+        setContentView(scroll, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
     }
 
     override fun onResume() {

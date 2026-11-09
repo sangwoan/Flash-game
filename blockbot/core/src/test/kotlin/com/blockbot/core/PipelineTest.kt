@@ -22,13 +22,14 @@ class PipelineTest {
     private fun shade(c: Int, k: Double) = rgb((((c shr 16) and 0xFF) * k).roundToInt(), (((c shr 8) and 0xFF) * k).roundToInt(), ((c and 0xFF) * k).roundToInt())
 
     private fun block(px: IntArray, x0: Int, y0: Int, size: Int, color: Int) {
-        val bevel = maxOf(2, size / 14)
+        val bevel = maxOf(2, size / 8) // 실제 게임 블록의 베벨 두께(칸의 약 12%)
         for (y in y0 until y0 + size) for (x in x0 until x0 + size) {
             if (x !in 0 until w || y !in 0 until h) continue
             val dx = x - x0; val dy = y - y0
             px[y * w + x] = when {
-                dy < bevel || dx < bevel -> shade(color, 1.18)
-                dy >= size - bevel || dx >= size - bevel -> shade(color, 0.72)
+                // 실측(초록 테마): 윗변 = 면 +55, 아랫변 = 면 ×0.75
+                dy < bevel || dx < bevel -> rgb(((color shr 16) and 0xFF) + 55, ((color shr 8) and 0xFF) + 55, (color and 0xFF) + 55)
+                dy >= size - bevel || dx >= size - bevel -> shade(color, 0.75)
                 else -> color
             }
         }
@@ -83,7 +84,8 @@ class PipelineTest {
             val img = render(truth.board, tray, colors)
             val g = assertNotNull(Vision.detectGeometry(img))
             val v = Vision.read(img, g)
-            assertTrue(v.clean, "인식 문제: ${v.issues} uncertain=${v.uncertainCells}")
+            assertTrue(v.clean, "인식 문제: ${v.issues} uncertain=${v.uncertainCells}\n${truth.board.toAscii()}\n" +
+                "bevel=" + v.cellBevel.map { it.toInt() }.chunked(8).joinToString("\n") + "\ndist=" + v.cellDistance.map { it.toInt() }.chunked(8).joinToString("\n"))
             assertEquals(truth.board, v.board, "보드 인식 불일치")
             assertEquals(tray, v.trayPieces, "트레이 인식 불일치")
             tracker.observe(v)

@@ -32,11 +32,12 @@ data class TrayRead(
 data class VisionResult(
     val geometry: BoardGeometry,
     val board: Board,
-    val cellDistance: DoubleArray,  // 칸별: 가장 어두운 칸(빈칸 기준색)과의 색 거리 — 로그·튜닝용
+    val cellDistance: DoubleArray,  // 칸별: 빈칸 기준색과의 색 거리 — 로그·튜닝용
     val uncertainCells: Int,        // 빈칸/채움 판정이 애매한 칸 수 (애니메이션·글자 겹침 등)
     val tray: List<TrayRead?>,      // 슬롯 0..2, 비었으면 null
     val issues: List<String>,       // 이 프레임을 믿을 수 없게 만드는 문제
     val warnings: List<String> = emptyList(), // 기록만 하는 참고 사항 (예: 처음 보는 블록 모양)
+    val cellBevel: DoubleArray = DoubleArray(64), // 칸별 베벨(윗변−아랫변 밝기) — 로그·튜닝용
 ) {
     /** 이 프레임을 믿어도 되는가. */
     val clean: Boolean get() = uncertainCells == 0 && issues.isEmpty()
@@ -48,15 +49,19 @@ data class VisionConfig(
     val minCellFrac: Double = 0.08,     // 칸 크기 / 화면 폭 탐색 범위
     val maxCellFrac: Double = 0.135,
     val patchFrac: Double = 0.2,        // 칸 중앙에서 ±patchFrac×칸 영역의 평균색 사용
-    val emptyMaxDist: Double = 50.0,    // 빈칸 기준색과 이보다 가까우면 빈칸
-    val filledMinDist: Double = 100.0,  // 이보다 멀면 채움, 그 사이는 애매
+    // 베벨 = (칸 윗변 띠 밝기 − 아랫변 띠 밝기). 실측: 블록 84~128, 빈칸 0~1 (테마 6종)
+    val bevelTop0: Double = 0.05, val bevelTop1: Double = 0.11,
+    val bevelBottom0: Double = 0.86, val bevelBottom1: Double = 0.93,
+    val bevelFilled: Double = 40.0,     // 이 이상이면 블록
+    val bevelFlat: Double = 15.0,       // 절댓값이 이 이하면 평평(빈칸), 그 사이는 애매
+    val emptyColorTolerance: Double = 60.0, // 평평한 칸인데 빈칸 기준색과 이만큼 다르면 애매
     val maxPatchStd: Double = 40.0,     // 칸 중앙 밝기 표준편차가 이보다 크면 애매 (글자·이펙트)
     val trayScale: Double = 0.447,      // 트레이 블록 칸 크기 / 보드 칸 크기 (실측)
     val trayTopCells: Double = 0.6,     // 트레이 영역: 보드 아래 0.6칸 ~ 4.2칸
     val trayBottomCells: Double = 4.2,
-    val trayDist: Double = 60.0,        // 배경과 이보다 멀어야 블록 후보
-    val trayBrighter: Double = 1.08,    // 배경보다 이만큼 밝거나
-    val trayResidual: Double = 45.0,    // 배경과 색조가 이만큼 다르면 블록 (그림자 제외용)
+    val trayDist: Double = 22.0,        // 배경과 이보다 멀면 블록 후보 (초록 블록 on 초록 배경 ≈ 38)
+    val shadowAlpha: Double = 0.92,     // 배경을 그대로 어둡게 한 색(그림자)은 제외:
+    val shadowResidual: Double = 25.0,  //   밝기 비율 < shadowAlpha 이고 색조 차이 < shadowResidual
     val trayDimTolerance: Double = 0.3, // 크기/칸 이 정수에서 이만큼 벗어나면 이상
     val minCombContrast: Double = 1.6,  // 격자 검출 신뢰도 하한
 )
@@ -161,27 +166,53 @@ object Vision {
         return Patch(r / n, gg / n, b / n, sqrt(max(0.0, l2 / n - ml * ml)))
     }
 
+    /** 칸 (r,c)의 가로 가운데 구간(35~65%), 세로 [f0, f1] 구간 평균 밝기. */
+    private fun bandLum(img: PixelImage, geo: BoardGeometry, r: Int, c: Int, f0: Double, f1: Double): Double {
+        val x0 = (geo.x0 + (c + 0.35) * geo.cellW).roundToInt().coerceIn(0, img.width - 1)
+        val x1 = (geo.x0 + (c + 0.65) * geo.cellW).roundToInt().coerceIn(0, img.width - 1)
+        val y0 = (geo.y0 + (r + f0) * geo.cellH).roundToInt().coerceIn(0, img.height - 1)
+        val y1 = max(y0, (geo.y0 + (r + f1) * geo.cellH).roundToInt().coerceIn(0, img.height - 1))
+        var sum = 0L; var n = 0
+        for (y in y0..y1) for (x in x0..x1) { sum += lum(img.rgb(x, y)); n++ }
+        return sum.toDouble() / n
+    }
+
     fun read(img: PixelImage, geo: BoardGeometry, cfg: VisionConfig = VisionConfig()): VisionResult {
         val issues = ArrayList<String>()
 
         // ── 보드 ──
+        // 칸 판정은 색이 아니라 "입체감(베벨)"으로 한다: 블록은 윗변이 밝고 아랫변이 어둡고, 빈칸은 평평하다.
+        // (테마마다 빈칸이 블록보다 어둡기도 밝기도 해서 색 기준은 깨진다 — 초록 테마에서 확인)
         val patches = Array(64) { i ->
             val r = i / 8; val c = i % 8
             patch(img, geo.cellCenterX(c.toDouble()), geo.cellCenterY(r.toDouble()), geo.cell * cfg.patchFrac)
         }
-        // 유효한 보드는 모든 행에 빈칸이 있으므로 가장 어두운 칸은 빈칸이다
-        val darkest = patches.minBy { it.r + it.g + it.b }
-        val dist = DoubleArray(64) { i ->
-            val p = patches[i]
-            sqrt((p.r - darkest.r).let { it * it } + (p.g - darkest.g).let { it * it } + (p.b - darkest.b).let { it * it })
+        val bevel = DoubleArray(64) { i ->
+            val r = i / 8; val c = i % 8
+            val top = bandLum(img, geo, r, c, cfg.bevelTop0, cfg.bevelTop1)
+            val bottom = bandLum(img, geo, r, c, cfg.bevelBottom0, cfg.bevelBottom1)
+            top - bottom
         }
         var bits = 0L
-        var uncertain = 0
-        val mid = (cfg.emptyMaxDist + cfg.filledMinDist) / 2
+        val flat = BooleanArray(64)
         for (i in 0 until 64) {
-            if (dist[i] > mid) bits = bits or (1L shl i)
-            val ambiguous = dist[i] > cfg.emptyMaxDist && dist[i] < cfg.filledMinDist
-            if (ambiguous || patches[i].std > cfg.maxPatchStd) uncertain++
+            if (bevel[i] >= cfg.bevelFilled) bits = bits or (1L shl i)
+            flat[i] = abs(bevel[i]) <= cfg.bevelFlat
+        }
+        // 빈칸 기준색 = 평평한 칸들의 중앙값 (로그·이상 감지용)
+        val emptyIdx = (0 until 64).filter { flat[it] && (bits and (1L shl it)) == 0L }
+        fun median(f: (Patch) -> Double) = emptyIdx.map { f(patches[it]) }.sorted().let { if (it.isEmpty()) 0.0 else it[it.size / 2] }
+        val er = median { it.r }; val eg = median { it.g }; val eb = median { it.b }
+        val dist = DoubleArray(64) { i ->
+            val p = patches[i]
+            sqrt((p.r - er) * (p.r - er) + (p.g - eg) * (p.g - eg) + (p.b - eb) * (p.b - eb))
+        }
+        var uncertain = 0
+        for (i in 0 until 64) {
+            val filled = (bits and (1L shl i)) != 0L
+            val ambiguous = !filled && !flat[i]                          // 베벨이 애매 (애니메이션·글자)
+            val oddEmpty = !filled && emptyIdx.isNotEmpty() && dist[i] > cfg.emptyColorTolerance // 평평한데 빈칸 색이 아님
+            if (ambiguous || oddEmpty || patches[i].std > cfg.maxPatchStd) uncertain++
         }
         for (i in 0 until 8) {
             if ((bits and Bits.ROW[i]) == Bits.ROW[i]) issues += "꽉 찬 행 $i (클리어 애니메이션 중?)"
@@ -191,7 +222,7 @@ object Vision {
         // ── 트레이 ──
         val warnings = ArrayList<String>()
         val tray = readTray(img, geo, cfg, issues, warnings)
-        return VisionResult(geo, Board(bits), dist, uncertain, tray, issues, warnings)
+        return VisionResult(geo, Board(bits), dist, uncertain, tray, issues, warnings, bevel)
     }
 
     private fun readTray(
@@ -228,7 +259,8 @@ object Vision {
                 val alpha = (r * br + g * bg + b * bb) / bgNorm2
                 val rr = r - alpha * br; val rg = g - alpha * bg; val rb = b - alpha * bb
                 val resid = sqrt(rr * rr + rg * rg + rb * rb)
-                if (alpha > cfg.trayBrighter || resid > cfg.trayResidual) mask[yy * w + x] = true
+                val isShadow = alpha < cfg.shadowAlpha && resid < cfg.shadowResidual
+                if (!isShadow) mask[yy * w + x] = true
             }
         }
         val ts = cfg.trayScale * geo.cell

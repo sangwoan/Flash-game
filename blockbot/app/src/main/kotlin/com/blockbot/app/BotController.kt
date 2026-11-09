@@ -64,6 +64,9 @@ class BotController(
     private var pixels: IntArray? = null
     private var lastShotAt = 0L
     private var estScore = 0.0
+    private var frames = 0L
+    private var unstableSince = 0L
+    private var stuckReported = false
     private var screenW = 0
     private var screenH = 0
 
@@ -188,15 +191,34 @@ class BotController(
             badFrames++
             if (badFrames >= GEOMETRY_RESET_FRAMES) {
                 log.event("geometry_reset", json("issues" to v.issues, "uncertain" to v.uncertainCells,
+                    "bevel" to v.cellBevel.map { it.toInt() },
                     "screen" to if (prefs.saveScreens) log.screenshot(bmp, "geometry_reset") else null))
                 geo = null
                 badFrames = 0
             }
         } else badFrames = 0
 
-        when (val ev = tracker.observe(v)) {
+        frames++
+        val ev = tracker.observe(v)
+        if (ev !is TrackEvent.Unstable) { unstableSince = 0L; stuckReported = false }
+        when (ev) {
             is TrackEvent.Unstable -> {
-                if (badFrames == 0 && pending == null) ui.status("대기: ${ev.reason}")
+                if (unstableSince == 0L) unstableSince = now()
+                val waited = (now() - unstableSince) / 1000
+                val what = friendly(ev.reason, v)
+                if (waited >= STUCK_SECS && !stuckReported) {
+                    stuckReported = true
+                    log.event("stuck", json(
+                        "reason" to ev.reason, "issues" to v.issues, "uncertain" to v.uncertainCells,
+                        "board" to v.board.toAscii(), "tray" to v.trayPieces.map { it?.pattern() },
+                        "bevel" to v.cellBevel.map { it.toInt() },
+                        "screen" to if (prefs.saveScreens) log.screenshot(bmp, "stuck") else null,
+                    ))
+                }
+                if (pending == null) ui.status(
+                    if (waited >= STUCK_SECS) "⚠ ${waited}초째 화면 확정 못 함 — $what\n게임 화면이 맞다면 로그를 보내 주세요"
+                    else "${spinner()} $what"
+                )
                 schedule(POLL_MS)
                 return
             }
@@ -307,6 +329,21 @@ class BotController(
         if (mode == Mode.AUTO && pending == null) execute(p.steps.first(), 0) else schedule(POLL_MS)
     }
 
+    /** 살아 있음을 보여주는 회전 표시 (화면을 읽을 때마다 바뀜). */
+    private fun spinner(): String = SPIN[(frames % SPIN.size).toInt()]
+
+    /** 대기 이유를 짧은 말로. */
+    private fun friendly(reason: String, v: VisionResult): String = when {
+        v.issues.any { it.contains("꽉 찬") } -> "줄 지우는 애니메이션 기다리는 중"
+        v.issues.any { it.startsWith("슬롯") } -> "아래 블록 모양 읽는 중"
+        v.issues.any { it.contains("트레이") } -> "블록 영역을 찾는 중"
+        v.uncertainCells > 0 -> "화면이 움직이는 중 (애니메이션 끝나길 기다림)"
+        reason == "안정화 대기" -> "화면 확인 중"
+        reason == "드래그 중" -> "블록 옮기는 중"
+        reason.startsWith("배치 설명 불가") -> "방금 둔 수 확인 중"
+        else -> reason.take(40)
+    }
+
     private fun statusText(st: GameState, p: Plan): String {
         val order = p.steps.mapIndexed { i, s -> "${CIRCLED[i]}슬롯${s.slot + 1}" }.joinToString(" ")
         val warn = when {
@@ -317,7 +354,7 @@ class BotController(
         }
         val head = if (mode == Mode.AUTO) "자동" else "힌트"
         val next = p.outlook?.let { " · 다음 판 생존 ${((1 - it.deathRate) * 100).toInt()}%" } ?: ""
-        return "$head · 콤보 ${st.comboStreak} · 이번 +${p.pathScore.toInt()}$next · ${planMs}ms\n$order$warn"
+        return "${spinner()} $head · 콤보 ${st.comboStreak} · 이번 +${p.pathScore.toInt()}$next · ${planMs}ms\n$order$warn"
     }
 
     private fun execute(step: Step, attempt: Int) {
@@ -350,6 +387,8 @@ class BotController(
         const val POLL_IDLE_MS = 1000L
         const val PENDING_TIMEOUT_MS = 6000L
         const val GEOMETRY_RESET_FRAMES = 10
+        const val STUCK_SECS = 6L
+        private val SPIN = arrayOf("◐", "◓", "◑", "◒")
         private val CIRCLED = arrayOf("①", "②", "③", "④", "⑤")
     }
 }
