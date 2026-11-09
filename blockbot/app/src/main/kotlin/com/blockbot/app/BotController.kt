@@ -357,8 +357,11 @@ class BotController(
     private fun dropRejected(p: PendingMove, shot: String?) {
         pending = null
         val next = p.attempt + 1
-        log.event("drop_rejected", json("slot" to p.step.slot, "row" to p.step.row, "col" to p.step.col, "attempt" to p.attempt, "screen" to shot))
-        if (next >= DragPlanner.RETRY_EXTRA_LIFT.size) {
+        log.event("drop_rejected", json(
+            "slot" to p.step.slot, "row" to p.step.row, "col" to p.step.col, "attempt" to p.attempt, "screen" to shot,
+            "from" to "%.0f,%.0f".format(p.path.fromX, p.path.fromY), "to" to "%.0f,%.0f".format(p.path.toX, p.path.toY),
+        ))
+        if (next >= DragPlanner.MAX_ATTEMPTS) {
             ui.status("드래그가 반영되지 않아 자동을 멈췄습니다. 힌트 모드로 전환합니다.")
             mode = Mode.HINT
             ui.modeChanged(Mode.HINT)
@@ -449,12 +452,13 @@ class BotController(
         val g = geo ?: return schedule(POLL_MS)
         val tr = lastVision?.tray?.getOrNull(step.slot) ?: return schedule(POLL_MS)
         val st = tracker.state ?: return schedule(POLL_MS)
-        val extra = DragPlanner.RETRY_EXTRA_LIFT[attempt]
-        val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, dragModel, screenW, screenH, extra)
+        val extra = 0.0
+        val useModel = dragModel.forAttempt(attempt)
+        val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, useModel, screenW, screenH)
         pending = PendingMove(step, attempt, extra, path, st.board, now())
         log.event("move", json(
             "slot" to step.slot, "piece" to step.piece.pattern(), "row" to step.row, "col" to step.col,
-            "attempt" to attempt, "extraLift" to extra, "model" to dragModel.describe(),
+            "attempt" to attempt, "model" to useModel.describe(),
             "from" to "%.0f,%.0f".format(path.fromX, path.fromY), "to" to "%.0f,%.0f".format(path.toX, path.toY),
         ))
         // 세션 처음 몇 수는 손가락을 누른 채 멈춘 순간의 화면을 저장 (게임이 드래그 중 무엇을 그리는지 분석용)

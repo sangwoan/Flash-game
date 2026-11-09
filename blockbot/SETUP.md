@@ -110,6 +110,10 @@ cd ~/Flash-game && git pull && bash blockbot/mac/run.sh
 | 자동 드래그가 엉뚱한 곳에 놓임 | 처음 2~4수는 학습 중. 계속되면 설정 화면 → 드래그 학습 초기화, 자동 속도 "느림" |
 | 한참 쓰다 패널이 사라짐 | 설정 → 애플리케이션 → BlockBot → 배터리 → "제한 없음" |
 
+**피드백 보내기 (권장)**: 폰을 연결한 상태에서 `bash ~/Flash-game/blockbot/mac/feedback.sh` →
+바탕화면에 `blockbot-feedback-날짜` 폴더가 열립니다. 안의 사진(📷 신고, 드래그 실패 등)과 summary.txt를 대화창에 끌어다 놓아 주세요.
+(저장소가 공개라서 스크린샷은 GitHub에 올리지 않습니다)
+
 **로그 보내기**: 폰을 연결한 상태에서 `bash ~/Flash-game/blockbot/mac/pull-logs.sh` 를 실행하면
 `blockbot/logs-from-phone/`에 기록(JSONL)과 문제 상황 스크린샷이 저장됩니다. 이 폴더를 대화에 올려 주시면 됩니다.
 실시간으로 보려면 `bash ~/Flash-game/blockbot/mac/watch.sh`

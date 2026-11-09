@@ -80,27 +80,30 @@ class BotService : AccessibilityService() {
     /**
      * 트레이 블록을 집어 목표 지점까지 끌고 가서 멈춘 뒤 놓는다. 사람 손처럼:
      *  1) 누르고 잠깐 대기 (게임이 블록을 집도록)
-     *  2) 거리의 85%까지 빠르게
-     *  3) 나머지 15%를 천천히 (도착 직전 속도를 줄여 지나치지 않게)
+     *  2) 거리의 80%까지 이동 — 속도 상한이 있어 먼 거리는 그만큼 오래 걸린다
+     *     (이전: 거리와 상관없이 0.26초 → 먼 칸일수록 너무 빨라 블록이 보드 밖으로 날아감)
+     *  3) 나머지 20%를 더 느리게 (도착 직전 감속)
      *  4) 목표점에서 멈춘 채 대기 (게임이 최종 위치를 확정하도록) → 손 뗌
      * 각 단계는 이어지는 스트로크라 손가락은 계속 눌린 상태다.
      * @param onSettle 4단계(멈춰 있는 동안) 시작 시 호출 — 진단용 화면 캡처에 사용
      */
     fun drag(
         path: DragPath, handler: Handler,
-        holdMs: Long = 160, fastMs: Long = 260, slowMs: Long = 220, settleMs: Long = 260,
         onSettle: (() -> Unit)? = null, onDone: (Boolean) -> Unit,
     ) {
         val sx = path.fromX; val sy = path.fromY
-        val mx = sx + (path.toX - sx) * 0.85f; val my = sy + (path.toY - sy) * 0.85f
+        val dist = kotlin.math.hypot((path.toX - sx).toDouble(), (path.toY - sy).toDouble())
+        val fastMs = maxOf(MIN_FAST_MS, (dist * 0.8 / FAST_PX_PER_MS).toLong())
+        val slowMs = maxOf(MIN_SLOW_MS, (dist * 0.2 / SLOW_PX_PER_MS).toLong())
+        val mx = sx + (path.toX - sx) * 0.8f; val my = sy + (path.toY - sy) * 0.8f
         val p1 = Path().apply { moveTo(sx, sy); lineTo(sx + 1f, sy + 1f) }
-        val s1 = GestureDescription.StrokeDescription(p1, 0, holdMs, true)
+        val s1 = GestureDescription.StrokeDescription(p1, 0, HOLD_MS, true)
         val p2 = Path().apply { moveTo(sx + 1f, sy + 1f); lineTo(mx, my) }
         val s2 = s1.continueStroke(p2, 0, fastMs, true)
         val p3 = Path().apply { moveTo(mx, my); lineTo(path.toX, path.toY) }
         val s3 = s2.continueStroke(p3, 0, slowMs, true)
         val p4 = Path().apply { moveTo(path.toX, path.toY); lineTo(path.toX + 0.5f, path.toY) }
-        val s4 = s3.continueStroke(p4, 0, settleMs, false)
+        val s4 = s3.continueStroke(p4, 0, SETTLE_MS, false)
 
         var finished = false
         fun finish(ok: Boolean) { if (!finished) { finished = true; onDone(ok) } }
@@ -115,6 +118,14 @@ class BotService : AccessibilityService() {
     }
 
     companion object {
+        // 드래그 속도: 1080px 폭 화면 기준 빠른 구간 초당 약 1100px, 감속 구간 초당 약 450px
+        const val HOLD_MS = 180L
+        const val FAST_PX_PER_MS = 1.1
+        const val SLOW_PX_PER_MS = 0.45
+        const val MIN_FAST_MS = 220L
+        const val MIN_SLOW_MS = 200L
+        const val SETTLE_MS = 320L
+
         @Volatile var instance: BotService? = null
             private set
     }

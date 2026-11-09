@@ -53,6 +53,19 @@ data class DragModel(
         return (o.sx + qx * o.cell) to (o.sy + qy * o.cell)
     }
 
+    /**
+     * 드롭이 거부됐을 때(블록이 보드 밖 등으로 트레이로 돌아감) 다음 시도에 쓸 모델.
+     *  1회차: 학습된 모델 그대로 / 2회차: 배율을 1로 (배율을 잘못 배웠으면 먼 칸일수록 크게 빗나가므로)
+     *  3·4회차: 배율 1 + 띄움 ∓0.75칸 / 5회차: 처음 기본값
+     */
+    fun forAttempt(attempt: Int): DragModel = when (attempt) {
+        0 -> this
+        1 -> copy(gainX = 1.0, gainY = 1.0)
+        2 -> copy(gainX = 1.0, gainY = 1.0, lift = lift - 0.75)
+        3 -> copy(gainX = 1.0, gainY = 1.0, lift = lift + 0.75)
+        else -> PRIOR
+    }
+
     fun describe() = "이동배율 가로 %.2f·세로 %.2f, 띄움 %.2f칸, 좌우 %.2f칸 (관측 %d회)".format(gainX, gainY, lift, offX, samples)
 
     companion object {
@@ -73,16 +86,26 @@ data class DragModel(
                 if (abs(det) < 1e-9) return g0 to b0
                 return (r1 * a22 - a12 * r2) / det to (a11 * r2 - a12 * r1) / det
             }
+            fun fitAxis(points: List<Pair<Double, Double>>, g0: Double, b0: Double): Pair<Double, Double> {
+                val (g, b) = ridge(points, g0, b0)
+                // 튀는 관측(1.5칸 넘게 벗어남: 잘못 인식된 착지 등)은 빼고 한 번 더 맞춤
+                val kept = points.filter { (d, q) -> abs(q - (g * d + b)) <= 1.5 }
+                return if (kept.size < points.size && kept.isNotEmpty()) ridge(kept, g0, b0) else g to b
+            }
             val xs = obs.map { (it.fx - it.sx) / it.cell to (it.px - it.sx) / it.cell }
             val ys = obs.map { (it.fy - it.sy) / it.cell to (it.py - it.sy) / it.cell + it.pieceH / 2.0 }
-            val (gx, bx) = ridge(xs, prior.gainX, prior.offX)
-            val (gy, by) = ridge(ys, prior.gainY, -prior.lift)
+            val (gx, bx) = fitAxis(xs, prior.gainX, prior.offX)
+            val (gy, by) = fitAxis(ys, prior.gainY, -prior.lift)
             return DragModel(
-                gainX = gx.coerceIn(0.6, 1.8), offX = bx,
-                gainY = gy.coerceIn(0.6, 1.8), lift = -by,
+                gainX = gx.coerceIn(GAIN_MIN, GAIN_MAX), offX = bx,
+                gainY = gy.coerceIn(GAIN_MIN, GAIN_MAX), lift = -by,
                 samples = obs.size,
             )
         }
+
+        /** 배율 허용 범위. 이 밖은 학습 오류로 보고 자른다 (배율을 너무 작게 배우면 먼 칸에서 크게 지나감). */
+        const val GAIN_MIN = 0.8
+        const val GAIN_MAX = 1.3
     }
 }
 
@@ -112,8 +135,8 @@ object DragPlanner {
         return DragObservation(path.fromX.toDouble(), path.fromY.toDouble(), path.toX.toDouble(), path.toY.toDouble(), px, py, geo.cell, piece.height)
     }
 
-    /** 드롭이 거부됐을 때(보드 변화 없음) 시도할 추가 띄움 순서 (칸). */
-    val RETRY_EXTRA_LIFT = doubleArrayOf(0.0, 1.0, -1.0, 2.0, -2.0)
+    /** 드롭이 거부됐을 때 최대 시도 횟수 ([DragModel.forAttempt]). */
+    const val MAX_ATTEMPTS = 5
 
     fun rowColAt(geo: BoardGeometry, x: Double, y: Double): Pair<Int, Int> =
         ((y - geo.y0) / geo.cellH - 0.5).roundToInt() to ((x - geo.x0) / geo.cellW - 0.5).roundToInt()
