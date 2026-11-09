@@ -19,7 +19,7 @@ import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import com.blockbot.core.ComboMode
-import com.blockbot.core.DragCalibration
+import com.blockbot.core.DragModel
 
 /** 설정·안내 화면. 실제 동작은 접근성 서비스(BotService)와 화면 위 패널에서. */
 class MainActivity : Activity() {
@@ -77,12 +77,12 @@ class MainActivity : Activity() {
         }
         col.addView(speed)
 
-        col.addView(title("5. 드래그 보정"))
+        col.addView(title("5. 학습 상태"))
         calText = body("")
         col.addView(calText)
         col.addView(Button(this).apply {
-            text = "보정값 초기화"
-            setOnClickListener { prefs.calibration = DragCalibration(); refresh() }
+            text = "드래그 학습 초기화"
+            setOnClickListener { prefs.dragObservations = emptyList(); refresh() }
         })
 
         col.addView(title("6. 로그"))
@@ -118,8 +118,12 @@ class MainActivity : Activity() {
         val on = isServiceEnabled()
         serviceStatus.text = if (on) "● 켜짐 — 게임을 열면 패널이 보입니다" else "○ 꺼짐 — 아래 버튼으로 켜 주세요"
         serviceStatus.setTextColor(if (on) 0xFF059669.toInt() else 0xFFDC2626.toInt())
-        val c = prefs.calibration
-        calText.text = "손가락 위 띄움 %.1f칸, 좌우 %.1f칸 (학습 %d회)".format(c.liftCells, c.offsetXCells, c.samples)
+        val m = DragModel.fit(prefs.dragObservations)
+        val models = listOfNotNull(getExternalFilesDir("model"), java.io.File(filesDir, "model"))
+            .flatMap { d -> listOf("distribution.txt", "weights.txt").map { java.io.File(d, it) } }.filter { it.isFile }
+        calText.text = "자동 드래그: ${m.describe()}\n" +
+            "자동 모드로 둘 때마다 손가락 위치와 실제 착지 위치를 비교해 배율·띄움을 다시 맞춥니다.\n" +
+            "학습 모델: " + (if (models.isEmpty()) "없음 (기본값 사용) — 맥에서 mac/learn.sh 실행 시 올라옵니다" else models.joinToString { it.name })
     }
 
     private fun isServiceEnabled(): Boolean {

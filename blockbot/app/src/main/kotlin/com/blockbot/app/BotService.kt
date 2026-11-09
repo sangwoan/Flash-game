@@ -76,25 +76,40 @@ class BotService : AccessibilityService() {
     }
 
     /**
-     * 트레이 블록을 집어(잠깐 누름) 목표 지점까지 끌고 가서 잠깐 멈춘 뒤 놓는다.
-     * 3단계 스트로크를 이어 붙여 실제 손가락 드래그처럼 보이게 한다.
+     * 트레이 블록을 집어 목표 지점까지 끌고 가서 멈춘 뒤 놓는다. 사람 손처럼:
+     *  1) 누르고 잠깐 대기 (게임이 블록을 집도록)
+     *  2) 거리의 85%까지 빠르게
+     *  3) 나머지 15%를 천천히 (도착 직전 속도를 줄여 지나치지 않게)
+     *  4) 목표점에서 멈춘 채 대기 (게임이 최종 위치를 확정하도록) → 손 뗌
+     * 각 단계는 이어지는 스트로크라 손가락은 계속 눌린 상태다.
+     * @param onSettle 4단계(멈춰 있는 동안) 시작 시 호출 — 진단용 화면 캡처에 사용
      */
-    fun drag(path: DragPath, handler: Handler, holdMs: Long = 120, moveMs: Long = 320, settleMs: Long = 120, onDone: (Boolean) -> Unit) {
-        val p1 = Path().apply { moveTo(path.fromX, path.fromY); lineTo(path.fromX + 1f, path.fromY + 1f) }
+    fun drag(
+        path: DragPath, handler: Handler,
+        holdMs: Long = 160, fastMs: Long = 260, slowMs: Long = 220, settleMs: Long = 260,
+        onSettle: (() -> Unit)? = null, onDone: (Boolean) -> Unit,
+    ) {
+        val sx = path.fromX; val sy = path.fromY
+        val mx = sx + (path.toX - sx) * 0.85f; val my = sy + (path.toY - sy) * 0.85f
+        val p1 = Path().apply { moveTo(sx, sy); lineTo(sx + 1f, sy + 1f) }
         val s1 = GestureDescription.StrokeDescription(p1, 0, holdMs, true)
-        val p2 = Path().apply { moveTo(path.fromX + 1f, path.fromY + 1f); lineTo(path.toX, path.toY) }
-        val s2 = s1.continueStroke(p2, 0, moveMs, true)
-        val p3 = Path().apply { moveTo(path.toX, path.toY); lineTo(path.toX + 1f, path.toY) }
-        val s3 = s2.continueStroke(p3, 0, settleMs, false)
+        val p2 = Path().apply { moveTo(sx + 1f, sy + 1f); lineTo(mx, my) }
+        val s2 = s1.continueStroke(p2, 0, fastMs, true)
+        val p3 = Path().apply { moveTo(mx, my); lineTo(path.toX, path.toY) }
+        val s3 = s2.continueStroke(p3, 0, slowMs, true)
+        val p4 = Path().apply { moveTo(path.toX, path.toY); lineTo(path.toX + 0.5f, path.toY) }
+        val s4 = s3.continueStroke(p4, 0, settleMs, false)
 
+        var finished = false
+        fun finish(ok: Boolean) { if (!finished) { finished = true; onDone(ok) } }
         fun dispatch(stroke: GestureDescription.StrokeDescription, next: (() -> Unit)?) {
             val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), object : GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) { if (next != null) next() else onDone(true) }
-                override fun onCancelled(gestureDescription: GestureDescription?) = onDone(false)
+                override fun onCompleted(gestureDescription: GestureDescription?) { if (next != null) next() else finish(true) }
+                override fun onCancelled(gestureDescription: GestureDescription?) = finish(false)
             }, handler)
-            if (!ok) onDone(false)
+            if (!ok) finish(false)
         }
-        dispatch(s1) { dispatch(s2) { dispatch(s3, null) } }
+        dispatch(s1) { dispatch(s2) { dispatch(s3) { onSettle?.invoke(); dispatch(s4, null) } } }
     }
 
     companion object {

@@ -201,13 +201,16 @@ class Solver(
      * 모든 상태에 같은 트레이 샘플을 쓴다(공통 난수).
      */
     fun outlook(states: List<GameState>, cfg: LookaheadConfig = lookahead ?: LookaheadConfig(), startNanos: Long = System.nanoTime()): List<Outlook> {
+        // 샘플 j마다 같은 시드를 모든 후보에 써서(공통 난수) 후보 간 비교 잡음을 줄인다.
+        // 분포의 friendly(관대함)는 각 후보 보드 기준으로 "들어가는 블록" 위주로 뽑게 한다.
         val rng = Random(cfg.seed xor states.first().board.bits)
-        val trays = List(cfg.samples) { distribution.sampleTray(rng) }
+        val seeds = LongArray(cfg.samples) { rng.nextLong() }
         val sum = DoubleArray(states.size)
         val deaths = IntArray(states.size)
         var used = 0
-        for (tray in trays) {
+        for (seed in seeds) {
             for (i in states.indices) {
+                val tray = distribution.sampleTray(Random(seed), states[i].board)
                 val v = bestRoundValue(states[i], tray, cfg)
                 if (v == null) {
                     deaths[i]++

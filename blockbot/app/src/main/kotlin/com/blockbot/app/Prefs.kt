@@ -2,7 +2,7 @@ package com.blockbot.app
 
 import android.content.Context
 import com.blockbot.core.ComboMode
-import com.blockbot.core.DragCalibration
+import com.blockbot.core.DragObservation
 
 /** 앱 설정 (SharedPreferences). */
 class Prefs(context: Context) {
@@ -21,17 +21,10 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("saveScreens", true)
         set(v) = sp.edit().putBoolean("saveScreens", v).apply()
 
-    var calibration: DragCalibration
-        get() = DragCalibration(
-            liftCells = sp.getFloat("lift", 1.5f).toDouble(),
-            offsetXCells = sp.getFloat("offX", 0f).toDouble(),
-            samples = sp.getInt("calSamples", 0),
-        )
-        set(v) = sp.edit()
-            .putFloat("lift", v.liftCells.toFloat())
-            .putFloat("offX", v.offsetXCells.toFloat())
-            .putInt("calSamples", v.samples)
-            .apply()
+    /** 자동 드래그 관측(손가락 위치 → 실제 착지) 최근 [MAX_DRAG_OBS]개. 드래그 모델은 이걸로 매번 다시 맞춘다. */
+    var dragObservations: List<DragObservation>
+        get() = sp.getString("dragObs", "")!!.lines().mapNotNull { DragObservation.fromText(it) }
+        set(v) = sp.edit().putString("dragObs", v.takeLast(MAX_DRAG_OBS).joinToString("\n") { it.toText() }).apply()
 
     var panelX: Int
         get() = sp.getInt("panelX", 24)
@@ -40,4 +33,8 @@ class Prefs(context: Context) {
     var panelY: Int
         get() = sp.getInt("panelY", 90)
         set(v) = sp.edit().putInt("panelY", v).apply()
+
+    companion object {
+        const val MAX_DRAG_OBS = 40
+    }
 }

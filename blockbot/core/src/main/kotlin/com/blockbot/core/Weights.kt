@@ -29,7 +29,47 @@ data class Weights(
     // 이게 없으면 높은 콤보에서 당장 점수가 생존 판단을 압도해 일찍 죽는다(시뮬레이션으로 확인).
     val healthPerStreak: Double = 0.1,
 ) {
+    /** "키 값" 줄 형식 (튜너가 저장, 앱이 로드). */
+    fun toText(): String = buildString {
+        appendLine("# BlockBot 평가 가중치 (Tuner 생성)")
+        appendLine("filledCell $filledCell")
+        appendLine("isolatedHole $isolatedHole")
+        appendLine("smallRegion $smallRegion")
+        appendLine("smallRegionMaxSize $smallRegionMaxSize")
+        appendLine("roughness $roughness")
+        for (p in probes) appendLine("probe ${p.label} ${p.pattern} ${p.missPenalty}")
+        appendLine("comboAlive $comboAlive")
+        appendLine("comboRisk $comboRisk")
+        appendLine("nearLine $nearLine")
+        appendLine("healthPerStreak $healthPerStreak")
+    }
+
     companion object {
+        fun fromText(text: String, base: Weights = Weights()): Weights {
+            var w = base
+            val probes = ArrayList<Probe>()
+            for (raw in text.lines()) {
+                val line = raw.trim()
+                if (line.isEmpty() || line.startsWith("#")) continue
+                val p = line.split(Regex("\\s+"))
+                fun d() = p[1].toDouble()
+                w = when (p[0]) {
+                    "filledCell" -> w.copy(filledCell = d())
+                    "isolatedHole" -> w.copy(isolatedHole = d())
+                    "smallRegion" -> w.copy(smallRegion = d())
+                    "smallRegionMaxSize" -> w.copy(smallRegionMaxSize = p[1].toInt())
+                    "roughness" -> w.copy(roughness = d())
+                    "comboAlive" -> w.copy(comboAlive = d())
+                    "comboRisk" -> w.copy(comboRisk = d())
+                    "nearLine" -> w.copy(nearLine = d())
+                    "healthPerStreak" -> w.copy(healthPerStreak = d())
+                    "probe" -> { probes += Probe(p[1], p[2], p[3].toDouble()); w }
+                    else -> w
+                }
+            }
+            return if (probes.isNotEmpty()) w.copy(probes = probes) else w
+        }
+
         val DEFAULT_PROBES = listOf(
             Probe("3x3", "XXX/XXX/XXX", -15.0),
             Probe("1x5", "XXXXX", -6.0),

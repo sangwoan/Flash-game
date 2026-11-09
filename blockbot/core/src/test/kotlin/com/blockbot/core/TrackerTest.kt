@@ -59,16 +59,60 @@ class TrackerTest {
         assertEquals(weird.board, t.state!!.board)
     }
 
+    /** 가상의 게임에서 자동 드래그 [moves]번: 적중 여부 목록과 최종 모델. */
+    private fun dragSession(gain: Double, lift: Double, off: Double, moves: Int, seed: Int): Pair<List<Boolean>, DragModel> {
+        val g = BoardGeometry(60.0, 550.0, 120.0, 120.0)
+        val rnd = kotlin.random.Random(seed)
+        val obs = ArrayList<DragObservation>()
+        var model = DragModel.fit(obs)
+        val hits = ArrayList<Boolean>()
+        val shapes = listOf("XX/XX", "X", "XXX", "X/X/X", "XXX/XXX/XXX", "XXX/XXX").map { Piece.parse(it) }
+        repeat(moves) {
+            val piece = shapes[rnd.nextInt(shapes.size)]
+            val slot = rnd.nextInt(3)
+            val cx = 1080 * (2 * slot + 1) / 6
+            val tray = TrayRead(slot, piece, cx - 40, 1830, cx + 40, 1900)
+            val row = rnd.nextInt(9 - piece.height); val col = rnd.nextInt(9 - piece.width)
+            val path = DragPlanner.plan(g, tray, piece, row, col, model, 1080, 2340)
+            // 게임: 블록 중심 = 시작 + gain×(손가락 이동), 세로는 (lift + 높이/2)칸 위, 가로 off칸 치우침 → 가장 가까운 칸에 스냅
+            val px = path.fromX + gain * (path.toX - path.fromX) + off * g.cell
+            val py = path.fromY + gain * (path.toY - path.fromY) - (lift + piece.height / 2.0) * g.cell
+            val c = kotlin.math.round((px - g.x0) / g.cellW - piece.width / 2.0).toInt()
+            val r = kotlin.math.round((py - g.y0) / g.cellH - piece.height / 2.0).toInt()
+            hits += (r to c) == (row to col)
+            if (r in 0..8 - piece.height && c in 0..8 - piece.width) { // 보드 밖이면 게임이 거부 → 정보 없음
+                obs += DragPlanner.observe(g, path, piece, r, c)
+                model = DragModel.fit(obs)
+            }
+        }
+        return hits to model
+    }
+
     @Test
-    fun `드래그 보정 학습 - 한 칸 아래에 떨어지면 lift 추정을 한 칸 줄인다`() {
-        val cal = DragCalibration(liftCells = 1.5, offsetXCells = 0.0)
-        val learned = DragPlanner.learn(cal, intendedRow = 3, intendedCol = 2, actualRow = 4, actualCol = 1)
-        assertEquals(0.5, learned.liftCells)  // 아래로 떨어짐 = 실제 lift가 추정보다 작음
-        assertEquals(-1.0, learned.offsetXCells)
-        // 보정 후 경로: 목표 중심 + (lift + h/2)칸 아래가 손가락 위치
-        val p = Piece.parse("XX")
-        val path = DragPlanner.plan(geo, TrayRead(0, p, 0, 900, 50, 950), p, 3, 2, learned, 1000, 2000)
-        assertEquals(300f + 100f, path.toX)                 // 목표 중심 x=300, offset -1칸 보정 → +100
-        assertEquals(350f + (0.5f + 0.5f) * 100f, path.toY) // 목표 중심 y=350
+    fun `드래그 모델 - 1대1로 따라오는 게임이면 띄움이 달라도 2~3수 안에 적중`() {
+        for ((lift, off) in listOf(0.8 to 0.0, 2.5 to -0.4, 0.0 to 0.3)) {
+            val (hits, model) = dragSession(1.0, lift, off, 20, seed = 1)
+            println("[드래그 1:1 lift=$lift] ${hits.joinToString("") { if (it) "O" else "x" }}  ${model.describe()}")
+            assertTrue(hits.drop(3).all { it }, "4수째부터는 모두 적중해야 함")
+        }
+    }
+
+    @Test
+    fun `드래그 모델 - 손가락보다 더 많이 움직이는 게임(125%)도 학습해 따라잡는다`() {
+        var tailHits = 0
+        for (seed in 0 until 5) {
+            val (hits, model) = dragSession(1.25, 2.0, 0.3, 24, seed)
+            if (seed == 0) println("[드래그 125%] ${hits.joinToString("") { if (it) "O" else "x" }}  ${model.describe()}")
+            tailHits += hits.takeLast(10).count { it }
+        }
+        println("[드래그 125%] 마지막 10수 적중 $tailHits/50")
+        assertTrue(tailHits >= 38)
+    }
+
+    @Test
+    fun `드래그 모델 - 관측 저장 형식 왕복`() {
+        val o = DragObservation(180.0, 1865.0, 300.5, 1200.25, 310.0, 700.0, 119.5, 2)
+        val back = DragObservation.fromText(o.toText())!!
+        assertEquals(o.fx, back.fx, 0.06); assertEquals(o.pieceH, back.pieceH)
     }
 }

@@ -7,7 +7,10 @@ import android.os.SystemClock
 import com.blockbot.app.BotLog.Companion.json
 import com.blockbot.core.Board
 import com.blockbot.core.BoardGeometry
+import com.blockbot.core.DragModel
+import com.blockbot.core.DragPath
 import com.blockbot.core.DragPlanner
+import com.blockbot.core.PieceDistribution
 import com.blockbot.core.GameState
 import com.blockbot.core.GameTracker
 import com.blockbot.core.HeuristicEvaluator
@@ -45,7 +48,9 @@ class BotController(
     @Volatile var mode = Mode.OFF
         private set
 
-    private val weights = Weights()
+    private var weights = Weights()
+    private var distribution = PieceDistribution.DEFAULT
+    private var modelStamp = ""
     private val scoreModel = ScoreModel()
     private var rules = Rules(RuleConfig(comboMode = prefs.comboMode))
     private var tracker = GameTracker(rules)
@@ -58,7 +63,9 @@ class BotController(
     private var plan: Plan? = null
     private var planFor: Pair<GameState, List<Piece?>>? = null
     private var planMs = 0L
-    private var cal = prefs.calibration
+    private var dragObs = prefs.dragObservations.toMutableList()
+    private var dragModel = DragModel.fit(dragObs)
+    private var holdShots = 0
     private var gamePackage: String? = null
     private var pending: PendingMove? = null
     private var pixels: IntArray? = null
@@ -74,6 +81,7 @@ class BotController(
         val step: Step,
         val attempt: Int,
         val extraLift: Double,
+        val path: DragPath,
         val boardBefore: Board,
         val startedAt: Long,
         var unchangedFrames: Int = 0,
@@ -94,7 +102,9 @@ class BotController(
                 }
                 Mode.HINT, Mode.AUTO -> {
                     if (rules.config.comboMode != prefs.comboMode) rebuildRules()
-                    cal = prefs.calibration
+                    loadModels()
+                    dragObs = prefs.dragObservations.toMutableList()
+                    dragModel = DragModel.fit(dragObs)
                     if (m == Mode.AUTO) gamePackage = service.activePackage()
                     pending = null
                     ui.status(if (m == Mode.AUTO) "자동 시작 — 화면 읽는 중…" else "힌트 시작 — 화면 읽는 중…")
@@ -119,7 +129,29 @@ class BotController(
     }
 
     /** 다음 라운드 수읽기 포함 솔버. 폰에서는 시간 한도(1.5초) 안에서 샘플 수가 자동 조절됨. */
-    private fun newSolver() = Solver(rules = rules, weights = weights, scoreModel = scoreModel, lookahead = lookahead)
+    private fun newSolver() = Solver(rules = rules, weights = weights, scoreModel = scoreModel, lookahead = lookahead, distribution = distribution)
+
+    /**
+     * 맥에서 학습해 올린 모델 파일(mac/learn.sh)이 있으면 읽는다:
+     *  model/distribution.txt (실제 블록 분포·관대함), model/weights.txt (튜닝된 평가 가중치)
+     */
+    private fun loadModels() {
+        val dirs = listOfNotNull(service.getExternalFilesDir("model"), java.io.File(service.filesDir, "model"))
+        fun find(name: String) = dirs.map { java.io.File(it, name) }.filter { it.isFile }.maxByOrNull { it.lastModified() }
+        val df = find("distribution.txt")
+        val wf = find("weights.txt")
+        val stamp = "${df?.lastModified()}:${wf?.lastModified()}"
+        if (stamp == modelStamp) return
+        modelStamp = stamp
+        distribution = df?.let { runCatching { PieceDistribution.fromText(it.readText()) }.getOrNull() } ?: PieceDistribution.DEFAULT
+        weights = wf?.let { runCatching { Weights.fromText(it.readText()) }.getOrNull() } ?: Weights()
+        solver = newSolver()
+        plan = null
+        log.event("models", json(
+            "distribution" to (df?.path ?: "기본"), "friendly" to distribution.friendly, "learnedRounds" to distribution.learnedRounds,
+            "weights" to (wf?.path ?: "기본"),
+        ))
+    }
 
     private fun schedule(delayMs: Long) {
         handler.removeCallbacks(tick)
@@ -225,6 +257,7 @@ class BotController(
             is TrackEvent.Resync -> {
                 val shot = if (ev.reason != "시작" && prefs.saveScreens) log.screenshot(bmp, "resync") else null
                 log.event("resync", json("msg" to ev.reason, "board" to v.board.toAscii(), "tray" to v.trayPieces.map { it?.pattern() }, "screen" to shot))
+                if (v.trayPieces.all { it != null }) logRound("resync")
                 if (ev.reason == "새 게임") estScore = 0.0
                 pending = null
                 plan = null
@@ -245,8 +278,20 @@ class BotController(
         decideAndAct()
     }
 
+    /** 블록 3개가 새로 나온 순간의 보드·트레이 (블록 출현 패턴 학습용). */
+    private fun logRound(source: String) {
+        val st = tracker.state ?: return
+        log.event("round", json(
+            "bits" to java.lang.Long.toHexString(st.board.bits),
+            "tray" to tracker.tray.map { it?.pattern() },
+            "combo" to st.comboStreak,
+            "source" to source,
+        ))
+    }
+
     private fun onPlaced(ev: TrackEvent.Placed) {
         val st = tracker.state
+        if (ev.newRound) logRound("refill")
         for (t in ev.transitions) estScore += scoreModel.points(t.result)
         log.event("placed", json(
             "moves" to ev.transitions.map { "slot${it.slot}:${it.piece.pattern()}@${it.row},${it.col} lines=${it.result.lines}" },
@@ -256,20 +301,23 @@ class BotController(
         ))
         val p = pending ?: return
         pending = null
+        val g = geo ?: return
         val t = ev.transitions.firstOrNull { it.slot == p.step.slot } ?: return
-        val before = cal
-        cal = if (t.row != p.step.row || t.col != p.step.col) {
-            DragPlanner.learn(cal, p.step.row, p.step.col, t.row, t.col, p.extraLift)
-        } else {
-            cal.copy(liftCells = cal.liftCells + p.extraLift, samples = cal.samples + 1)
-        }
-        if (cal != before) {
-            prefs.calibration = cal
-            log.event("calibration", json(
-                "intended" to "${p.step.row},${p.step.col}", "actual" to "${t.row},${t.col}",
-                "lift" to cal.liftCells, "offX" to cal.offsetXCells, "samples" to cal.samples,
-            ))
-        }
+        // 손가락을 뗀 위치 → 실제 착지 위치를 관측으로 쌓고 모델을 다시 맞춘다 (배율·띄움·치우침)
+        val obs = DragPlanner.observe(g, p.path, t.piece, t.row, t.col)
+        val (prx, pry) = dragModel.predict(obs)
+        val errX = (obs.px - prx) / obs.cell
+        val errY = (obs.py - pry) / obs.cell
+        dragObs.add(obs)
+        while (dragObs.size > Prefs.MAX_DRAG_OBS) dragObs.removeAt(0)
+        prefs.dragObservations = dragObs
+        dragModel = DragModel.fit(dragObs)
+        log.event("drag_learn", json(
+            "intended" to "${p.step.row},${p.step.col}", "actual" to "${t.row},${t.col}",
+            "hit" to (t.row == p.step.row && t.col == p.step.col),
+            "predErrCells" to String.format(java.util.Locale.US, "%.2f,%.2f", errX, errY),
+            "model" to dragModel.describe(),
+        ))
     }
 
     private fun dropRejected(p: PendingMove, shot: String?) {
@@ -368,14 +416,30 @@ class BotController(
         val tr = lastVision?.tray?.getOrNull(step.slot) ?: return schedule(POLL_MS)
         val st = tracker.state ?: return schedule(POLL_MS)
         val extra = DragPlanner.RETRY_EXTRA_LIFT[attempt]
-        val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, cal, screenW, screenH, extra)
-        pending = PendingMove(step, attempt, extra, st.board, now())
+        val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, dragModel, screenW, screenH, extra)
+        pending = PendingMove(step, attempt, extra, path, st.board, now())
         log.event("move", json(
             "slot" to step.slot, "piece" to step.piece.pattern(), "row" to step.row, "col" to step.col,
-            "attempt" to attempt, "extraLift" to extra, "lift" to cal.liftCells, "offX" to cal.offsetXCells,
+            "attempt" to attempt, "extraLift" to extra, "model" to dragModel.describe(),
             "from" to "%.0f,%.0f".format(path.fromX, path.fromY), "to" to "%.0f,%.0f".format(path.toX, path.toY),
         ))
-        service.drag(path, handler) { ok ->
+        // 세션 처음 몇 수는 손가락을 누른 채 멈춘 순간의 화면을 저장 (게임이 드래그 중 무엇을 그리는지 분석용)
+        val wantHoldShot = prefs.saveScreens && holdShots < HOLD_SHOTS_PER_SESSION
+        service.drag(path, handler, onSettle = if (!wantHoldShot) null else ({
+            handler.postDelayed({
+                if (now() - lastShotAt >= MIN_SHOT_INTERVAL_MS) {
+                    lastShotAt = now()
+                    holdShots++
+                    service.capture(executor) { bmp, _ ->
+                        if (bmp != null) {
+                            val name = log.screenshot(bmp, "drag_hold_r${step.row}c${step.col}")
+                            log.event("drag_hold", json("screen" to name, "to" to "%.0f,%.0f".format(path.toX, path.toY)))
+                            bmp.recycle()
+                        }
+                    }
+                }
+            }, 60)
+        })) { ok ->
             if (!ok) log.event("gesture_failed", json("slot" to step.slot))
             schedule(prefs.moveDelayMs.toLong())
         }
@@ -388,6 +452,7 @@ class BotController(
         const val PENDING_TIMEOUT_MS = 6000L
         const val GEOMETRY_RESET_FRAMES = 10
         const val STUCK_SECS = 6L
+        const val HOLD_SHOTS_PER_SESSION = 3
         private val SPIN = arrayOf("◐", "◓", "◑", "◒")
         private val CIRCLED = arrayOf("①", "②", "③", "④", "⑤")
     }

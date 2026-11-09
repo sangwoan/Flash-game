@@ -36,3 +36,23 @@ tasks.register<JavaExec>("simulate") {
     jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8")
     args = (project.findProperty("simArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
 }
+
+// 폰 로그에서 블록 분포 학습: ./gradlew :core:learn -PlearnArgs="로그폴더 출력폴더"
+tasks.register<JavaExec>("learn") {
+    group = "blockbot"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.blockbot.core.LogLearnerKt")
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8")
+    workingDir = rootProject.projectDir
+    args = (project.findProperty("learnArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
+}
+
+// 가중치 자가대국 튜닝: ./gradlew :core:tune -PtuneArgs="분포파일|- 출력폴더 분"
+tasks.register<JavaExec>("tune") {
+    group = "blockbot"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.blockbot.core.TunerKt")
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8", "-Xmx2g")
+    workingDir = rootProject.projectDir
+    args = (project.findProperty("tuneArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
+}

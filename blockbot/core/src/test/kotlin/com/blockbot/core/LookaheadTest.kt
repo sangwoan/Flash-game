@@ -12,11 +12,10 @@ class LookaheadTest {
 
     @Test
     fun `블록 분포 - 3×3 안 모든 연결 모양 + 1×4·1×5, 비율이 설정대로 나온다`() {
-        val names = dist.groups.associate { it.name to it.pieces.size }
-        println("[분포] 그룹별 모양 수: $names")
-        assertTrue(dist.groups.flatMap { it.pieces }.all { Pieces.isPlausible(it) })
+        println("[분포] 모양 ${dist.pieces.size}종, friendly=${dist.friendly}")
+        assertTrue(dist.pieces.all { Pieces.isPlausible(it) })
         // 3×3 안의 8방향 연결 모양은 전부 포함 (대각선 블록 포함)
-        val all = dist.groups.flatMap { it.pieces }.toSet()
+        val all = dist.pieces.toSet()
         Pieces.ALL_WITHIN_3X3.filter { Pieces.isConnected8(it) }.forEach { assertTrue(it in all, "누락: ${it.pattern()}") }
         assertTrue(Piece.parse("..X/.X./X..") in all)
         assertTrue(Piece.parse("X/X/X/X/X") in all && Piece.parse("XXXX") in all)

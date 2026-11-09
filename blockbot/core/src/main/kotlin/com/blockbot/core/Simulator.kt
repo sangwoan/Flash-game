@@ -29,7 +29,7 @@ class Simulator(
         var maxStreak = 0
         var perfects = 0
         for (round in 1..maxRounds) {
-            val tray = distribution.sampleTray(rng)
+            val tray = distribution.sampleTray(rng, state.board)
             val plan = solver.solve(state, tray).best
             for (st in plan.steps) {
                 val r = rules.apply(state, st.piece.maskAt(st.row, st.col))
