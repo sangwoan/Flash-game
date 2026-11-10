@@ -26,6 +26,19 @@ class Prefs(context: Context) {
         get() = sp.getString("dragObs", "")!!.lines().mapNotNull { DragObservation.fromText(it) }
         set(v) = sp.edit().putString("dragObs", v.takeLast(MAX_DRAG_OBS).joinToString("\n") { it.toText() }).apply()
 
+    /** 드래그 중 화면에서 본 위치와 실제 착지 칸의 일정한 차이 (게임이 블록을 착지점과 다르게 그리는 경우). */
+    var visBiasRow: Int
+        get() = sp.getInt("visBiasRow", 0)
+        set(v) = sp.edit().putInt("visBiasRow", v).apply()
+    var visBiasCol: Int
+        get() = sp.getInt("visBiasCol", 0)
+        set(v) = sp.edit().putInt("visBiasCol", v).apply()
+
+    /** 드래그 중 화면에서 블록을 찾은 적이 있는가 (있으면 못 찾았을 때 그냥 놓지 않고 취소). */
+    var servoWorks: Boolean
+        get() = sp.getBoolean("servoWorks", false)
+        set(v) = sp.edit().putBoolean("servoWorks", v).apply()
+
     var panelX: Int
         get() = sp.getInt("panelX", 24)
         set(v) = sp.edit().putInt("panelX", v).apply()

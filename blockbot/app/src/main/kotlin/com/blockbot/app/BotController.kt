@@ -8,6 +8,8 @@ import com.blockbot.app.BotLog.Companion.json
 import com.blockbot.core.Board
 import com.blockbot.core.BoardGeometry
 import com.blockbot.core.DragModel
+import com.blockbot.core.DragObserver
+import com.blockbot.core.DragServo
 import com.blockbot.core.DragPath
 import com.blockbot.core.DragPlanner
 import com.blockbot.core.PieceDistribution
@@ -66,6 +68,9 @@ class BotController(
     private var dragObs = prefs.dragObservations.toMutableList()
     private var dragModel = DragModel.fit(dragObs)
     private var holdShots = 0
+    private var cellColors: DoubleArray? = null             // 마지막 깨끗한 프레임의 칸 색 (드래그 전 기준)
+    private val trayColors = arrayOfNulls<DoubleArray>(3)   // 트레이 블록 색
+    private var biasCandidate: Pair<Int, Int>? = null
     private var gamePackage: String? = null
     private var pending: PendingMove? = null
     private var pixels: IntArray? = null
@@ -81,9 +86,11 @@ class BotController(
         val step: Step,
         val attempt: Int,
         val extraLift: Double,
-        val path: DragPath,
+        var path: DragPath,
         val boardBefore: Board,
-        val startedAt: Long,
+        var startedAt: Long,
+        var rawSeenAtRelease: Pair<Int, Int>? = null, // 놓는 순간 화면에서 본 위치 (보정 전)
+        var learnedInDrag: Boolean = false,
         var unchangedFrames: Int = 0,
     )
 
@@ -253,6 +260,10 @@ class BotController(
 
         val v = Vision.read(img, g)
         lastVision = v
+        if (v.clean) {
+            cellColors = DragObserver.cellColors(img, g)
+            for (i in 0 until 3) trayColors[i] = v.tray.getOrNull(i)?.let { trayColor(img, it) }
+        }
         if (!v.clean) {
             badFrames++
             if (badFrames >= GEOMETRY_RESET_FRAMES) {
@@ -337,6 +348,7 @@ class BotController(
         pending = null
         val g = geo ?: return
         val t = ev.transitions.firstOrNull { it.slot == p.step.slot } ?: return
+        learnVisualBias(p, t.row, t.col)
         // 손가락을 뗀 위치 → 실제 착지 위치를 관측으로 쌓고 모델을 다시 맞춘다 (배율·띄움·치우침)
         val obs = DragPlanner.observe(g, p.path, t.piece, t.row, t.col)
         val (prx, pry) = dragModel.predict(obs)
@@ -442,6 +454,39 @@ class BotController(
         return "${spinner()} $head · 콤보 ${st.comboStreak} · 이번 +${p.pathScore.toInt()}$next · ${planMs}ms\n$order$warn"
     }
 
+    /** 트레이 블록 한 칸의 가운데 색. */
+    private fun trayColor(img: PixelImage, t: com.blockbot.core.TrayRead): DoubleArray {
+        val c = t.piece.cells.first()
+        val cw = (t.right - t.left + 1).toDouble() / t.piece.width
+        val ch = (t.bottom - t.top + 1).toDouble() / t.piece.height
+        val cx = t.left + (c.c + 0.5) * cw; val cy = t.top + (c.r + 0.5) * ch
+        var r = 0.0; var g = 0.0; var b = 0.0; var n = 0
+        val hx = (cw * 0.2).toInt(); val hy = (ch * 0.2).toInt()
+        for (y in (cy - hy).toInt()..(cy + hy).toInt()) for (x in (cx - hx).toInt()..(cx + hx).toInt()) {
+            if (x !in 0 until img.width || y !in 0 until img.height) continue
+            val p = img.rgb(x, y); r += (p shr 16) and 0xFF; g += (p shr 8) and 0xFF; b += p and 0xFF; n++
+        }
+        return if (n == 0) doubleArrayOf(128.0, 128.0, 128.0) else doubleArrayOf(r / n, g / n, b / n)
+    }
+
+    /** 화면에서 본 위치와 실제 착지 칸이 같은 만큼 두 번 연속 다르면 그 차이를 보정값으로 쓴다. */
+    private fun learnVisualBias(p: PendingMove, landedRow: Int, landedCol: Int) {
+        val raw = p.rawSeenAtRelease ?: return
+        val b = (landedRow - raw.first) to (landedCol - raw.second)
+        val cur = prefs.visBiasRow to prefs.visBiasCol
+        if (b == cur) { biasCandidate = null; return }
+        if (kotlin.math.abs(b.first) > 3 || kotlin.math.abs(b.second) > 3) return
+        if (biasCandidate == b) {
+            prefs.visBiasRow = b.first; prefs.visBiasCol = b.second; biasCandidate = null
+            log.event("visual_bias", json("row" to b.first, "col" to b.second))
+        } else biasCandidate = b
+    }
+
+    /**
+     * 자동 드래그 (보고 맞추기): 블록을 집어 예측 위치로 옮긴 뒤, 손가락을 누른 채 화면을 찍어
+     * 블록이 실제로 어느 칸 위에 있는지 확인한다. 목표 칸이면 놓고, 아니면 어긋난 만큼 옮겨 다시 확인.
+     * 끝내 못 맞추면 트레이로 되돌려 놓고(잘못된 칸에 놓지 않음) 다시 시도한다.
+     */
     private fun execute(step: Step, attempt: Int) {
         val pkg = service.activePackage()
         if (gamePackage != null && pkg != null && pkg != gamePackage) {
@@ -452,35 +497,81 @@ class BotController(
         val g = geo ?: return schedule(POLL_MS)
         val tr = lastVision?.tray?.getOrNull(step.slot) ?: return schedule(POLL_MS)
         val st = tracker.state ?: return schedule(POLL_MS)
-        val extra = 0.0
+        val before = cellColors ?: return schedule(POLL_MS)
+        val pieceColor = trayColors[step.slot]
         val useModel = dragModel.forAttempt(attempt)
         val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, useModel, screenW, screenH)
-        pending = PendingMove(step, attempt, extra, path, st.board, now())
+        val p = PendingMove(step, attempt, 0.0, path, st.board, now())
+        pending = p
+        val servo = DragServo(g, step.piece, step.row, step.col, useModel, tr.centerX, tr.centerY, screenW, screenH,
+            allowBlindRelease = !prefs.servoWorks)
+        val trace = ArrayList<String>()
         log.event("move", json(
             "slot" to step.slot, "piece" to step.piece.pattern(), "row" to step.row, "col" to step.col,
             "attempt" to attempt, "model" to useModel.describe(),
             "from" to "%.0f,%.0f".format(path.fromX, path.fromY), "to" to "%.0f,%.0f".format(path.toX, path.toY),
         ))
-        // 세션 처음 몇 수는 손가락을 누른 채 멈춘 순간의 화면을 저장 (게임이 드래그 중 무엇을 그리는지 분석용)
-        val wantHoldShot = prefs.saveScreens && holdShots < HOLD_SHOTS_PER_SESSION
-        service.drag(path, handler, onSettle = if (!wantHoldShot) null else ({
-            handler.postDelayed({
-                if (now() - lastShotAt >= MIN_SHOT_INTERVAL_MS) {
-                    lastShotAt = now()
-                    holdShots++
-                    service.capture(executor) { bmp, _ ->
-                        if (bmp != null) {
-                            val name = log.screenshot(bmp, "drag_hold_r${step.row}c${step.col}")
-                            log.event("drag_hold", json("screen" to name, "to" to "%.0f,%.0f".format(path.toX, path.toY)))
-                            bmp.recycle()
-                        }
-                    }
-                }
-            }, 60)
-        })) { ok ->
-            if (!ok) log.event("gesture_failed", json("slot" to step.slot))
+
+        fun finish(how: String, h: BotService.DragHandle?) {
+            if (h != null) p.path = DragPath(path.fromX, path.fromY, h.x, h.y)
+            p.startedAt = now()
+            // 드래그 중 확인한 위치들로 드래그 모델을 바로 갱신
+            if (servo.observations.isNotEmpty()) {
+                dragObs.addAll(servo.observations)
+                while (dragObs.size > Prefs.MAX_DRAG_OBS) dragObs.removeAt(0)
+                prefs.dragObservations = dragObs
+                dragModel = DragModel.fit(dragObs)
+                if (!prefs.servoWorks) prefs.servoWorks = true
+            }
+            log.event("drag_servo", json("result" to how, "corrections" to servo.corrections, "trace" to trace,
+                "target" to "${step.row},${step.col}", "model" to dragModel.describe()))
             schedule(prefs.moveDelayMs.toLong())
         }
+
+        fun look(h: BotService.DragHandle) {
+            if (mode != Mode.AUTO) { h.moveTo(path.fromX, path.fromY) { h.release { finish("stopped", h) } }; return }
+            var done = false
+            var seen: Pair<Int, Int>? = null
+            var raw: Pair<Int, Int>? = null
+            // 블록이 자리 잡을 시간 + 스크린샷 최소 간격을 지켜 캡처
+            val delay = maxOf(140L, MIN_SHOT_INTERVAL_MS - (now() - lastShotAt))
+            handler.postDelayed({
+                lastShotAt = now()
+                service.capture(executor) { bmp, _ ->
+                    if (bmp != null) {
+                        try {
+                            val px = pixels?.takeIf { it.size == bmp.width * bmp.height } ?: IntArray(bmp.width * bmp.height).also { pixels = it }
+                            bmp.getPixels(px, 0, bmp.width, 0, 0, bmp.width, bmp.height)
+                            val after = DragObserver.cellColors(PixelImage(bmp.width, bmp.height, px), g)
+                            raw = DragObserver.locate(before, after, st.board.bits, step.piece, pieceColor)
+                            seen = raw?.let { (it.first + prefs.visBiasRow) to (it.second + prefs.visBiasCol) }
+                            if (prefs.saveScreens && holdShots < HOLD_SHOTS_PER_SESSION) {
+                                holdShots++
+                                log.screenshot(bmp, "drag_hold_target_r${step.row}c${step.col}_seen_${seen?.first}_${seen?.second}")
+                            }
+                        } finally { bmp.recycle() }
+                    }
+                    done = true
+                }
+            }, delay)
+            h.holdUntil({ done }, 2500) {
+                trace += "finger=%.0f,%.0f seen=%s".format(h.x, h.y, seen?.let { "${it.first},${it.second}" } ?: "none")
+                ui.status("자동 · 위치 확인: " + (seen?.let { "${it.first + 1}행 ${it.second + 1}열" } ?: "안 보임") + " → 목표 ${step.row + 1}행 ${step.col + 1}열")
+                when (val a = servo.onObservation(h.x.toDouble(), h.y.toDouble(), seen)) {
+                    is DragServo.Action.MoveTo -> h.moveTo(a.x.toFloat(), a.y.toFloat(), fastPxPerMs = BotService.SLOW_PX_PER_MS) { look(h) }
+                    is DragServo.Action.Release -> {
+                        p.rawSeenAtRelease = if (a.confirmed) raw else null
+                        h.release { finish(if (a.confirmed) "confirmed" else "blind", h) }
+                    }
+                    DragServo.Action.Cancel -> h.moveTo(path.fromX, path.fromY) { h.release { finish("cancelled", h) } }
+                }
+            }
+        }
+
+        service.beginDrag(path.fromX, path.fromY, handler, onFail = {
+            log.event("gesture_failed", json("slot" to step.slot, "trace" to trace))
+            finish("gesture_failed", null)
+        }) { h -> h.moveTo(path.toX, path.toY) { look(h) } }
     }
 
     companion object {
@@ -490,7 +581,7 @@ class BotController(
         const val PENDING_TIMEOUT_MS = 6000L
         const val GEOMETRY_RESET_FRAMES = 10
         const val STUCK_SECS = 6L
-        const val HOLD_SHOTS_PER_SESSION = 3
+        const val HOLD_SHOTS_PER_SESSION = 6
         private val SPIN = arrayOf("◐", "◓", "◑", "◒")
         private val CIRCLED = arrayOf("①", "②", "③", "④", "⑤")
     }

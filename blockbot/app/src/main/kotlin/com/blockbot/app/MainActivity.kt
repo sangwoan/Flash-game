@@ -92,7 +92,10 @@ class MainActivity : Activity() {
         col.addView(calText)
         col.addView(Button(this).apply {
             text = "드래그 학습 초기화"
-            setOnClickListener { prefs.dragObservations = emptyList(); refresh() }
+            setOnClickListener {
+                prefs.dragObservations = emptyList(); prefs.visBiasRow = 0; prefs.visBiasCol = 0; prefs.servoWorks = false
+                refresh()
+            }
         })
 
         col.addView(title("6. 로그"))
@@ -132,7 +135,8 @@ class MainActivity : Activity() {
         val models = listOfNotNull(getExternalFilesDir("model"), java.io.File(filesDir, "model"))
             .flatMap { d -> listOf("distribution.txt", "weights.txt").map { java.io.File(d, it) } }.filter { it.isFile }
         calText.text = "자동 드래그: ${m.describe()}\n" +
-            "자동 모드로 둘 때마다 손가락 위치와 실제 착지 위치를 비교해 배율·띄움을 다시 맞춥니다.\n" +
+            "자동 모드는 블록을 옮긴 뒤 손가락을 누른 채 화면을 확인하고, 목표 칸 위에 있을 때만 놓습니다" +
+            (if (prefs.servoWorks) " (화면 확인 동작 중)" else " (아직 화면 확인 기록 없음)") + ".\n" +
             "학습 모델: " + (if (models.isEmpty()) "없음 (기본값 사용) — 맥에서 mac/learn.sh 실행 시 올라옵니다" else models.joinToString { it.name })
     }
 

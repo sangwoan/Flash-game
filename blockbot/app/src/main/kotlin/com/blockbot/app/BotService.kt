@@ -7,7 +7,6 @@ import android.graphics.Path
 import android.os.Handler
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
-import com.blockbot.core.DragPath
 import java.util.concurrent.Executor
 
 /**
@@ -78,43 +77,65 @@ class BotService : AccessibilityService() {
     }
 
     /**
-     * 트레이 블록을 집어 목표 지점까지 끌고 가서 멈춘 뒤 놓는다. 사람 손처럼:
-     *  1) 누르고 잠깐 대기 (게임이 블록을 집도록)
-     *  2) 거리의 80%까지 이동 — 속도 상한이 있어 먼 거리는 그만큼 오래 걸린다
-     *     (이전: 거리와 상관없이 0.26초 → 먼 칸일수록 너무 빨라 블록이 보드 밖으로 날아감)
-     *  3) 나머지 20%를 더 느리게 (도착 직전 감속)
-     *  4) 목표점에서 멈춘 채 대기 (게임이 최종 위치를 확정하도록) → 손 뗌
-     * 각 단계는 이어지는 스트로크라 손가락은 계속 눌린 상태다.
-     * @param onSettle 4단계(멈춰 있는 동안) 시작 시 호출 — 진단용 화면 캡처에 사용
+     * 진행 중인 드래그 한 번. 손가락을 누른 채로 이동·대기·놓기를 이어서 할 수 있다
+     * (각 동작은 앞 스트로크에 이어지는 스트로크라 손가락이 떨어지지 않는다).
+     * 모든 콜백은 [handler] 스레드에서 불린다.
      */
-    fun drag(
-        path: DragPath, handler: Handler,
-        onSettle: (() -> Unit)? = null, onDone: (Boolean) -> Unit,
+    inner class DragHandle internal constructor(
+        private val handler: Handler, x0: Float, y0: Float,
+        private var last: GestureDescription.StrokeDescription, private val onFail: () -> Unit,
     ) {
-        val sx = path.fromX; val sy = path.fromY
-        val dist = kotlin.math.hypot((path.toX - sx).toDouble(), (path.toY - sy).toDouble())
-        val fastMs = maxOf(MIN_FAST_MS, (dist * 0.8 / FAST_PX_PER_MS).toLong())
-        val slowMs = maxOf(MIN_SLOW_MS, (dist * 0.2 / SLOW_PX_PER_MS).toLong())
-        val mx = sx + (path.toX - sx) * 0.8f; val my = sy + (path.toY - sy) * 0.8f
-        val p1 = Path().apply { moveTo(sx, sy); lineTo(sx + 1f, sy + 1f) }
-        val s1 = GestureDescription.StrokeDescription(p1, 0, HOLD_MS, true)
-        val p2 = Path().apply { moveTo(sx + 1f, sy + 1f); lineTo(mx, my) }
-        val s2 = s1.continueStroke(p2, 0, fastMs, true)
-        val p3 = Path().apply { moveTo(mx, my); lineTo(path.toX, path.toY) }
-        val s3 = s2.continueStroke(p3, 0, slowMs, true)
-        val p4 = Path().apply { moveTo(path.toX, path.toY); lineTo(path.toX + 0.5f, path.toY) }
-        val s4 = s3.continueStroke(p4, 0, SETTLE_MS, false)
+        var x = x0; private set
+        var y = y0; private set
+        private var dead = false
+        private var jitter = 1f
 
-        var finished = false
-        fun finish(ok: Boolean) { if (!finished) { finished = true; onDone(ok) } }
-        fun dispatch(stroke: GestureDescription.StrokeDescription, next: (() -> Unit)?) {
-            val ok = dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(), object : GestureResultCallback() {
-                override fun onCompleted(gestureDescription: GestureDescription?) { if (next != null) next() else finish(true) }
-                override fun onCancelled(gestureDescription: GestureDescription?) = finish(false)
+        private fun stroke(toX: Float, toY: Float, ms: Long, willContinue: Boolean, next: () -> Unit) {
+            if (dead) return
+            val s = last.continueStroke(Path().apply { moveTo(x, y); lineTo(toX, toY) }, 0, maxOf(1L, ms), willContinue)
+            last = s; x = toX; y = toY
+            val ok = dispatchGesture(GestureDescription.Builder().addStroke(s).build(), object : GestureResultCallback() {
+                override fun onCompleted(gestureDescription: GestureDescription?) = next()
+                override fun onCancelled(gestureDescription: GestureDescription?) = fail()
             }, handler)
-            if (!ok) finish(false)
+            if (!ok) fail()
         }
-        dispatch(s1) { dispatch(s2) { dispatch(s3) { onSettle?.invoke(); dispatch(s4, null) } } }
+
+        private fun fail() { if (!dead) { dead = true; onFail() } }
+
+        /** 속도 상한을 지켜 이동: 80%는 [fastPxPerMs], 마지막 20%는 [slowPxPerMs]로 감속. */
+        fun moveTo(tx: Float, ty: Float, fastPxPerMs: Double = FAST_PX_PER_MS, slowPxPerMs: Double = SLOW_PX_PER_MS, next: () -> Unit) {
+            val dist = kotlin.math.hypot((tx - x).toDouble(), (ty - y).toDouble())
+            if (dist < 2.0) { hold(60, next); return }
+            val mx = x + (tx - x) * 0.8f; val my = y + (ty - y) * 0.8f
+            stroke(mx, my, maxOf(MIN_FAST_MS, (dist * 0.8 / fastPxPerMs).toLong()), true) {
+                stroke(tx, ty, maxOf(MIN_SLOW_MS, (dist * 0.2 / slowPxPerMs).toLong()), true, next)
+            }
+        }
+
+        /** 제자리에서 누른 채 대기 (1px 흔들림: 길이 0인 경로는 허용되지 않음). */
+        fun hold(ms: Long, next: () -> Unit) { jitter = -jitter; stroke(x + jitter, y, ms, true, next) }
+
+        /** [ready]가 true가 될 때까지 누른 채 대기 (최대 [maxMs]). */
+        fun holdUntil(ready: () -> Boolean, maxMs: Long, then: () -> Unit) {
+            if (ready() || maxMs <= 0) then() else hold(120) { holdUntil(ready, maxMs - 120, then) }
+        }
+
+        /** 손가락을 뗀다. */
+        fun release(done: () -> Unit) { jitter = -jitter; stroke(x + jitter, y, 80, false) { dead = true; done() } }
+    }
+
+    /** 트레이 블록을 누르고(집고) [onPicked]에 핸들을 넘긴다. 제스처가 끊기면 [onFail]. */
+    fun beginDrag(fromX: Float, fromY: Float, handler: Handler, onFail: () -> Unit, onPicked: (DragHandle) -> Unit) {
+        val s1 = GestureDescription.StrokeDescription(Path().apply { moveTo(fromX, fromY); lineTo(fromX + 1f, fromY + 1f) }, 0, HOLD_MS, true)
+        var failed = false
+        val fail = { if (!failed) { failed = true; onFail() } }
+        val h = DragHandle(handler, fromX + 1f, fromY + 1f, s1, fail)
+        val ok = dispatchGesture(GestureDescription.Builder().addStroke(s1).build(), object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) = onPicked(h)
+            override fun onCancelled(gestureDescription: GestureDescription?) = fail()
+        }, handler)
+        if (!ok) fail()
     }
 
     companion object {
@@ -124,7 +145,6 @@ class BotService : AccessibilityService() {
         const val SLOW_PX_PER_MS = 0.45
         const val MIN_FAST_MS = 220L
         const val MIN_SLOW_MS = 200L
-        const val SETTLE_MS = 320L
 
         @Volatile var instance: BotService? = null
             private set
