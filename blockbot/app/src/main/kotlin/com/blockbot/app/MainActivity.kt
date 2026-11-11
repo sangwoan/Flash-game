@@ -78,12 +78,11 @@ class MainActivity : Activity() {
 
         col.addView(title("4. 자동 속도"))
         val speed = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
-        val speeds = listOf("빠름" to 450, "보통" to 700, "느림" to 1100)
-        speeds.forEach { (label, ms) ->
+        listOf("최고속", "빠름", "보통(안전)").forEachIndexed { level, label ->
             val rb = RadioButton(this).apply { id = View.generateViewId(); text = label }
             speed.addView(rb)
-            if (prefs.moveDelayMs == ms) speed.check(rb.id)
-            rb.setOnClickListener { prefs.moveDelayMs = ms }
+            if (prefs.autoSpeed == level) speed.check(rb.id)
+            rb.setOnClickListener { prefs.autoSpeed = level }
         }
         col.addView(speed)
 

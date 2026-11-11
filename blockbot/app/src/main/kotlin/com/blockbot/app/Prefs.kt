@@ -12,10 +12,19 @@ class Prefs(context: Context) {
         get() = runCatching { ComboMode.valueOf(sp.getString("comboMode", ComboMode.SLIDING.name)!!) }.getOrDefault(ComboMode.SLIDING)
         set(v) = sp.edit().putString("comboMode", v.name).apply()
 
-    /** 자동 모드에서 한 수를 둔 뒤 다음 화면을 읽기까지 기다리는 시간(ms). */
-    var moveDelayMs: Int
-        get() = sp.getInt("moveDelayMs", 700)
-        set(v) = sp.edit().putInt("moveDelayMs", v).apply()
+    /** 자동 모드 속도: 0 = 최고속, 1 = 빠름, 2 = 보통(안전). */
+    var autoSpeed: Int
+        get() = sp.getInt("autoSpeed", 0).coerceIn(0, 2)
+        set(v) = sp.edit().putInt("autoSpeed", v).apply()
+
+    /** 한 수를 둔 뒤 다음 화면을 읽기까지 기다리는 시간(ms). */
+    val moveDelayMs: Int get() = intArrayOf(100, 250, 600)[autoSpeed]
+    /** 드래그 이동 속도 배수. */
+    val dragSpeed: Double get() = doubleArrayOf(2.2, 1.5, 1.0)[autoSpeed]
+    /** 블록을 집을 때 누르고 있는 시간(ms). */
+    val pickupHoldMs: Long get() = longArrayOf(110, 150, 180)[autoSpeed]
+    /** 이동 후 위치 확인 캡처 전 대기(ms). */
+    val lookDelayMs: Long get() = longArrayOf(80, 100, 120)[autoSpeed]
 
     var saveScreens: Boolean
         get() = sp.getBoolean("saveScreens", true)

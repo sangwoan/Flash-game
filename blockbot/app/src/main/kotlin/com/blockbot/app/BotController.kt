@@ -91,6 +91,7 @@ class BotController(
         var startedAt: Long,
         var rawSeenAtRelease: Pair<Int, Int>? = null, // 놓는 순간 화면에서 본 위치 (보정 전)
         var learnedInDrag: Boolean = false,
+        var predicted: Board? = null,                 // 계획대로 놓였을 때의 보드
         var unchangedFrames: Int = 0,
     )
 
@@ -194,6 +195,9 @@ class BotController(
         ))
     }
 
+    /** 다음 화면 확인: 자동 모드에서는 스크린샷 최소 간격(0.36초)마다, 힌트 모드는 0.4초마다. */
+    private fun poll() = schedule(if (mode == Mode.AUTO) 30L else POLL_MS)
+
     private fun schedule(delayMs: Long) {
         handler.removeCallbacks(tick)
         if (mode != Mode.OFF) handler.postDelayed(tick, delayMs)
@@ -276,7 +280,11 @@ class BotController(
         } else badFrames = 0
 
         frames++
-        val ev = tracker.observe(v)
+        // 방금 둔 수의 예상 결과와 화면이 정확히 같으면(보드 일치 + 트레이에서 그 블록만 빠짐) 한 프레임으로 확정
+        val pm = pending
+        val trusted = pm != null && v.clean && v.board == pm.predicted &&
+            v.trayPieces == tracker.tray.mapIndexed { i, t -> if (i == pm.step.slot) null else t } && v.trayPieces.any { it != null }
+        val ev = tracker.observe(v, trusted)
         if (ev !is TrackEvent.Unstable) { unstableSince = 0L; stuckReported = false }
         when (ev) {
             is TrackEvent.Unstable -> {
@@ -296,7 +304,7 @@ class BotController(
                     if (waited >= STUCK_SECS) "⚠ ${waited}초째 화면 확정 못 함 — $what\n게임 화면이 맞다면 로그를 보내 주세요"
                     else "${spinner()} $what"
                 )
-                schedule(POLL_MS)
+                poll()
                 return
             }
             is TrackEvent.Resync -> {
@@ -312,10 +320,10 @@ class BotController(
                 val p = pending
                 if (p != null) {
                     p.unchangedFrames++
-                    if (p.unchangedFrames >= 2 && now() - p.startedAt > prefs.moveDelayMs + 400) {
+                    if (p.unchangedFrames >= 2 && now() - p.startedAt > prefs.moveDelayMs + 700) {
                         val shot = if (prefs.saveScreens) log.screenshot(bmp, "drop_rejected") else null
                         dropRejected(p, shot)
-                    } else schedule(POLL_MS)
+                    } else poll()
                     return
                 }
             }
@@ -344,6 +352,15 @@ class BotController(
             "combo" to st?.comboStreak,
             "estScore" to estScore.toInt(),
         ))
+        // 계획의 첫 수 그대로 놓였으면 남은 수는 다시 계산하지 않고 이어서 쓴다 (수읽기 1.5초 × 2회 절약)
+        val pl = plan
+        val only = ev.transitions.singleOrNull()
+        val newSt = tracker.state
+        if (pl != null && only != null && !ev.newRound && newSt != null && pl.steps.size > 1 &&
+            pl.steps[0].let { it.slot == only.slot && it.row == only.row && it.col == only.col }) {
+            plan = pl.copy(steps = pl.steps.drop(1), totalPieces = pl.totalPieces - 1)
+            planFor = newSt to tracker.tray
+        }
         val p = pending ?: return
         pending = null
         val g = geo ?: return
@@ -377,19 +394,19 @@ class BotController(
             ui.status("드래그가 반영되지 않아 자동을 멈췄습니다. 힌트 모드로 전환합니다.")
             mode = Mode.HINT
             ui.modeChanged(Mode.HINT)
-            schedule(POLL_MS)
+            poll()
             return
         }
         execute(p.step, next)
     }
 
     private fun decideAndAct() {
-        val g = geo ?: return schedule(POLL_MS)
-        val st = tracker.state ?: return schedule(POLL_MS)
+        val g = geo ?: return poll()
+        val st = tracker.state ?: return poll()
         val tray = tracker.tray
         if (tray.all { it == null }) {
             ui.showPlan(g, null)
-            schedule(POLL_MS)
+            poll()
             return
         }
         if (plan == null || planFor != (st to tray)) {
@@ -423,7 +440,7 @@ class BotController(
             schedule(POLL_IDLE_MS)
             return
         }
-        if (mode == Mode.AUTO && pending == null) execute(p.steps.first(), 0) else schedule(POLL_MS)
+        if (mode == Mode.AUTO && pending == null) execute(p.steps.first(), 0) else poll()
     }
 
     /** 살아 있음을 보여주는 회전 표시 (화면을 읽을 때마다 바뀜). */
@@ -494,10 +511,10 @@ class BotController(
             schedule(POLL_IDLE_MS)
             return
         }
-        val g = geo ?: return schedule(POLL_MS)
-        val tr = lastVision?.tray?.getOrNull(step.slot) ?: return schedule(POLL_MS)
-        val st = tracker.state ?: return schedule(POLL_MS)
-        val before = cellColors ?: return schedule(POLL_MS)
+        val g = geo ?: return poll()
+        val tr = lastVision?.tray?.getOrNull(step.slot) ?: return poll()
+        val st = tracker.state ?: return poll()
+        val before = cellColors ?: return poll()
         val pieceColor = trayColors[step.slot]
         val useModel = dragModel.forAttempt(attempt)
         // 드래그 모델이 아직 덜 맞춰졌을 때는 보드 가장자리 줄을 살짝 안쪽으로 겨냥한다:
@@ -509,6 +526,8 @@ class BotController(
         }
         val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, useModel, screenW, screenH, edgeBias)
         val p = PendingMove(step, attempt, 0.0, path, st.board, now())
+        p.predicted = rules.apply(st, step.piece.maskAt(step.row, step.col)).state.board
+        val speed = prefs.dragSpeed
         pending = p
         val servo = DragServo(g, step.piece, step.row, step.col, useModel, tr.centerX, tr.centerY, screenW, screenH,
             allowBlindRelease = !prefs.servoWorks)
@@ -541,7 +560,7 @@ class BotController(
             var seen: Pair<Int, Int>? = null
             var raw: Pair<Int, Int>? = null
             // 블록이 자리 잡을 시간 + 스크린샷 최소 간격을 지켜 캡처
-            val delay = maxOf(110L, MIN_SHOT_INTERVAL_MS - (now() - lastShotAt))
+            val delay = maxOf(prefs.lookDelayMs, MIN_SHOT_INTERVAL_MS - (now() - lastShotAt))
             handler.postDelayed({
                 lastShotAt = now()
                 service.capture(executor) { bmp, _ ->
@@ -568,7 +587,8 @@ class BotController(
                     is DragServo.Action.MoveTo -> {
                         // 가까운 보정(3칸 이내)은 한 번에 짧게, 먼 이동만 감속 이동
                         val far = kotlin.math.hypot(a.x - h.x, a.y - h.y) > g.cell * 3
-                        if (far) h.moveTo(a.x.toFloat(), a.y.toFloat()) { look(h) } else h.nudgeTo(a.x.toFloat(), a.y.toFloat()) { look(h) }
+                        if (far) h.moveTo(a.x.toFloat(), a.y.toFloat(), BotService.FAST_PX_PER_MS * speed, BotService.SLOW_PX_PER_MS * speed) { look(h) }
+                        else h.nudgeTo(a.x.toFloat(), a.y.toFloat(), BotService.NUDGE_PX_PER_MS * speed) { look(h) }
                     }
                     is DragServo.Action.Release -> {
                         p.rawSeenAtRelease = if (a.confirmed) raw else null
@@ -579,10 +599,10 @@ class BotController(
             }
         }
 
-        service.beginDrag(path.fromX, path.fromY, handler, onFail = {
+        service.beginDrag(path.fromX, path.fromY, handler, prefs.pickupHoldMs, onFail = {
             log.event("gesture_failed", json("slot" to step.slot, "trace" to trace))
             finish("gesture_failed", null)
-        }) { h -> h.moveTo(path.toX, path.toY) { look(h) } }
+        }) { h -> h.moveTo(path.toX, path.toY, BotService.FAST_PX_PER_MS * speed, BotService.SLOW_PX_PER_MS * speed) { look(h) } }
     }
 
     companion object {

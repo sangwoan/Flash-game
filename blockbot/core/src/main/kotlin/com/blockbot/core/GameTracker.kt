@@ -32,11 +32,14 @@ class GameTracker(val rules: Rules, private val stableFrames: Int = 2, private v
         state = null; tray = listOf(null, null, null); pendingKey = null; pendingCount = 0; unexplained = 0
     }
 
-    fun observe(v: VisionResult): TrackEvent {
+    /**
+     * @param trusted 이 프레임이 방금 둔 수의 예상 결과와 정확히 일치함 → 두 번 확인하지 않고 바로 확정 (자동 모드 속도용)
+     */
+    fun observe(v: VisionResult, trusted: Boolean = false): TrackEvent {
         if (!v.clean) { pendingKey = null; return TrackEvent.Unstable("인식 불확실: ${v.issues.joinToString()} 애매한 칸 ${v.uncertainCells}") }
         val key = v.board.bits to v.trayPieces
         if (key != pendingKey) { pendingKey = key; pendingCount = 1 } else pendingCount++
-        if (pendingCount < stableFrames) return TrackEvent.Unstable("안정화 대기")
+        if (pendingCount < stableFrames && !trusted) return TrackEvent.Unstable("안정화 대기")
 
         val cur = state
         if (cur == null) return commitResync(v, "시작")

@@ -108,16 +108,16 @@ class BotService : AccessibilityService() {
             val dist = kotlin.math.hypot((tx - x).toDouble(), (ty - y).toDouble())
             if (dist < 2.0) { hold(60, next); return }
             val mx = x + (tx - x) * 0.8f; val my = y + (ty - y) * 0.8f
-            stroke(mx, my, maxOf(MIN_FAST_MS, (dist * 0.8 / fastPxPerMs).toLong()), true) {
-                stroke(tx, ty, maxOf(MIN_SLOW_MS, (dist * 0.2 / slowPxPerMs).toLong()), true, next)
+            stroke(mx, my, maxOf(90L, (dist * 0.8 / fastPxPerMs).toLong()), true) {
+                stroke(tx, ty, maxOf(80L, (dist * 0.2 / slowPxPerMs).toLong()), true, next)
             }
         }
 
         /** 짧은 보정 이동: 감속 구간 없이 한 번에 (한 칸 ≈ 0.2초). */
-        fun nudgeTo(tx: Float, ty: Float, next: () -> Unit) {
+        fun nudgeTo(tx: Float, ty: Float, pxPerMs: Double = NUDGE_PX_PER_MS, next: () -> Unit) {
             val dist = kotlin.math.hypot((tx - x).toDouble(), (ty - y).toDouble())
             if (dist < 2.0) { hold(40, next); return }
-            stroke(tx, ty, maxOf(90L, (dist / NUDGE_PX_PER_MS).toLong()), true, next)
+            stroke(tx, ty, maxOf(90L, (dist / pxPerMs).toLong()), true, next)
         }
 
         /** 제자리에서 누른 채 대기 (1px 흔들림: 길이 0인 경로는 허용되지 않음). */
@@ -133,8 +133,8 @@ class BotService : AccessibilityService() {
     }
 
     /** 트레이 블록을 누르고(집고) [onPicked]에 핸들을 넘긴다. 제스처가 끊기면 [onFail]. */
-    fun beginDrag(fromX: Float, fromY: Float, handler: Handler, onFail: () -> Unit, onPicked: (DragHandle) -> Unit) {
-        val s1 = GestureDescription.StrokeDescription(Path().apply { moveTo(fromX, fromY); lineTo(fromX + 1f, fromY + 1f) }, 0, HOLD_MS, true)
+    fun beginDrag(fromX: Float, fromY: Float, handler: Handler, holdMs: Long = HOLD_MS, onFail: () -> Unit, onPicked: (DragHandle) -> Unit) {
+        val s1 = GestureDescription.StrokeDescription(Path().apply { moveTo(fromX, fromY); lineTo(fromX + 1f, fromY + 1f) }, 0, holdMs, true)
         var failed = false
         val fail = { if (!failed) { failed = true; onFail() } }
         val h = DragHandle(handler, fromX + 1f, fromY + 1f, s1, fail)
