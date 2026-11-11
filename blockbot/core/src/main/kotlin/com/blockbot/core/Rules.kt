@@ -20,13 +20,11 @@ data class GameState(
 enum class ComboMode { SLIDING, PER_ROUND }
 
 data class RuleConfig(
-    val comboMode: ComboMode = ComboMode.SLIDING,
+    // 사용자 실기기 확인(2026-11): 라운드마다 한 줄 이상 지우면 콤보 유지, 콤보는 지운 줄 수만큼 오름
+    val comboMode: ComboMode = ComboMode.PER_ROUND,
     val comboGrace: Int = 2,
-    /**
-     * 콤보 수가 오르는 방식 (실제 게임 규칙 미확인 → 둘 다 시험 가능).
-     * false: 줄을 지우는 배치마다 +1 (기본 가정). true: 한 라운드(블록 3개)에 여러 번 지워도 +1만.
-     */
-    val streakOncePerRound: Boolean = false,
+    /** true: 콤보가 지운 줄 수만큼 오름 (3줄 동시 = +3). false: 줄을 지운 배치마다 +1 (이전 가정). */
+    val streakPerLine: Boolean = true,
 )
 
 data class PlacementResult(
@@ -60,7 +58,7 @@ class Rules(val config: RuleConfig = RuleConfig()) {
         var streak = state.comboStreak
         var since = state.movesSinceClear
         if (lines > 0) {
-            if (!(config.streakOncePerRound && state.clearedThisRound)) streak += 1
+            streak += if (config.streakPerLine) lines else 1
             since = 0
         } else if (config.comboMode == ComboMode.SLIDING && streak > 0) {
             since += 1

@@ -6,7 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class BoardRulesTest {
-    private val rules = Rules(RuleConfig(comboGrace = 0))
+    private val rules = Rules(RuleConfig(comboMode = ComboMode.SLIDING, comboGrace = 0))
 
     @Test
     fun `보드 파싱과 출력이 왕복된다`() {
@@ -71,7 +71,7 @@ class BoardRulesTest {
 
     @Test
     fun `콤보 - grace 2이면 두 번까지 버틴다`() {
-        val rules2 = Rules(RuleConfig(comboGrace = 2))
+        val rules2 = Rules(RuleConfig(comboMode = ComboMode.SLIDING, comboGrace = 2))
         var s = GameState(Board.EMPTY, comboStreak = 1)
         s = rules2.apply(s, Bits.bit(4, 4)).state; assertEquals(1, s.comboStreak)
         s = rules2.apply(s, Bits.bit(5, 5)).state; assertEquals(1, s.comboStreak)

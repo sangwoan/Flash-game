@@ -69,8 +69,8 @@ class MainActivity : Activity() {
         col.addView(title("3. 콤보 규칙"))
         col.addView(body("게임에서 콤보가 이어지는 조건. 모르면 그대로 두세요."))
         val combo = RadioGroup(this)
-        val rbSliding = RadioButton(this).apply { id = View.generateViewId(); text = "3수 안에 다시 지우면 유지 (기본)" }
-        val rbRound = RadioButton(this).apply { id = View.generateViewId(); text = "라운드(3블록)마다 1번 이상 지우면 유지" }
+        val rbSliding = RadioButton(this).apply { id = View.generateViewId(); text = "3수 안에 다시 지우면 유지" }
+        val rbRound = RadioButton(this).apply { id = View.generateViewId(); text = "라운드(3블록)마다 한 줄 이상 지우면 유지 (기본, 확인됨)" }
         combo.addView(rbSliding); combo.addView(rbRound)
         combo.check(if (prefs.comboMode == ComboMode.SLIDING) rbSliding.id else rbRound.id)
         combo.setOnCheckedChangeListener { _, id -> prefs.comboMode = if (id == rbSliding.id) ComboMode.SLIDING else ComboMode.PER_ROUND }

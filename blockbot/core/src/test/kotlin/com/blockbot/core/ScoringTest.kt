@@ -69,4 +69,19 @@ class ScoringTest {
             "XXX/X..",                             // 5번
         ).forEach { assertTrue(Pieces.isKnown(Piece.parse(it)), "목록에 없음: $it") }
     }
+
+    @Test
+    fun `확인된 규칙 - 콤보는 지운 줄 수만큼 오르고, 라운드에 한 줄 이상 지우면 유지된다`() {
+        val rules = Rules() // 기본값 = 확인된 규칙
+        // 0행과 0열이 (0,0)만 비어 있음 → 한 번에 2줄
+        val b = Board((Bits.ROW[0] or Bits.COL[0] or Bits.bit(5, 5)) and Bits.bit(0, 0).inv())
+        var s = rules.apply(GameState(b, comboStreak = 4), Bits.bit(0, 0)).state
+        assertEquals(6, s.comboStreak)                      // 2줄 → +2
+        s = rules.apply(s, Bits.bit(3, 3)).state
+        s = rules.apply(s, Bits.bit(3, 4)).state
+        assertEquals(6, rules.endRound(s).comboStreak)      // 이번 라운드에 지웠으므로 유지
+        s = rules.endRound(s)
+        repeat(3) { i -> s = rules.apply(s, Bits.bit(6, i + 2)).state }
+        assertEquals(0, rules.endRound(s).comboStreak)      // 한 줄도 못 지운 라운드 → 끊김
+    }
 }

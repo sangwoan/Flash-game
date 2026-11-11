@@ -81,9 +81,8 @@ fun main(args: Array<String>) {
     val games = args.getOrNull(0)?.toInt() ?: 20
     val maxRounds = args.getOrNull(1)?.toInt() ?: 150
     val seed = args.getOrNull(2)?.toLong() ?: 1L
-    val mode = args.getOrNull(3)?.let { ComboMode.valueOf(it) } ?: ComboMode.SLIDING
-    // 규칙 가정 바꿔 보기: BLOCKBOT_STREAK_PER_ROUND=1 → 콤보가 라운드당 한 번만 오름
-    val rules = Rules(RuleConfig(comboMode = mode, streakOncePerRound = System.getenv("BLOCKBOT_STREAK_PER_ROUND") == "1"))
+    val mode = args.getOrNull(3)?.let { ComboMode.valueOf(it) } ?: ComboMode.PER_ROUND
+    val rules = Rules(RuleConfig(comboMode = mode))
     val model = ScoreModel()
 
     val dist0 = PieceDistribution.DEFAULT

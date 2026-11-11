@@ -9,8 +9,9 @@ class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("blockbot", Context.MODE_PRIVATE)
 
     var comboMode: ComboMode
-        get() = runCatching { ComboMode.valueOf(sp.getString("comboMode", ComboMode.SLIDING.name)!!) }.getOrDefault(ComboMode.SLIDING)
-        set(v) = sp.edit().putString("comboMode", v.name).apply()
+        // 키를 바꿔 이전 기본값(3수 안에)을 무시: 실기기에서 "라운드마다 한 줄 이상"으로 확인됨
+        get() = runCatching { ComboMode.valueOf(sp.getString("comboMode2", ComboMode.PER_ROUND.name)!!) }.getOrDefault(ComboMode.PER_ROUND)
+        set(v) = sp.edit().putString("comboMode2", v.name).apply()
 
     /** 자동 모드 속도: 0 = 최고속, 1 = 빠름, 2 = 보통(안전). */
     var autoSpeed: Int
