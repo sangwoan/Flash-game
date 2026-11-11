@@ -113,6 +113,17 @@ class PieceDistribution(entries: List<Pair<Piece, Double>>, val friendly: Double
         /** 로그 학습 전 관대함 추정치. 완전 무작위면 시뮬레이션이 30라운드 안에 끝나는데 실제로는 훨씬 길게 간다. */
         const val DEFAULT_FRIENDLY = 0.6
 
-        val DEFAULT: PieceDistribution = of()
+        /** 사용자 관찰만으로 만든 초기 가정 (비교·테스트용). */
+        val ASSUMED: PieceDistribution = of()
+
+        /**
+         * 기본 분포 = 실제 로그에서 학습한 확률 90% + 초기 가정 10%(로그에 안 나온 모양 대비).
+         */
+        val DEFAULT: PieceDistribution = run {
+            val real = RealDistribution.ENTRIES.map { Piece.parse(it.first) to it.second }
+            val total = real.sumOf { it.second }
+            PieceDistribution(real.map { it.first to 0.9 * it.second / total } +
+                ASSUMED.pieces.mapIndexed { i, p -> p to 0.1 * ASSUMED.probabilities[i] }, DEFAULT_FRIENDLY, learnedRounds = 719)
+        }
     }
 }

@@ -107,7 +107,9 @@ fun main(args: Array<String>) {
             val la = if (kv["lookahead"] == "off") null else LookaheadConfig(
                 samples = kv["samples"]?.toInt() ?: 24, candidates = kv["candidates"]?.toInt() ?: 20,
                 deathPenalty = kv["death"]?.toDouble() ?: 500.0, deathPenaltyPerCombo = kv["deathCombo"]?.toDouble() ?: 60.0,
-                beamWidth = kv["beam"]?.toInt() ?: 60, timeBudgetMs = 600_000,
+                beamWidth = kv["beam"]?.toInt() ?: 60, timeBudgetMs = kv["budget"]?.toLong() ?: 600_000,
+                parallel = false, // 시뮬레이션은 판 단위로 이미 병렬
+                deathPriorWeight = kv["prior"]?.toDouble() ?: 8.0, narrowAfter = kv["narrowAfter"]?.toInt() ?: 6, narrowTo = kv["narrowTo"]?.toInt() ?: 8,
                 survivalMargin = kv["margin"]?.toDouble(),
             )
             // 계획 단계의 점수 평가만 바꾸는 전략들 (실제 점수는 항상 ScoreModel로 매김):

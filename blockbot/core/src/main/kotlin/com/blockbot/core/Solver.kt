@@ -62,6 +62,13 @@ data class LookaheadConfig(
      * null이면 끔 (점수 기대값만으로 고름).
      */
     val survivalMargin: Double? = null,
+    val parallel: Boolean = true,
+    /** 게임오버 확률 추정의 사전값과 그 무게(가상 표본 수). 실제 로그: 라운드당 약 1~2%. */
+    val deathPrior: Double = 0.015,
+    val deathPriorWeight: Double = 8.0,
+    /** [narrowAfter]개 표본 뒤에는 상위 [narrowTo]개 후보만 계속 평가. */
+    val narrowAfter: Int = 6,
+    val narrowTo: Int = 8,
 )
 
 data class SolveResult(
@@ -216,22 +223,37 @@ class Solver(
         // 분포의 friendly(관대함)는 각 후보 보드 기준으로 "들어가는 블록" 위주로 뽑게 한다.
         val rng = Random(cfg.seed xor states.first().board.bits)
         val seeds = LongArray(cfg.samples) { rng.nextLong() }
-        val sum = DoubleArray(states.size)
-        val deaths = IntArray(states.size)
+        val n = states.size
+        val aliveSum = DoubleArray(n)
+        val alive = IntArray(n)
+        val deaths = IntArray(n)
+        var active = (0 until n).toList()
         var used = 0
+        fun penalty(i: Int) = cfg.deathPenalty + cfg.deathPenaltyPerCombo * states[i].comboStreak
+        // 게임오버 확률은 표본이 적을 때 과장되기 쉽다(4번 중 1번 = 25%로 보임) → 사전 확률 쪽으로 당겨서 추정
+        fun pDeath(i: Int) = (deaths[i] + cfg.deathPriorWeight * cfg.deathPrior) / (alive[i] + deaths[i] + cfg.deathPriorWeight)
+        fun value(i: Int): Double {
+            val m = if (alive[i] > 0) aliveSum[i] / alive[i] else -penalty(i)
+            val p = pDeath(i)
+            return (1 - p) * m - p * penalty(i)
+        }
         for (seed in seeds) {
-            for (i in states.indices) {
+            // 후보들을 CPU 코어에 나눠 동시에 계산 (폰에서 같은 시간에 더 많은 표본)
+            val results = arrayOfNulls<Double>(n)
+            val dead = BooleanArray(n)
+            val work = { i: Int ->
                 val tray = distribution.sampleTray(Random(seed), states[i].board)
                 val v = bestRoundValue(states[i], tray, cfg)
-                if (v == null) {
-                    deaths[i]++
-                    sum[i] -= cfg.deathPenalty + cfg.deathPenaltyPerCombo * states[i].comboStreak
-                } else sum[i] += v
+                if (v == null) dead[i] = true else results[i] = v
             }
+            if (cfg.parallel && active.size > 1) active.parallelStream().forEach { work(it) } else active.forEach(work)
+            for (i in active) if (dead[i]) deaths[i]++ else { alive[i]++; aliveSum[i] += results[i]!! }
             used++
+            // 표본이 어느 정도 모이면 가망 없는 후보는 버리고 상위 후보에 남은 시간을 쓴다
+            if (used == cfg.narrowAfter && active.size > cfg.narrowTo) active = active.sortedByDescending { value(it) }.take(cfg.narrowTo)
             if (used >= cfg.minSamples && (System.nanoTime() - startNanos) / 1_000_000 > cfg.timeBudgetMs) break
         }
-        return List(states.size) { Outlook(sum[it] / used, deaths[it].toDouble() / used, used) }
+        return List(n) { Outlook(value(it), pDeath(it), alive[it] + deaths[it]) }
     }
 
     private class BeamNode(val state: GameState, val remaining: Int, val path: Double)

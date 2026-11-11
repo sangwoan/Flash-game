@@ -8,7 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LookaheadTest {
-    private val dist = PieceDistribution.DEFAULT
+    private val dist = PieceDistribution.ASSUMED // 초기 가정 분포 (그룹 비율이 정해져 있어 검증 가능)
 
     @Test
     fun `블록 분포 - 3×3 안 모든 연결 모양 + 1×4·1×5, 비율이 설정대로 나온다`() {
@@ -45,8 +45,8 @@ class LookaheadTest {
         val diagonalOnly = GameState(Board((0 until 8).fold(-1L) { m, i -> m and Bits.bit(i, i).inv() }))
         val (a, b) = solver.outlook(listOf(empty, diagonalOnly), startNanos = System.nanoTime())
         println("[수읽기] 빈 보드 $a / 대각선만 빈 보드 $b")
-        assertEquals(0.0, a.deathRate)
-        assertTrue(b.deathRate > 0.8)
+        assertTrue(a.deathRate < 0.02) // 표본에 게임오버가 없어도 사전 확률만큼은 남김
+        assertTrue(b.deathRate > 0.5)
         assertTrue(a.value > b.value)
     }
 
@@ -93,5 +93,22 @@ class LookaheadTest {
         }
         println("[빔 vs 정확] $n 건 중 불일치 $mismatch 건 (정확 탐색 기준 게임오버 $deaths 건)")
         assertTrue(mismatch <= n * 0.03)
+    }
+
+    @Test
+    fun `기본 분포는 실제 로그 기반 - 세로 4칸, 3×3, 2×2 순으로 흔하다`() {
+        val d = PieceDistribution.DEFAULT
+        val top = d.pieces.indices.sortedByDescending { d.probabilities[it] }.take(3).map { d.pieces[it].pattern() }
+        assertEquals(listOf("X/X/X/X", "XXX/XXX/XXX", "XX/XX"), top)
+        assertTrue(d.pieces.all { Pieces.isPlausible(it) })
+        assertTrue(Piece.parse("X.X/.X./X.X") in d.pieces) // 로그에 없던 모양도 낮은 확률로 포함
+    }
+
+    @Test
+    fun `수읽기 - 표본이 적을 때 한 번의 게임오버로 후보 가치가 무너지지 않는다`() {
+        val cfg = LookaheadConfig()
+        // 4표본 중 1번 게임오버: 사전값으로 당기면 25%가 아니라 약 9%로 추정
+        val p = (1 + cfg.deathPriorWeight * cfg.deathPrior) / (4 + cfg.deathPriorWeight)
+        assertTrue(p < 0.1)
     }
 }
