@@ -82,7 +82,8 @@ fun main(args: Array<String>) {
     val maxRounds = args.getOrNull(1)?.toInt() ?: 150
     val seed = args.getOrNull(2)?.toLong() ?: 1L
     val mode = args.getOrNull(3)?.let { ComboMode.valueOf(it) } ?: ComboMode.SLIDING
-    val rules = Rules(RuleConfig(comboMode = mode))
+    // 규칙 가정 바꿔 보기: BLOCKBOT_STREAK_PER_ROUND=1 → 콤보가 라운드당 한 번만 오름
+    val rules = Rules(RuleConfig(comboMode = mode, streakOncePerRound = System.getenv("BLOCKBOT_STREAK_PER_ROUND") == "1"))
     val model = ScoreModel()
 
     val dist0 = PieceDistribution.DEFAULT
@@ -110,7 +111,19 @@ fun main(args: Array<String>) {
                 beamWidth = kv["beam"]?.toInt() ?: 60, timeBudgetMs = 600_000,
                 survivalMargin = kv["margin"]?.toDouble(),
             )
-            name to Solver(rules = rules, weights = w, lookahead = la, distribution = expDistribution!!)
+            // 계획 단계의 점수 평가만 바꾸는 전략들 (실제 점수는 항상 ScoreModel로 매김):
+            //  pathScale = 이번 라운드 점수의 비중, extraClear = 이미 콤보를 지킨 뒤 같은 라운드의 추가 클리어 비중,
+            //  multiBonus = 한 번에 여러 줄을 지우는 클리어에 곱하는 가산
+            val pathScale = kv["pathScale"]?.toDouble() ?: 1.0
+            val extraClear = kv["extraClear"]?.toDouble() ?: 1.0
+            val multiBonus = kv["multiBonus"]?.toDouble() ?: 1.0
+            val scorer = PathScorer { r ->
+                var v = model.points(r)
+                if (r.lines > 0 && r.clearedBefore) v *= extraClear
+                if (r.lines >= 2) v *= multiBonus
+                v * pathScale
+            }
+            name to Solver(rules = rules, weights = w, pathScorer = scorer, lookahead = la, distribution = expDistribution!!)
         }
     } else if (args.getOrNull(4) == "weights") {
         // 가중치 파일 비교 (수읽기 켬): 기본 vs 파일들

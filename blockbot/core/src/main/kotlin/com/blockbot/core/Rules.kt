@@ -22,12 +22,18 @@ enum class ComboMode { SLIDING, PER_ROUND }
 data class RuleConfig(
     val comboMode: ComboMode = ComboMode.SLIDING,
     val comboGrace: Int = 2,
+    /**
+     * 콤보 수가 오르는 방식 (실제 게임 규칙 미확인 → 둘 다 시험 가능).
+     * false: 줄을 지우는 배치마다 +1 (기본 가정). true: 한 라운드(블록 3개)에 여러 번 지워도 +1만.
+     */
+    val streakOncePerRound: Boolean = false,
 )
 
 data class PlacementResult(
     val state: GameState,
     val cellsPlaced: Int,
     val prevStreak: Int,  // 이 배치 전 콤보 수
+    val clearedBefore: Boolean = false, // 이번 라운드에 이 배치 전에 이미 줄을 지웠는가
     val clearedRows: Int, // 비트마스크 (bit r = r행 지움)
     val clearedCols: Int, // 비트마스크 (bit c = c열 지움)
     val lines: Int,
@@ -54,7 +60,7 @@ class Rules(val config: RuleConfig = RuleConfig()) {
         var streak = state.comboStreak
         var since = state.movesSinceClear
         if (lines > 0) {
-            streak += 1
+            if (!(config.streakOncePerRound && state.clearedThisRound)) streak += 1
             since = 0
         } else if (config.comboMode == ComboMode.SLIDING && streak > 0) {
             since += 1
@@ -64,6 +70,7 @@ class Rules(val config: RuleConfig = RuleConfig()) {
             state = GameState(Board(after), streak, since, state.clearedThisRound || lines > 0),
             cellsPlaced = Bits.popcount(mask),
             prevStreak = state.comboStreak,
+            clearedBefore = state.clearedThisRound,
             clearedRows = rowsMask,
             clearedCols = colsMask,
             lines = lines,
