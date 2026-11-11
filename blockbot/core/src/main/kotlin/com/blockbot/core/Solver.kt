@@ -52,7 +52,8 @@ data class LookaheadConfig(
     val samples: Int = 24,
     val minSamples: Int = 4,
     val timeBudgetMs: Long = 1500,
-    val beamWidth: Int = 60,          // 다음 라운드 탐색은 근사(빔): 단계마다 상위 N 상태만 유지
+    // 실제 분포로 보정한 시뮬레이션(48판 × 2세트): 폭 60 → 25가 점수·생존 모두 같거나 낫고 40% 빠름(= 폰에서 표본이 더 많아짐)
+    val beamWidth: Int = 25,          // 다음 라운드 탐색은 근사(빔): 단계마다 상위 N 상태만 유지
     val finalEvalWidth: Int = 16,     // 마지막 단계에서 정밀 평가할 상태 수
     val deathPenalty: Double = 500.0, // 다음 라운드에 3개를 다 못 놓으면(게임 오버) 감점
     val deathPenaltyPerCombo: Double = 60.0, // 콤보가 클수록 죽으면 잃는 게 큼
@@ -63,6 +64,11 @@ data class LookaheadConfig(
      */
     val survivalMargin: Double? = null,
     val parallel: Boolean = true,
+    /**
+     * 이번 라운드에 당장 얻는 점수의 비중 (1 = 그대로). 1보다 작으면 눈앞의 점수보다 다음 판 전망(보드 정돈·생존)을 더 본다.
+     * 0.7: 보정한 시뮬레이션 2세트에서 생존 +15~21%.
+     */
+    val immediateWeight: Double = 0.7,
     /** 게임오버 확률 추정의 사전값과 그 무게(가상 표본 수). 실제 로그: 라운드당 약 1~2%. */
     val deathPrior: Double = 0.015,
     val deathPriorWeight: Double = 8.0,
@@ -186,7 +192,7 @@ class Solver(
                 val res = outlook(pool.map { finalStates.getValue(it.first) }, la, t0)
                 outlooks = pool.map { it.first }.zip(res).toMap()
                 val poolSet = pool.map { it.first }.toSet()
-                val byValue = pool.sortedByDescending { it.first.pathScore + outlooks.getValue(it.first).value }
+                val byValue = pool.sortedByDescending { la.immediateWeight * it.first.pathScore + outlooks.getValue(it.first).value }
                 val margin = la.survivalMargin
                 val poolOrder = if (margin == null) byValue else {
                     val safest = pool.minOf { outlooks.getValue(it.first).deathRate }
