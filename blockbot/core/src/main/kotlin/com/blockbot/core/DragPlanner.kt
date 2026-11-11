@@ -77,7 +77,7 @@ data class DragModel(
          * 착지 위치가 칸 단위로만 관측돼서(±0.5칸 오차) 관측이 적을 때 배율과 띄움이 서로 엉키는 걸 막는다.
          * 시뮬레이션: 1:1 게임이면 2~3수째부터 적중, 배율 1.25인 게임도 15수 안팎에서 대부분 적중.
          */
-        fun fit(obs: List<DragObservation>, prior: DragModel = PRIOR, gainPrior: Double = 30.0, offsetPrior: Double = 0.3): DragModel {
+        fun fit(obs: List<DragObservation>, prior: DragModel = PRIOR, gainPrior: Double = 20.0, offsetPrior: Double = 0.3): DragModel {
             fun ridge(points: List<Pair<Double, Double>>, g0: Double, b0: Double): Pair<Double, Double> {
                 var a11 = gainPrior; var a12 = 0.0; var a22 = offsetPrior
                 var r1 = gainPrior * g0; var r2 = offsetPrior * b0

@@ -57,6 +57,11 @@ data class LookaheadConfig(
     val deathPenalty: Double = 500.0, // 다음 라운드에 3개를 다 못 놓으면(게임 오버) 감점
     val deathPenaltyPerCombo: Double = 60.0, // 콤보가 클수록 죽으면 잃는 게 큼
     val seed: Long = 0x5EEDL,
+    /**
+     * 생존 우선: 후보 중 "다음 판 게임오버 확률"이 가장 낮은 것보다 이 값 넘게 위험한 후보는 점수가 높아도 뒤로 미룬다.
+     * null이면 끔 (점수 기대값만으로 고름).
+     */
+    val survivalMargin: Double? = null,
 )
 
 data class SolveResult(
@@ -174,8 +179,14 @@ class Solver(
                 val res = outlook(pool.map { finalStates.getValue(it.first) }, la, t0)
                 outlooks = pool.map { it.first }.zip(res).toMap()
                 val poolSet = pool.map { it.first }.toSet()
-                order = pool.sortedByDescending { it.first.pathScore + outlooks.getValue(it.first).value } +
-                    ranked.filter { it.first !in poolSet }
+                val byValue = pool.sortedByDescending { it.first.pathScore + outlooks.getValue(it.first).value }
+                val margin = la.survivalMargin
+                val poolOrder = if (margin == null) byValue else {
+                    val safest = pool.minOf { outlooks.getValue(it.first).deathRate }
+                    val (safe, risky) = byValue.partition { outlooks.getValue(it.first).deathRate <= safest + margin + 1e-9 }
+                    safe + risky
+                }
+                order = poolOrder + ranked.filter { it.first !in poolSet }
             }
         }
         val plans = order.take(maxOf(1, topK)).map { (n, leaf) -> toPlan(n, finalStates.getValue(n), leaf, total, outlooks[n]) }

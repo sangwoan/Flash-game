@@ -500,7 +500,14 @@ class BotController(
         val before = cellColors ?: return schedule(POLL_MS)
         val pieceColor = trayColors[step.slot]
         val useModel = dragModel.forAttempt(attempt)
-        val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, useModel, screenW, screenH)
+        // 드래그 모델이 아직 덜 맞춰졌을 때는 보드 가장자리 줄을 살짝 안쪽으로 겨냥한다:
+        // 밖으로 지나치면 블록이 안 보여 되찾는 데 오래 걸리지만, 안쪽으로 한 칸 어긋난 건 0.2초면 고친다.
+        val edgeBias = if (dragModel.samples >= 25) 0.0 else when {
+            step.row == 0 -> 0.3
+            step.row + step.piece.height == 8 -> -0.3
+            else -> 0.0
+        }
+        val path = DragPlanner.plan(g, tr, step.piece, step.row, step.col, useModel, screenW, screenH, edgeBias)
         val p = PendingMove(step, attempt, 0.0, path, st.board, now())
         pending = p
         val servo = DragServo(g, step.piece, step.row, step.col, useModel, tr.centerX, tr.centerY, screenW, screenH,
@@ -534,7 +541,7 @@ class BotController(
             var seen: Pair<Int, Int>? = null
             var raw: Pair<Int, Int>? = null
             // 블록이 자리 잡을 시간 + 스크린샷 최소 간격을 지켜 캡처
-            val delay = maxOf(140L, MIN_SHOT_INTERVAL_MS - (now() - lastShotAt))
+            val delay = maxOf(110L, MIN_SHOT_INTERVAL_MS - (now() - lastShotAt))
             handler.postDelayed({
                 lastShotAt = now()
                 service.capture(executor) { bmp, _ ->
@@ -558,7 +565,11 @@ class BotController(
                 trace += "finger=%.0f,%.0f seen=%s".format(h.x, h.y, seen?.let { "${it.first},${it.second}" } ?: "none")
                 ui.status("자동 · 위치 확인: " + (seen?.let { "${it.first + 1}행 ${it.second + 1}열" } ?: "안 보임") + " → 목표 ${step.row + 1}행 ${step.col + 1}열")
                 when (val a = servo.onObservation(h.x.toDouble(), h.y.toDouble(), seen)) {
-                    is DragServo.Action.MoveTo -> h.moveTo(a.x.toFloat(), a.y.toFloat(), fastPxPerMs = BotService.SLOW_PX_PER_MS) { look(h) }
+                    is DragServo.Action.MoveTo -> {
+                        // 가까운 보정(3칸 이내)은 한 번에 짧게, 먼 이동만 감속 이동
+                        val far = kotlin.math.hypot(a.x - h.x, a.y - h.y) > g.cell * 3
+                        if (far) h.moveTo(a.x.toFloat(), a.y.toFloat()) { look(h) } else h.nudgeTo(a.x.toFloat(), a.y.toFloat()) { look(h) }
+                    }
                     is DragServo.Action.Release -> {
                         p.rawSeenAtRelease = if (a.confirmed) raw else null
                         h.release { finish(if (a.confirmed) "confirmed" else "blind", h) }

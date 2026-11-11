@@ -100,10 +100,15 @@ fun main(args: Array<String>) {
             val kv = spec.substringAfter(":", "").split(";").filter { it.contains("=") }.associate { it.substringBefore("=") to it.substringAfter("=") }
             var w = kv["weights"]?.let { Weights.fromText(java.io.File(it).readText()) } ?: Weights()
             kv["health"]?.let { w = w.copy(healthPerStreak = it.toDouble()) }
+            kv["comboAlive"]?.let { w = w.copy(comboAlive = it.toDouble()) }
+            kv["comboRisk"]?.let { w = w.copy(comboRisk = it.toDouble()) }
+            kv["p3"]?.let { v -> w = w.copy(probes = w.probes.map { if (it.label == "3x3") it.copy(missPenalty = v.toDouble()) else it }) }
+            kv["pair"]?.let { w = w.copy(pair3x3 = it.toDouble()) }
             val la = if (kv["lookahead"] == "off") null else LookaheadConfig(
                 samples = kv["samples"]?.toInt() ?: 24, candidates = kv["candidates"]?.toInt() ?: 20,
                 deathPenalty = kv["death"]?.toDouble() ?: 500.0, deathPenaltyPerCombo = kv["deathCombo"]?.toDouble() ?: 60.0,
                 beamWidth = kv["beam"]?.toInt() ?: 60, timeBudgetMs = 600_000,
+                survivalMargin = kv["margin"]?.toDouble(),
             )
             name to Solver(rules = rules, weights = w, lookahead = la, distribution = expDistribution!!)
         }

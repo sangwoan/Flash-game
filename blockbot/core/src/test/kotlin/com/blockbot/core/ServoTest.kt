@@ -112,7 +112,7 @@ class ServoTest {
             Game(1.25, 2.0, 0.3, true), Game(1.4, 2.5, 0.0, false), Game(0.8, 1.0, 0.4, true),
         )
         for (g in games) {
-            var wrong = 0; var placed = 0; var unconfirmed = 0; var cancelled = 0; var corr = 0; val n = 300
+            var wrong = 0; var placed = 0; var unconfirmed = 0; var cancelled = 0; var corr = 0; val n = 300; var looks = 0
             learned.clear() // 게임마다 처음부터: 앱처럼 관측이 쌓이며 모델이 맞춰짐
             repeat(n) {
                 var bits = 0L

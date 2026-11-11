@@ -124,13 +124,14 @@ class DragServo(
             if (steps > MAX_STEPS || unseen > 4) return if (allowBlindRelease && lastSeenFinger == null) Action.Release(confirmed = false) else Action.Cancel
             // 전에 보였던 적이 있으면 그 손가락 위치 쪽으로 절반 되돌아가 다시 본다
             lastSeenFinger?.let { (lx, ly) -> prevStepX /= 2; prevStepY /= 2; return clamp((fingerX + lx) / 2, (fingerY + ly) / 2) }
+            // 아직 본 적이 없으면: 대개 가장자리에서 보드 밖으로 지나친 것 → 보드 안쪽으로 조금씩 당겨 본다
+            val inY = if (targetRow + piece.height / 2.0 < 4) 1 else -1
+            val inX = if (targetCol + piece.width / 2.0 < 4) 1 else -1
             return when (unseen) {
-                // 1) 살짝 옮겨 본다 (칸 경계에 걸친 경우)
-                1 -> clamp(fingerX + 0.3 * geo.cellW * (if (targetCol + piece.width / 2.0 < 4) 1 else -1),
-                    fingerY + 0.5 * geo.cellH * (if (targetRow + piece.height / 2.0 < 4) 1 else -1))
-                // 2) 보드 한가운데로 (어느 방향으로 몇 칸 틀려도 보드 안에 있게)
-                2 -> probeAt(3.5 - piece.height / 2.0, 3.5 - piece.width / 2.0)
-                // 3) 가운데가 채워져 있어 안 보일 수 있으니 목표 쪽으로 조금
+                1 -> clamp(fingerX + 0.3 * geo.cellW * inX, fingerY + 0.7 * geo.cellH * inY)
+                2 -> clamp(fingerX + 0.5 * geo.cellW * inX, fingerY + 1.5 * geo.cellH * inY)
+                // 그래도 안 보이면 보드 한가운데로 (어느 방향으로 몇 칸 틀려도 보드 안에 있게)
+                3 -> probeAt(3.5 - piece.height / 2.0, 3.5 - piece.width / 2.0)
                 else -> probeAt((3.5 - piece.height / 2.0 + targetRow) / 2, (3.5 - piece.width / 2.0 + targetCol) / 2)
             }
         }

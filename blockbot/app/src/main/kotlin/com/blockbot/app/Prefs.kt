@@ -48,6 +48,6 @@ class Prefs(context: Context) {
         set(v) = sp.edit().putInt("panelY", v).apply()
 
     companion object {
-        const val MAX_DRAG_OBS = 40
+        const val MAX_DRAG_OBS = 80
     }
 }

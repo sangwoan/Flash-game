@@ -113,12 +113,19 @@ class BotService : AccessibilityService() {
             }
         }
 
+        /** 짧은 보정 이동: 감속 구간 없이 한 번에 (한 칸 ≈ 0.2초). */
+        fun nudgeTo(tx: Float, ty: Float, next: () -> Unit) {
+            val dist = kotlin.math.hypot((tx - x).toDouble(), (ty - y).toDouble())
+            if (dist < 2.0) { hold(40, next); return }
+            stroke(tx, ty, maxOf(90L, (dist / NUDGE_PX_PER_MS).toLong()), true, next)
+        }
+
         /** 제자리에서 누른 채 대기 (1px 흔들림: 길이 0인 경로는 허용되지 않음). */
         fun hold(ms: Long, next: () -> Unit) { jitter = -jitter; stroke(x + jitter, y, ms, true, next) }
 
         /** [ready]가 true가 될 때까지 누른 채 대기 (최대 [maxMs]). */
         fun holdUntil(ready: () -> Boolean, maxMs: Long, then: () -> Unit) {
-            if (ready() || maxMs <= 0) then() else hold(120) { holdUntil(ready, maxMs - 120, then) }
+            if (ready() || maxMs <= 0) then() else hold(50) { holdUntil(ready, maxMs - 50, then) }
         }
 
         /** 손가락을 뗀다. */
@@ -143,6 +150,7 @@ class BotService : AccessibilityService() {
         const val HOLD_MS = 180L
         const val FAST_PX_PER_MS = 1.1
         const val SLOW_PX_PER_MS = 0.45
+        const val NUDGE_PX_PER_MS = 0.6
         const val MIN_FAST_MS = 220L
         const val MIN_SLOW_MS = 200L
 
