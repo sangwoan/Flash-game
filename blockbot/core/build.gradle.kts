@@ -66,3 +66,13 @@ tasks.register<JavaExec>("improve") {
     workingDir = rootProject.projectDir
     args = (project.findProperty("improveArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
 }
+
+// 로그 재생 비교: ./gradlew :core:replay -PreplayArgs="로그폴더 시작점개수 정책1 정책2 ..."
+tasks.register<JavaExec>("replay") {
+    group = "blockbot"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.blockbot.core.LogReplayKt")
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8", "-Xmx2g")
+    workingDir = rootProject.projectDir
+    args = (project.findProperty("replayArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
+}
