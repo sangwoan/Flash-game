@@ -557,8 +557,8 @@ class BotController(
         fun look(h: BotService.DragHandle) {
             if (mode != Mode.AUTO) { h.moveTo(path.fromX, path.fromY) { h.release { finish("stopped", h) } }; return }
             var done = false
-            var seen: Pair<Int, Int>? = null
-            var raw: Pair<Int, Int>? = null
+            var seen: DragObserver.Fix? = null
+            var raw: DragObserver.Fix? = null
             // 블록이 자리 잡을 시간 + 스크린샷 최소 간격을 지켜 캡처
             val delay = maxOf(prefs.lookDelayMs, MIN_SHOT_INTERVAL_MS - (now() - lastShotAt))
             handler.postDelayed({
@@ -569,11 +569,12 @@ class BotController(
                             val px = pixels?.takeIf { it.size == bmp.width * bmp.height } ?: IntArray(bmp.width * bmp.height).also { pixels = it }
                             bmp.getPixels(px, 0, bmp.width, 0, 0, bmp.width, bmp.height)
                             val after = DragObserver.cellColors(PixelImage(bmp.width, bmp.height, px), g)
-                            raw = DragObserver.locate(before, after, st.board.bits, step.piece, pieceColor)
-                            seen = raw?.let { (it.first + prefs.visBiasRow) to (it.second + prefs.visBiasCol) }
+                            // 0.1칸 단위 연속 위치 (칸 경계에 걸쳐 떠 있어도 읽음)
+                            raw = DragObserver.locateFine(before, after, st.board.bits, step.piece, pieceColor)
+                            seen = raw?.let { DragObserver.Fix(it.top + prefs.visBiasRow, it.left + prefs.visBiasCol) }
                             if (prefs.saveScreens && holdShots < HOLD_SHOTS_PER_SESSION) {
                                 holdShots++
-                                log.screenshot(bmp, "drag_hold_target_r${step.row}c${step.col}_seen_${seen?.first}_${seen?.second}")
+                                log.screenshot(bmp, "drag_hold_target_r${step.row}c${step.col}_seen_${seen?.row}_${seen?.col}")
                             }
                         } finally { bmp.recycle() }
                     }
@@ -581,9 +582,9 @@ class BotController(
                 }
             }, delay)
             h.holdUntil({ done }, 2500) {
-                trace += "finger=%.0f,%.0f seen=%s".format(h.x, h.y, seen?.let { "${it.first},${it.second}" } ?: "none")
-                ui.status("자동 · 위치 확인: " + (seen?.let { "${it.first + 1}행 ${it.second + 1}열" } ?: "안 보임") + " → 목표 ${step.row + 1}행 ${step.col + 1}열")
-                when (val a = servo.onObservation(h.x.toDouble(), h.y.toDouble(), seen)) {
+                trace += "finger=%.0f,%.0f seen=%s".format(h.x, h.y, seen?.let { "%.1f,%.1f".format(it.top, it.left) } ?: "none")
+                ui.status("자동 · 위치 확인: " + (seen?.let { "${it.row + 1}행 ${it.col + 1}열" } ?: "안 보임") + " → 목표 ${step.row + 1}행 ${step.col + 1}열")
+                when (val a = servo.onFix(h.x.toDouble(), h.y.toDouble(), seen)) {
                     is DragServo.Action.MoveTo -> {
                         // 가까운 보정(3칸 이내)은 한 번에 짧게, 먼 이동만 감속 이동
                         val far = kotlin.math.hypot(a.x - h.x, a.y - h.y) > g.cell * 3
@@ -591,7 +592,7 @@ class BotController(
                         else h.nudgeTo(a.x.toFloat(), a.y.toFloat(), BotService.NUDGE_PX_PER_MS * speed) { look(h) }
                     }
                     is DragServo.Action.Release -> {
-                        p.rawSeenAtRelease = if (a.confirmed) raw else null
+                        p.rawSeenAtRelease = if (a.confirmed) raw?.let { it.row to it.col } else null
                         h.release { finish(if (a.confirmed) "confirmed" else "blind", h) }
                     }
                     DragServo.Action.Cancel -> h.moveTo(path.fromX, path.fromY) { h.release { finish("cancelled", h) } }

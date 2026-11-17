@@ -53,7 +53,7 @@ class ServoTest {
 
     private val learned = ArrayList<DragObservation>()
 
-    private fun dragOnce(g: Game, board: Board, piece: Piece, slot: Int, row: Int, col: Int, model: DragModel): Outcome {
+    private fun dragOnce(g: Game, board: Board, piece: Piece, slot: Int, row: Int, col: Int, model: DragModel, fine: Boolean = true): Outcome {
         val sx = 1080.0 * (2 * slot + 1) / 6; val sy = 1865.0
         val tray = TrayRead(slot, piece, sx.toInt() - 40, sy.toInt() - 35, sx.toInt() + 40, sy.toInt() + 35)
         val path = DragPlanner.plan(geo, tray, piece, row, col, model, 1080, 2340)
@@ -63,15 +63,16 @@ class ServoTest {
         val trace = ArrayList<String>()
         repeat(12) {
             val (top, left) = floatPos(g, piece, tray.centerX, tray.centerY, fx, fy)
-            val seen = DragObserver.locate(before, during(g, board, piece, top, left), board.bits, piece, dragColor)
-            if (System.getenv("SERVO_TRACE") != null) trace += "float=%.2f,%.2f seen=%s".format(top, left, seen)
-            when (val a = servo.onObservation(fx, fy, seen)) {
+            val after = during(g, board, piece, top, left)
+            val action = if (fine) servo.onFix(fx, fy, DragObserver.locateFine(before, after, board.bits, piece, dragColor))
+                else servo.onObservation(fx, fy, DragObserver.locate(before, after, board.bits, piece, dragColor))
+            when (val a = action) {
                 is DragServo.Action.MoveTo -> { fx = a.x; fy = a.y }
                 is DragServo.Action.Release -> {
                     learned += servo.observations
                     val r = round(top).toInt(); val c = round(left).toInt()
                     val ok = r in 0..8 - piece.height && c in 0..8 - piece.width && (piece.maskAt(r, c) and board.bits) == 0L
-                    if (System.getenv("SERVO_DEBUG") != null && (!ok || (r to c) != (row to col))) println("DBG gain=${g.gain} lift=${g.lift} piece=${piece.pattern()} target=$row,$col float=%.2f,%.2f seen=$seen confirmed=${a.confirmed}\n${board.toAscii()}".format(top, left))
+                    if (System.getenv("SERVO_DEBUG") != null && (!ok || (r to c) != (row to col))) println("DBG gain=${g.gain} lift=${g.lift} piece=${piece.pattern()} target=$row,$col float=%.2f,%.2f confirmed=${a.confirmed}\n${board.toAscii()}".format(top, left))
                     return Outcome(if (ok) r to c else null, a.confirmed, servo.corrections, false)
                 }
                 DragServo.Action.Cancel -> {
@@ -133,6 +134,49 @@ class ServoTest {
             assertEquals(0, wrong, "틀린 칸에 놓으면 안 됨")
             assertEquals(0, unconfirmed)
             assertTrue(cancelled <= 12, "취소가 너무 많음: $cancelled")
+        }
+    }
+
+    @Test
+    fun `연속 위치 추정 - 칸 경계에 걸쳐 떠 있어도 위치를 읽는다`() {
+        val board = Board.parse("XXXX....\n".repeat(2) + "........\n".repeat(6))
+        val before = colors(board)
+        for (piece in listOf(Piece.parse("XX/X."), Piece.parse("X/X/X/X"), Piece.parse("XXX/XXX/XXX"), Piece.parse("X"))) {
+            for ((top, left) in listOf(4.0 to 3.0, 4.5 to 3.0, 3.3 to 2.6, 5.0 to 4.5, 2.45 to 4.55)) {
+                if (top + piece.height > 8.4 || left + piece.width > 8.4) continue
+                val fix = DragObserver.locateFine(before, during(Game(1.0, 0.0, 0.0, false), board, piece, top, left), board.bits, piece, dragColor)
+                kotlin.test.assertNotNull(fix, "${piece.pattern()} @ $top,$left")
+                // 칸 중앙 40%만 관측하므로 ±0.3칸 안은 원리상 구분 불가 → 오차 0.35칸 이내면 충분 (놓을 칸 판단에는 영향 없음)
+                assertTrue(kotlin.math.abs(fix.top - top) <= 0.35 && kotlin.math.abs(fix.left - left) <= 0.35,
+                    "${piece.pattern()} 실제 $top,$left → 추정 ${fix.top},${fix.left}")
+            }
+        }
+    }
+
+    @Test
+    fun `연속 위치 보정이 정수 칸 보정보다 확인 횟수와 취소가 적다`() {
+        val shapes = listOf("X", "XX", "X/X", "XX/XX", "XXX", "X/X/X", "XX/X.", "XXX/XXX/XXX", "XXXXX", "X/X/X/X").map { Piece.parse(it) }
+        for (fine in listOf(false, true)) {
+            val rnd = Random(5)
+            var wrong = 0; var cancelled = 0; var corr = 0; var n = 0
+            for (g in listOf(Game(1.0, 1.5, 0.0, false), Game(1.25, 2.0, 0.3, false), Game(0.85, 0.7, -0.2, false))) {
+                learned.clear()
+                repeat(150) {
+                    var bits = 0L
+                    for (i in 0 until 64) if (rnd.nextDouble() < 0.35) bits = bits or (1L shl i)
+                    val board = Board(bits)
+                    val piece = shapes[rnd.nextInt(shapes.size)]
+                    val spots = piece.masks.indices.filter { (piece.masks[it] and bits) == 0L }
+                    if (spots.isEmpty()) return@repeat
+                    val k = spots[rnd.nextInt(spots.size)]
+                    val o = dragOnce(g, board, piece, rnd.nextInt(3), piece.rows[k], piece.cols[k], DragModel.fit(learned.takeLast(40)), fine)
+                    n++; corr += o.corrections; if (o.cancelled) cancelled++
+                    if (o.landed != null && o.landed != piece.rows[k] to piece.cols[k]) wrong++
+                }
+            }
+            println("[보정 방식 ${if (fine) "연속" else "정수"}] $n 회: 틀린 칸 $wrong, 취소 $cancelled, 평균 보정 %.2f회".format(corr.toDouble() / n))
+            assertEquals(0, wrong)
+            if (fine) assertTrue(cancelled <= 3)
         }
     }
 }

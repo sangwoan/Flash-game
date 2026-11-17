@@ -17,6 +17,10 @@ object PolicySpec {
         kv["comboRisk"]?.let { w = w.copy(comboRisk = it.toDouble()) }
         kv["p3"]?.let { v -> w = w.copy(probes = w.probes.map { if (it.label == "3x3") it.copy(missPenalty = v.toDouble()) else it }) }
         kv["pair"]?.let { w = w.copy(pair3x3 = it.toDouble()) }
+        // 5칸 막대 자리 확보 (가로·세로 각각): 실제 게임오버 원인 2위
+        kv["l5"]?.let { v -> w = w.copy(probes = w.probes.map { if (it.label == "1x5" || it.label == "5x1") it.copy(missPenalty = v.toDouble()) else it }) }
+        // 2×3 자리 확보 프로브 추가
+        kv["p23"]?.let { v -> w = w.copy(probes = w.probes + Probe("3x2", "XX/XX/XX", v.toDouble()) + Probe("2x3", "XXX/XXX", v.toDouble())) }
         kv["hole"]?.let { w = w.copy(isolatedHole = it.toDouble()) }
         kv["rough"]?.let { w = w.copy(roughness = it.toDouble()) }
         kv["filled"]?.let { w = w.copy(filledCell = it.toDouble()) }

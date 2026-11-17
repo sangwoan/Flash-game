@@ -83,6 +83,84 @@ object DragObserver {
         // 동점(일부가 가려져 여러 위치가 똑같이 설명됨)이면 확실하지 않으므로 null
         return if (bestScore > 0.3 && !tie) best else null
     }
+
+    /** 떠 있는 블록의 연속 위치 (바운딩 박스 좌상단, 칸 단위 소수). */
+    data class Fix(val top: Double, val left: Double) {
+        val row: Int get() = kotlin.math.round(top).toInt()
+        val col: Int get() = kotlin.math.round(left).toInt()
+    }
+
+    /**
+     * 블록이 칸 경계 사이에 떠 있어도 0.1칸 단위로 위치를 추정한다.
+     * 각 빈칸 중심 영역(±0.2칸)이 블록에 덮인 비율을 관측하고, 블록을 0.1칸씩 옮겨 가며
+     * "그 위치라면 각 칸이 얼마나 덮일지"와 가장 잘 맞는 위치를 고른다.
+     * (기존 [locate]는 정수 칸만 봐서, 블록이 경계에 걸치면 못 찾고 한 칸 보정이 경계 양쪽을 오갔다 — 실기기 로그)
+     * @return 확실하지 않으면 null (변화가 너무 적음/많음, 여러 위치가 똑같이 설명됨)
+     */
+    fun locateFine(before: DoubleArray, after: DoubleArray, boardBits: Long, piece: Piece, pieceColor: DoubleArray? = null, minChange: Double = 26.0): Fix? {
+        val obs = DoubleArray(64)
+        val empty = BooleanArray(64)
+        var strong = 0
+        for (i in 0 until 64) {
+            if ((boardBits ushr i) and 1L == 1L) continue
+            empty[i] = true
+            val dr = after[i * 3] - before[i * 3]; val dg = after[i * 3 + 1] - before[i * 3 + 1]; val db = after[i * 3 + 2] - before[i * 3 + 2]
+            val d = sqrt(dr * dr + dg * dg + db * db)
+            if (d <= minChange) continue
+            var cover = minOf(d, 120.0) / 120.0
+            if (pieceColor != null) {
+                val vr = pieceColor[0] - before[i * 3]; val vg = pieceColor[1] - before[i * 3 + 1]; val vb = pieceColor[2] - before[i * 3 + 2]
+                val n2 = vr * vr + vg * vg + vb * vb
+                if (n2 > 60.0 * 60.0) cover = ((dr * vr + dg * vg + db * vb) / n2).coerceIn(0.0, 1.0)
+            }
+            obs[i] = cover
+            if (cover > 0.3) strong++
+        }
+        if (strong == 0 || strong > piece.size * 2 + 4) return null
+        var totalSq = 0.0
+        for (i in 0 until 64) if (empty[i]) totalSq += obs[i] * obs[i]
+        val pred = DoubleArray(64)
+        val touched = IntArray(64 * 4)
+        data class Cand(val top: Double, val left: Double, val err: Double)
+        val cands = ArrayList<Cand>()
+        for (r in -piece.height + 1..7) for (c in -piece.width + 1..7) for (a in -5..4) for (b in -5..4) {
+            val top = r + a / 10.0; val left = c + b / 10.0
+            var nt = 0
+            for (cell in piece.cells) {
+                val y0 = top + cell.r; val x0 = left + cell.c
+                // 이 블록 칸이 걸칠 수 있는 칸들: 행 floor(y0)..floor(y0)+1, 열 동일
+                val rr0 = kotlin.math.floor(y0).toInt(); val cc0 = kotlin.math.floor(x0).toInt()
+                for (rr in rr0..rr0 + 1) for (cc in cc0..cc0 + 1) {
+                    if (rr !in 0..7 || cc !in 0..7) continue
+                    val oy = maxOf(0.0, minOf(y0 + 1, rr + 0.7) - maxOf(y0, rr + 0.3))
+                    val ox = maxOf(0.0, minOf(x0 + 1, cc + 0.7) - maxOf(x0, cc + 0.3))
+                    if (oy <= 0 || ox <= 0) continue
+                    val k = rr * 8 + cc
+                    if (pred[k] == 0.0) touched[nt++] = k
+                    pred[k] += oy * ox / 0.16
+                }
+            }
+            var err = totalSq
+            var covers = 0
+            for (t in 0 until nt) {
+                val k = touched[t]
+                val pk = minOf(1.0, pred[k])
+                if (empty[k]) { err += (pk - obs[k]) * (pk - obs[k]) - obs[k] * obs[k]; if (pk > 0.3) covers++ }
+                pred[k] = 0.0
+            }
+            if (covers > 0) cands += Cand(top, left, err)
+        }
+        val best = cands.minByOrNull { it.err } ?: return null
+        if (best.err > totalSq * 0.45) return null // 관측된 변화의 절반도 설명 못 함
+        // 0.6칸 넘게 떨어진 다른 위치가 거의 같은 정도로 설명하면 확실하지 않음
+        // 칸 중앙 영역만 보므로 블록이 ±0.3칸 안에서 움직여도 관측이 같다(오차가 같은 "평지").
+        // 평지의 가운데를 위치로 삼고, 평지에서 멀리 떨어진 곳도 똑같이 설명되면(다른 해석) 확실하지 않음.
+        val plateau = cands.filter { it.err <= best.err + 0.08 }
+        val mt = plateau.sumOf { it.top } / plateau.size
+        val ml = plateau.sumOf { it.left } / plateau.size
+        val rival = plateau.any { kotlin.math.hypot(it.top - mt, it.left - ml) > 0.75 }
+        return if (rival) null else Fix(mt, ml)
+    }
 }
 
 /**
@@ -156,6 +234,24 @@ class DragServo(
         return clamp(fingerX + sx, fingerY + sy)
     }
 
+    /**
+     * 연속 위치([DragObserver.Fix])로 판단: 목표에서 0.3칸 안이면 놓고(놓으면 가장 가까운 칸 = 목표로 스냅),
+     * 아니면 어긋난 거리만큼 정확히 옮긴다(칸 경계에서 오가는 문제 없음).
+     */
+    fun onFix(fingerX: Double, fingerY: Double, fix: DragObserver.Fix?): Action {
+        if (fix == null) return onObservation(fingerX, fingerY, null)
+        steps++
+        val (px, py) = geo.x0 + (fix.left + piece.width / 2.0) * geo.cellW to geo.y0 + (fix.top + piece.height / 2.0) * geo.cellH
+        observations += DragObservation(startX, startY, fingerX, fingerY, px, py, geo.cell, piece.height)
+        lastSeenFinger = fingerX to fingerY
+        val ey = targetRow - fix.top
+        val ex = targetCol - fix.left
+        if (kotlin.math.abs(ey) < RELEASE_TOLERANCE && kotlin.math.abs(ex) < RELEASE_TOLERANCE) return Action.Release(confirmed = true)
+        if (corrections >= maxCorrections || steps > MAX_STEPS) return Action.Cancel
+        corrections++
+        return clamp(fingerX + ex * geo.cellW / model.gainX, fingerY + ey * geo.cellH / model.gainY)
+    }
+
     private fun Int.sign() = if (this > 0) 1.0 else if (this < 0) -1.0 else 0.0
 
     /** 모델 기준으로 블록 좌상단이 (row, col)(연속값)에 오도록 하는 손가락 위치. */
@@ -168,5 +264,9 @@ class DragServo(
 
     private fun clamp(x: Double, y: Double) = Action.MoveTo(x.coerceIn(1.0, screenW - 2.0), y.coerceIn(1.0, screenH - 2.0))
 
-    companion object { const val MAX_STEPS = 10 }
+    companion object {
+        const val MAX_STEPS = 10
+        /** 목표 칸에서 이만큼(칸) 안이면 놓는다. 0.5 미만이면 스냅 결과가 목표 칸 — 여유를 두고 0.3. */
+        const val RELEASE_TOLERANCE = 0.3
+    }
 }
