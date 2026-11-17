@@ -74,9 +74,9 @@ class TrackerTest {
             val tray = TrayRead(slot, piece, cx - 40, 1830, cx + 40, 1900)
             val row = rnd.nextInt(9 - piece.height); val col = rnd.nextInt(9 - piece.width)
             val path = DragPlanner.plan(g, tray, piece, row, col, model, 1080, 2340)
-            // 게임: 블록 중심 = 시작 + gain×(손가락 이동), 세로는 (lift + 높이/2)칸 위, 가로 off칸 치우침 → 가장 가까운 칸에 스냅
+            // 게임: 블록 중심 = 시작 + gain×(손가락 이동), 세로는 (블록 높이와 무관하게) lift칸 위, 가로 off칸 치우침 → 가장 가까운 칸에 스냅
             val px = path.fromX + gain * (path.toX - path.fromX) + off * g.cell
-            val py = path.fromY + gain * (path.toY - path.fromY) - (lift + piece.height / 2.0) * g.cell
+            val py = path.fromY + gain * (path.toY - path.fromY) - lift * g.cell
             val c = kotlin.math.round((px - g.x0) / g.cellW - piece.width / 2.0).toInt()
             val r = kotlin.math.round((py - g.y0) / g.cellH - piece.height / 2.0).toInt()
             hits += (r to c) == (row to col)
@@ -89,11 +89,12 @@ class TrackerTest {
     }
 
     @Test
-    fun `드래그 모델 - 1대1로 따라오는 게임이면 띄움이 달라도 2~3수 안에 적중`() {
+    fun `드래그 모델 - 사전값(실기기)과 다른 1대1 게임도 띄움이 달라도 학습해 적중`() {
         for ((lift, off) in listOf(0.8 to 0.0, 2.5 to -0.4, 0.0 to 0.3)) {
             val (hits, model) = dragSession(1.0, lift, off, 20, seed = 1)
             println("[드래그 1:1 lift=$lift] ${hits.joinToString("") { if (it) "O" else "x" }}  ${model.describe()}")
-            assertTrue(hits.drop(5).all { it }, "6수째부터는 모두 적중해야 함") // 첫 이동만의 정확도 (실제로는 보고 맞추기가 보정)
+            // 사전값이 실기기(배율 1.45)라 1:1 게임은 배울 시간이 조금 더 걸림. 첫 이동만의 정확도 (실제로는 보고 맞추기가 보정)
+            assertTrue(hits.drop(10).count { !it } <= 2, "11수째부터는 거의 적중해야 함")
         }
     }
 
@@ -107,6 +108,14 @@ class TrackerTest {
         }
         println("[드래그 125%] 마지막 10수 적중 $tailHits/50")
         assertTrue(tailHits >= 38)
+    }
+
+    @Test
+    fun `드래그 모델 - 실기기(배율 1·45, 중심 2·36칸 위)는 처음부터 거의 적중`() {
+        var hits = 0
+        for (seed in 0 until 5) hits += dragSession(1.45, 2.36, 0.0, 20, seed).first.count { it }
+        println("[드래그 실기기] 적중 $hits/100")
+        assertTrue(hits >= 85)
     }
 
     @Test

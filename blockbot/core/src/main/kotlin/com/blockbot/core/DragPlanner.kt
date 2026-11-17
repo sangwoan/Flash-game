@@ -26,43 +26,45 @@ data class DragObservation(
 /**
  * 손가락 → 블록 위치 모델 (칸 단위, 축별 1차식).
  *   가로: (Px − Sx)/칸 = gainX × (Fx − Sx)/칸 + offX
- *   세로: (Py − Sy)/칸 + 블록높이/2 = gainY × (Fy − Sy)/칸 − lift
+ *   세로: (Py − Sy)/칸 = gainY × (Fy − Sy)/칸 − lift
+ *   (Px, Py = 블록 중심. 실기기 로그 556건: 게임은 블록 "중심"을 손가락 위 일정 거리에 띄운다 — 블록 높이와 무관.
+ *    예전엔 아랫변 기준(높이/2 항)으로 봐서 1칸·2칸 블록은 위로, 5칸 세로 블록은 아래로 빗나갔다.)
  *
  * gain = 이동 배율 (손가락 1칸 움직일 때 블록이 움직이는 칸 수). 1보다 크면 "너무 지나가는" 증상.
- * lift = 블록 아랫변이 손가락보다 위에 뜨는 칸 수. offX = 좌우 치우침.
+ * lift = 블록 중심이 손가락보다 위에 뜨는 칸 수. offX = 좌우 치우침.
  * 관측이 쌓일수록 [fit]으로 다시 맞춘다 (적을 때는 사전값 쪽으로 당겨 급격히 흔들리지 않게).
  */
 data class DragModel(
-    val gainX: Double = 1.0,
+    val gainX: Double = 1.4,
     val offX: Double = 0.0,
-    val gainY: Double = 1.0,
-    val lift: Double = 1.5,
+    val gainY: Double = 1.4,
+    val lift: Double = 2.3,
     val samples: Int = 0,
 ) {
     /** 블록 중심을 (targetCx, targetCy)에 두려면 손가락을 어디서 뗄지. */
     fun fingerFor(sx: Double, sy: Double, targetCx: Double, targetCy: Double, cell: Double, pieceH: Int, extraLift: Double = 0.0): Pair<Double, Double> {
         val dx = ((targetCx - sx) / cell - offX) / gainX
-        val dy = ((targetCy - sy) / cell + pieceH / 2.0 + lift + extraLift) / gainY
+        val dy = ((targetCy - sy) / cell + lift + extraLift) / gainY
         return (sx + dx * cell) to (sy + dy * cell)
     }
 
     /** 이 모델이 관측의 손가락 위치에서 예측하는 블록 중심 (칸 단위 오차 계산용). */
     fun predict(o: DragObservation): Pair<Double, Double> {
         val qx = gainX * (o.fx - o.sx) / o.cell + offX
-        val qy = gainY * (o.fy - o.sy) / o.cell - lift - o.pieceH / 2.0
+        val qy = gainY * (o.fy - o.sy) / o.cell - lift
         return (o.sx + qx * o.cell) to (o.sy + qy * o.cell)
     }
 
     /**
      * 드롭이 거부됐을 때(블록이 보드 밖 등으로 트레이로 돌아감) 다음 시도에 쓸 모델.
-     *  1회차: 학습된 모델 그대로 / 2회차: 배율을 1로 (배율을 잘못 배웠으면 먼 칸일수록 크게 빗나가므로)
-     *  3·4회차: 배율 1 + 띄움 ∓0.75칸 / 5회차: 처음 기본값
+     *  1회차: 학습된 모델 그대로 / 2·3회차: 띄움 ∓0.6칸 / 4회차: 배율을 사전값 쪽으로 / 5회차: 처음 기본값
+     *  (실기기 배율은 약 1.45 — 예전처럼 배율 1로 재시도하면 오히려 크게 빗나간다)
      */
     fun forAttempt(attempt: Int): DragModel = when (attempt) {
         0 -> this
-        1 -> copy(gainX = 1.0, gainY = 1.0)
-        2 -> copy(gainX = 1.0, gainY = 1.0, lift = lift - 0.75)
-        3 -> copy(gainX = 1.0, gainY = 1.0, lift = lift + 0.75)
+        1 -> copy(lift = lift - 0.6)
+        2 -> copy(lift = lift + 0.6)
+        3 -> copy(gainX = (gainX + PRIOR.gainX) / 2, gainY = (gainY + PRIOR.gainY) / 2)
         else -> PRIOR
     }
 
@@ -72,7 +74,7 @@ data class DragModel(
         val PRIOR = DragModel()
 
         /**
-         * 축별 릿지 회귀: 배율은 사전값(1) 근처에 두되 증거가 쌓이면 움직이고([gainPrior]),
+         * 축별 릿지 회귀: 배율은 사전값(1.4, 실기기 측정) 근처에 두되 증거가 쌓이면 움직이고([gainPrior]),
          * 절편(띄움·치우침)은 빨리 따라가게([offsetPrior]) 정규화한다.
          * 착지 위치가 칸 단위로만 관측돼서(±0.5칸 오차) 관측이 적을 때 배율과 띄움이 서로 엉키는 걸 막는다.
          * 시뮬레이션: 1:1 게임이면 2~3수째부터 적중, 배율 1.25인 게임도 15수 안팎에서 대부분 적중.
@@ -93,7 +95,7 @@ data class DragModel(
                 return if (kept.size < points.size && kept.isNotEmpty()) ridge(kept, g0, b0) else g to b
             }
             val xs = obs.map { (it.fx - it.sx) / it.cell to (it.px - it.sx) / it.cell }
-            val ys = obs.map { (it.fy - it.sy) / it.cell to (it.py - it.sy) / it.cell + it.pieceH / 2.0 }
+            val ys = obs.map { (it.fy - it.sy) / it.cell to (it.py - it.sy) / it.cell }
             val (gx, bx) = fitAxis(xs, prior.gainX, prior.offX)
             val (gy, by) = fitAxis(ys, prior.gainY, -prior.lift)
             return DragModel(
@@ -104,8 +106,9 @@ data class DragModel(
         }
 
         /** 배율 허용 범위. 이 밖은 학습 오류로 보고 자른다 (배율을 너무 작게 배우면 먼 칸에서 크게 지나감). */
-        const val GAIN_MIN = 0.8
-        const val GAIN_MAX = 1.3
+        const val GAIN_MIN = 0.9
+        /** 실기기 측정 배율 1.45 (로그 556건) — 예전 상한 1.3에 걸려 먼 칸에서 약 1칸씩 지나갔다. */
+        const val GAIN_MAX = 1.8
     }
 }
 

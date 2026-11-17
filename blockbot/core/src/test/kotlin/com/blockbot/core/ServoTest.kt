@@ -22,7 +22,7 @@ class ServoTest {
     /** 손가락 위치 → 떠 있는 블록의 좌상단 (칸 단위, 연속값). */
     private fun floatPos(g: Game, piece: Piece, sx: Double, sy: Double, fx: Double, fy: Double): Pair<Double, Double> {
         val px = sx + g.gain * (fx - sx) + g.off * geo.cell
-        val py = sy + g.gain * (fy - sy) - (g.lift + piece.height / 2.0) * geo.cell
+        val py = sy + g.gain * (fy - sy) - g.lift * geo.cell // 실기기처럼 블록 "중심"이 손가락 위 lift칸
         return ((py - geo.y0) / geo.cellH - piece.height / 2.0) to ((px - geo.x0) / geo.cellW - piece.width / 2.0)
     }
 
@@ -111,6 +111,7 @@ class ServoTest {
         val games = listOf(
             Game(1.0, 1.5, 0.0, true), Game(1.0, 0.4, 0.0, false), Game(1.0, 3.2, -0.6, true),
             Game(1.25, 2.0, 0.3, true), Game(1.4, 2.5, 0.0, false), Game(0.8, 1.0, 0.4, true),
+            Game(1.45, 2.36, 0.0, true), Game(1.45, 2.36, 0.0, false), // 실기기 측정값 (로그 556건)
         )
         for (g in games) {
             var wrong = 0; var placed = 0; var unconfirmed = 0; var cancelled = 0; var corr = 0; val n = 300; var looks = 0
