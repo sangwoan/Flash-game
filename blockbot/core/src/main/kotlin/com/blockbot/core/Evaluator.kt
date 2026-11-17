@@ -111,7 +111,8 @@ class HeuristicEvaluator(val weights: Weights = Weights()) : Evaluator {
         for (p in weights.probes) {
             out["probeMiss:${p.label}"] = if (p.label in f.missingProbes) k * p.missPenalty else 0.0
         }
-        out["nearLines"] = weights.nearLine * f.nearLines
+        val crowd = if (f.filled >= weights.crowdFilled) weights.crowdComboScale else 1.0
+        out["nearLines"] = crowd * weights.nearLine * f.nearLines
         if (weights.pair3x3 != 0.0) out["pair3x3"] = if (Features.twoDisjoint3x3(state.board.bits)) 0.0 else k * weights.pair3x3
         if (weights.room3x3 != 0.0 || weights.roomLine5 != 0.0) {
             val bits = state.board.bits
@@ -120,7 +121,7 @@ class HeuristicEvaluator(val weights: Weights = Weights()) : Evaluator {
             out["roomLine5"] = k * weights.roomLine5 * minOf(weights.roomCap, count(ROOM_I5H) + count(ROOM_I5V))
         }
         out["combo"] = if (state.comboStreak > 0)
-            state.comboStreak * (weights.comboAlive - weights.comboRisk * state.movesSinceClear) else 0.0
+            crowd * state.comboStreak * (weights.comboAlive - weights.comboRisk * state.movesSinceClear) else 0.0
         return out
     }
 }

@@ -76,3 +76,13 @@ tasks.register<JavaExec>("replay") {
     workingDir = rootProject.projectDir
     args = (project.findProperty("replayArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
 }
+
+// 지저분한 배치 분석: ./gradlew :core:debris -PdebrisArgs="로그폴더 [파일이름일부]"
+tasks.register<JavaExec>("debris") {
+    group = "blockbot"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.blockbot.core.DebrisAnalyzerKt")
+    jvmArgs("-Dstdout.encoding=UTF-8", "-Dfile.encoding=UTF-8", "-Xmx2g")
+    workingDir = rootProject.projectDir
+    args = (project.findProperty("debrisArgs") as String?)?.split(" ")?.filter { it.isNotBlank() } ?: emptyList()
+}

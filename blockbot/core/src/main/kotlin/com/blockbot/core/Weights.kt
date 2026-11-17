@@ -35,6 +35,9 @@ data class Weights(
     // 사망 분석(시뮬레이션 40판): 33판이 "3×3을 놓을 자리가 없어서" 끝남. 보드는 평균 44%만 차 있었음(빈칸이 흩어짐).
     // 한 라운드에 3×3이 두 개 나올 수도 있으므로, 서로 안 겹치는 3×3 자리 2곳이 없으면 감점.
     val pair3x3: Double = -40.0,
+    // 보드가 붐빌 때(채운 칸 ≥ crowdFilled) 콤보·재료줄 가치에 곱하는 배율 (1이면 끔). "콤보 포기하고 깔끔하게" 실험용.
+    val crowdFilled: Int = 99,
+    val crowdComboScale: Double = 1.0,
 ) {
     /** "키 값" 줄 형식 (튜너가 저장, 앱이 로드). */
     fun toText(): String = buildString {
@@ -53,6 +56,8 @@ data class Weights(
         appendLine("roomLine5 $roomLine5")
         appendLine("roomCap $roomCap")
         appendLine("pair3x3 $pair3x3")
+        appendLine("crowdFilled $crowdFilled")
+        appendLine("crowdComboScale $crowdComboScale")
     }
 
     companion object {
@@ -78,6 +83,8 @@ data class Weights(
                     "roomLine5" -> w.copy(roomLine5 = d())
                     "roomCap" -> w.copy(roomCap = p[1].toInt())
                     "pair3x3" -> w.copy(pair3x3 = d())
+                    "crowdFilled" -> w.copy(crowdFilled = p[1].toInt())
+                    "crowdComboScale" -> w.copy(crowdComboScale = d())
                     "probe" -> { probes += Probe(p[1], p[2], p[3].toDouble()); w }
                     else -> w
                 }

@@ -24,6 +24,9 @@ object PolicySpec {
         kv["hole"]?.let { w = w.copy(isolatedHole = it.toDouble()) }
         kv["rough"]?.let { w = w.copy(roughness = it.toDouble()) }
         kv["filled"]?.let { w = w.copy(filledCell = it.toDouble()) }
+        kv["nearLine"]?.let { w = w.copy(nearLine = it.toDouble()) }
+        kv["crowd"]?.let { w = w.copy(crowdFilled = it.toInt()) }
+        kv["crowdCombo"]?.let { w = w.copy(crowdComboScale = it.toDouble()) }
         val la = if (kv["lookahead"] == "off") null else LookaheadConfig(
             samples = kv["samples"]?.toInt() ?: 24, candidates = kv["candidates"]?.toInt() ?: 20,
             deathPenalty = kv["death"]?.toDouble() ?: 500.0, deathPenaltyPerCombo = kv["deathCombo"]?.toDouble() ?: 60.0,
