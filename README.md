@@ -18,3 +18,7 @@ node build.js   # src/shell.html + generators.js + app.js → index.html
 ## 2차 예선 모의 체험 키트 (`stage2-mock/`)
 
 통근버스 좌석 배정 서비스를 코딩 에이전트와 함께 만들어 보는 모의 과제와 채점기. 시작은 [`stage2-mock/START_HERE.md`](stage2-mock/START_HERE.md).
+
+## Brick Rogue (`brick-rogue/`)
+
+벽돌깨기 × 로그라이트 모바일 게임 손맛 테스트용 프로토타입. `brick-rogue/index.html` 한 파일(빌드 없음).
