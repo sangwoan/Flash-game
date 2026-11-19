@@ -22,3 +22,7 @@ node build.js   # src/shell.html + generators.js + app.js → index.html
 ## Brick Rogue (`brick-rogue/`)
 
 벽돌깨기 × 로그라이트 모바일 게임 손맛 테스트용 프로토타입. `brick-rogue/index.html` 한 파일(빌드 없음).
+
+## Nova Rogue (`nova-rogue/`)
+
+세로 슈팅 × 로그라이트 손맛 테스트용 프로토타입. `nova-rogue/index.html` 한 파일(빌드 없음).

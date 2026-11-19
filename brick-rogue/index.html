@@ -481,7 +481,7 @@ function showLevel() {
     const u = UPG[k], l = S.lv[k];
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'card'; b.style.setProperty('--c', u.col);
-    b.innerHTML = `<span class="tag">${u.tag}</span><span class="ct"><span class="cn">${u.name}<span class="cl">LV ${l}→${l + 1}</span></span><span class="cd">${u.desc(l + 1)}</span></span>`;
+    b.innerHTML = `<span class="tag">${u.tag}</span><span class="ct"><span class="cn">${u.name}<span class="cl">LV ${l} > ${l + 1}</span></span><span class="cd">${u.desc(l + 1)}</span></span>`;
     b.onclick = () => choose(k);
     cardsEl.appendChild(b);
   }
