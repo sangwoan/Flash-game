@@ -19,9 +19,9 @@ node build.js   # src/shell.html + generators.js + app.js → index.html
 
 통근버스 좌석 배정 서비스를 코딩 에이전트와 함께 만들어 보는 모의 과제와 채점기. 시작은 [`stage2-mock/START_HERE.md`](stage2-mock/START_HERE.md).
 
-## Brick Rogue (`brick-rogue/`)
+## Brickmaster (`brickmaster/`)
 
-벽돌깨기 × 로그라이트 모바일 게임 손맛 테스트용 프로토타입. `brick-rogue/index.html` 한 파일(빌드 없음).
+벽돌깨기 × 로그라이트 모바일 게임. 소스는 `brickmaster/src/`, `node brickmaster/build.js`로 `brickmaster/index.html` 한 파일을 만든다. 설계와 밸런스 메모는 [`brickmaster/DESIGN.md`](brickmaster/DESIGN.md).
 
 ## Nova Rogue (`nova-rogue/`)
 
