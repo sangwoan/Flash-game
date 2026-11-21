@@ -42,6 +42,7 @@ function endTurn() {
     const ch = chapterOf(S.turn);
     showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
+  if (S.worldPending) switchWorld();
   spawnRow(S.turn, true);
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   if (S.hp <= 0) { S.hp = 0; S.phase = 'dying'; S.dieTimer = 0.9; sfx.over(); return; }
@@ -160,9 +161,22 @@ function refreshTitle() {
   $('titleGold').textContent = `보유 골드 ${SAVE.gold}G`;
   $('best').textContent = SAVE.bestTurn ? `BEST TURN ${SAVE.bestTurn} · CHAPTER ${SAVE.bestChapter || chapterOf(SAVE.bestTurn)}` : '';
 }
+// Every BOSSES_PER_WORLD bosses the run moves to the next world (full visual theme).
+function switchWorld() {
+  S.worldPending = false;
+  S.world = (S.world + 1) % WORLD_ORDER.length;
+  applyTheme(WORLD_ORDER[S.world]);
+  S.wipe = 1; shake(10); sfx.clear(); buzz(120);
+  const isNew = S.world + 1 > SAVE.worlds;
+  if (isNew) { SAVE.worlds = S.world + 1; writeSave(); }
+  showBanner(`WORLD ${S.world + 1}`, isNew ? `${TH.name} 해금!` : TH.name, TH.accent);
+  S.banner.life = S.banner.max = 2.6;
+  for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
+}
 function startRun() {
   ensureAudio();
   titleEl.hidden = true; overEl.hidden = true;
+  applyTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon');
   newRun();
   showBanner('CHAPTER 1', chapterName(1), TH.accent);
   if (S.pendingLevels > 0) showLevel();
@@ -216,6 +230,7 @@ function updateFx(dt) {
     if (br.oy) { br.oy += (0 - br.oy) * Math.min(1, dt * 14); if (Math.abs(br.oy) < 0.3) br.oy = 0; }
   }
   if (S.banner) { S.banner.life -= dt; if (S.banner.life <= 0) S.banner = null; }
+  S.wipe = Math.max(0, S.wipe - dt * 1.4);
   S.shake = Math.max(0, S.shake - dt * 40);
   S.flash = Math.max(0, S.flash - dt * 2.2);
   S.comboPulse = Math.max(0, S.comboPulse - dt * 6);

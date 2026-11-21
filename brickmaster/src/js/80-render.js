@@ -13,9 +13,18 @@ function glow(col) {
 const HEART = ['01010', '11111', '11111', '01110', '00100'];
 function heart(x, y, on) {
   ctx.fillStyle = on ? TH.hud.heart : TH.hud.heartOff;
+  if (TH.heartStyle === 'vector') {
+    const cx = x + 7.5, cy = y + 4;
+    ctx.beginPath(); ctx.moveTo(cx, cy + 11);
+    ctx.bezierCurveTo(cx - 9, cy + 5, cx - 8, cy - 4, cx - 3.6, cy - 4); ctx.bezierCurveTo(cx - 1.6, cy - 4, cx, cy - 2.6, cx, cy - 1);
+    ctx.bezierCurveTo(cx, cy - 2.6, cx + 1.6, cy - 4, cx + 3.6, cy - 4); ctx.bezierCurveTo(cx + 8, cy - 4, cx + 9, cy + 5, cx, cy + 11);
+    ctx.fill();
+    if (on) { ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.arc(cx - 3.5, cy, 1.6, 0, Math.PI * 2); ctx.fill(); }
+    return;
+  }
   for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if (HEART[r][c] === '1') ctx.fillRect(x + c * 3, y + r * 3, 3, 3);
 }
-const DISP = s => `${Math.round(s * TH.dsz)}px ${TH.disp}`;
+const DISP = s => `${TH.dw || ''} ${Math.round(s * TH.dsz)}px ${TH.disp}`;
 const KO = s => `${s}px ${TH.ko}`;
 function fmt(n) { n = Math.ceil(n - 1e-6); return n >= 10000 ? Math.round(n / 1000) + 'K' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 function outlined(s, x, y, col, size, font = DISP) {
@@ -67,6 +76,13 @@ function brickBody(br, w, h, col, now) {
     for (let y = h / 2; y < h; y += 5) for (let x = (y % 10 ? 2.5 : 0); x < w; x += 5) { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(4, 4, w * 0.3, 3);
     ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, w, h);
+  } else if (st === 'glass') {
+    rr(0, 0, w, h, 7); ctx.fillStyle = col; ctx.fill();
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,255,255,.30)'); g.addColorStop(0.45, 'rgba(255,255,255,.04)'); g.addColorStop(1, 'rgba(0,0,20,.32)');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.38)'; ctx.lineWidth = 1; rr(0.5, 0.5, w - 1, h - 1, 6.5); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(8, 2, w - 16, 1);
   } else {
     ctx.fillStyle = col; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(0, 0, w, 3);
@@ -122,10 +138,11 @@ function drawBrick(br, now) {
   }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
   const label = br.type === 'boss' ? 'BOSS ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
-  ctx.font = `${br.type === 'boss' ? TH.numSize + 2 : TH.numSize}px ${TH.num}`;
+  ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + 2 : TH.numSize}px ${TH.num}`;
+  if (TH.brick === 'glass') { ctx.fillStyle = 'rgba(0,0,30,.35)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   if (TH.numStroke) { ctx.strokeStyle = TH.numStroke; ctx.lineWidth = 3; ctx.strokeText(label, w / 2, h / 2 + 1); }
   ctx.fillStyle = TH.numInk; ctx.fillText(label, w / 2, h / 2 + 1);
-  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'jelly') { rr(0, 0, w, h, 10); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
+  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'jelly' || TH.brick === 'glass') { rr(0, 0, w, h, TH.brick === 'glass' ? 7 : 10); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
 }
 
@@ -147,6 +164,11 @@ function drawParticles() {
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
       ctx.beginPath(); ctx.moveTo(-s, -s * 0.6); ctx.lineTo(s, -s * 0.2); ctx.lineTo(-s * 0.2, s); ctx.closePath();
       ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+    } else if (p.kind === 'dust') {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath(); ctx.arc(p.x, p.y, s * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = a * 0.35; ctx.beginPath(); ctx.arc(p.x, p.y, s * 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
     } else ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
   }
   ctx.globalAlpha = 1;
@@ -185,6 +207,14 @@ function drawBigWord(bw, now) {
     outlined(bw.s, 0, 0, '#ff2a3d', size);
   } else if (style === 'bubble') {
     ctx.font = DISP(size); ctx.fillStyle = TH.accent; ctx.fillText(bw.s, 0, 0);
+  } else if (style === 'clean') {
+    ctx.font = DISP(size); const tw = ctx.measureText(bw.s).width;
+    const g = ctx.createLinearGradient(-tw / 2, 0, tw / 2, 0);
+    g.addColorStop(0, bw.col || TH.accent); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, bw.col || '#9d8cff');
+    ctx.shadowColor = bw.col || TH.accent; ctx.shadowBlur = 18;
+    ctx.fillStyle = g; ctx.fillText(bw.s, 0, 0); ctx.shadowBlur = 0;
+    const lw = tw * Math.min(1, k * 4);
+    ctx.fillStyle = g; ctx.fillRect(-lw / 2, size * TH.dsz * 0.62, lw, 2);
   } else {
     const hue = (now / 4) % 360;
     outlined(bw.s, 0, 0, bw.col || `hsl(${hue},100%,65%)`, size);
@@ -246,7 +276,14 @@ function drawHud(now, ch) {
     for (let i = 0; i < S.maxHp; i++) heart(hx + i * 19, 24, i < S.hp);
   } else { heart(W / 2 - 34, 24, true); ctx.textAlign = 'left'; ctx.fillStyle = hd.ink; ctx.font = DISP(12); ctx.fillText(`${S.hp}/${S.maxHp}`, W / 2 - 12, 38); }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
-  ctx.fillStyle = hd.ch; ctx.fillText(`CH${ch}`, W / 2 - 70, 15);
+  ctx.fillStyle = hd.ch; ctx.fillText(`CH${ch}`, W / 2 - 78, 15);
+  // boss progress toward the next world: one diamond per boss in this world
+  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(`W${S.world + 1}`, 16, 72); ctx.textAlign = 'center';
+  for (let i = 0; i < BOSSES_PER_WORLD; i++) {
+    const x = 46 + i * 10, y = 69, on = i < S.bosses % BOSSES_PER_WORLD;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-2.6, -2.6, 5.2, 5.2); ctx.restore();
+  }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(Math.round(S.dmg * 10) / 10)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;
   ctx.save(); ctx.translate(W / 2, 50); ctx.scale(gs, gs); ctx.fillStyle = hd.accent; ctx.font = DISP(8); ctx.fillText(`${Math.floor(S.gold)}G`, 0, 0); ctx.restore();
@@ -363,6 +400,15 @@ function draw(now) {
     outlined(b.title, W / 2, H * 0.4 - 12, b.col, 18);
     ctx.font = KO(22); ctx.fillStyle = TH.css.ink; ctx.fillText(b.sub, W / 2, H * 0.4 + 20);
     ctx.globalAlpha = 1;
+  }
+
+  // world change: a bright iris opening from the centre
+  if (S.wipe > 0) {
+    const k = 1 - S.wipe;
+    ctx.save(); ctx.globalAlpha = S.wipe;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H * 0.45, k * 700, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    ctx.strokeStyle = TH.accent; ctx.lineWidth = 10 * S.wipe; ctx.beginPath(); ctx.arc(W / 2, H * 0.45, k * 700, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
   }
 
   // level-up burst

@@ -47,7 +47,7 @@ function kill(br) {
   const bonus = Math.floor(S.turn / 10);
   if (boss) {
     gainXp(25);
-    S.bosses++; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
+    S.bosses++; if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
     showBanner(`CHAPTER ${br.chapter} CLEAR`, '보스 격파! 다음 챕터로', TH.css.gold);
     sfx.clear();

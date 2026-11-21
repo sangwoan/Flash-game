@@ -6,6 +6,8 @@ const FONT = {
   orbitron: '"Orbitron", "Black Han Sans", system-ui, sans-serif',
   bungee: '"Bungee", "Black Han Sans", system-ui, sans-serif',
   bangers: '"Bangers", "Black Han Sans", system-ui, sans-serif',
+  chakra: '"Chakra Petch", "IBM Plex Sans KR", system-ui, sans-serif',
+  plex: '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   doHyeon: '"Do Hyeon", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   jua: '"Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   blackHan: '"Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
@@ -31,28 +33,32 @@ function cachedLayer(key, paint) {
 
 const THEMES = {
   neon: {
-    chapters: ['네온 시티', '심해 기지', '용암 공장', '얼음 동굴', '궤도 정거장'],
-    name: '네온 아케이드', tag: 'NEON ARCADE', line: '90년대 오락실 CRT, 형광 네온과 8비트 사운드',
-    num: FONT.pixel, numSize: 10, disp: FONT.pixel, dsz: 1, ko: FONT.doHyeon, crt: true,
-    css: { bg: '#0a0c1c', panel: '#141939', line: '#2a3270', ink: '#eef0ff', dim: '#8c93c9', gold: '#ffd23f', hot: '#ff4f7b', cool: '#3ee6ff', ov: 'rgba(10,12,28,.86)', btnInk: '#0a0c1c', logo2: '#3ee6ff' },
-    hud: { bg: '#141939', line: '#2a3270', ink: '#eef0ff', dim: '#8c93c9', accent: '#ffd23f', xpBg: '#232a5c', xp: '#ffd23f', heart: '#ff4f7b', heartOff: '#2a3060', ch: '#3ee6ff' },
-    outline: '#0a0c1c', brick: 'pixel', numInk: '#0a0c1c',
-    ramp: k => `hsl(${(188 + k * 197) % 360},92%,${62 - k * 6}%)`,
-    special: { bomb: '#ff3b5c', chest: '#ffd23f', steel: '#9aa3b8', slime: '#7dffb0', boss: ['#ff4fa3', '#ff8a3d'] },
-    ball: { core: '#ffffff', glow: '#ffffff', temp: '#ff9be0' }, particle: 'square',
-    words: ['NICE!', 'GREAT!', 'AMAZING!', 'INSANE!', 'GODLIKE!'], wordStyle: 'plain',
-    accent: '#3ee6ff', fever: '#ff4fa3', line2: '#ff4f7b',
+    chapters: ['미드나잇 시티', '딥 블루', '앰버 팩토리', '오로라 필드', '오비탈 스테이션'],
+    name: '네온 글래스', tag: 'NEON GLASS', line: '유리처럼 맑은 벽돌과 은은한 오로라, 깔끔한 기본 월드',
+    num: FONT.chakra, numSize: 15, numWeight: '700', disp: FONT.chakra, dw: '700', dsz: 1.45, ko: FONT.plex, crt: false,
+    css: { bg: '#070912', panel: '#11152a', line: '#262d4d', ink: '#f2f4ff', dim: '#8a93b8', gold: '#ffc66b', hot: '#ff5d8f', cool: '#5ef2e0', ov: 'rgba(7,9,18,.78)', btnInk: '#070912', logo2: '#9d8cff' },
+    hud: { bg: '#0a0d1b', line: '#1f2642', ink: '#f2f4ff', dim: '#7d86ab', accent: '#ffc66b', xpBg: '#1a1f36', xp: '#5ef2e0', heart: '#ff5d8f', heartOff: '#272c47', ch: '#5ef2e0' },
+    outline: '#070912', brick: 'glass', numInk: '#ffffff', heartStyle: 'vector',
+    ramp: rampOf(['#2fcfc0', '#3a8cff', '#6a62ff', '#a95cff', '#ff5d8f', '#ffa95c']),
+    special: { bomb: '#ff4d6a', chest: '#ffb84d', steel: '#7f8aa8', slime: '#3fd98a', boss: ['#8a5cff', '#ff5d8f'] },
+    ball: { core: '#ffffff', glow: '#5ef2e0', temp: '#ff8fc7' }, particle: 'dust',
+    words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'], wordStyle: 'clean',
+    accent: '#5ef2e0', fever: '#ffc66b', line2: '#ff5d8f',
     field(g, now, ch) {
-      const pal = ['#0e1128', '#061a22', '#1c0c0e', '#0c1624', '#140b22'][(ch - 1) % 5], gl = ['70,84,170', '40,150,175', '180,80,60', '130,180,220', '150,90,210'][(ch - 1) % 5];
+      const au = [['#2fcfc0', '#6a62ff'], ['#3a8cff', '#2fcfc0'], ['#ffa95c', '#ff5d8f'], ['#3fd98a', '#3a8cff'], ['#a95cff', '#ff5d8f']][(ch - 1) % 5];
       g.drawImage(cachedLayer('neon' + ch, c => {
-        c.fillStyle = pal; c.fillRect(0, TOP, W, LY - TOP);
-        c.strokeStyle = `rgba(${gl},.18)`; c.lineWidth = 1; c.beginPath();
-        for (let i = 1; i < COLS; i++) { c.moveTo(i * CW + 0.5, TOP); c.lineTo(i * CW + 0.5, FB); }
-        for (let r = 1; r < ROWS; r++) { c.moveTo(0, TOP + r * RH + 0.5); c.lineTo(W, TOP + r * RH + 0.5); }
-        c.stroke();
+        const gr = c.createLinearGradient(0, TOP, 0, LY); gr.addColorStop(0, '#0c1024'); gr.addColorStop(1, '#06070f');
+        c.fillStyle = gr; c.fillRect(0, TOP, W, LY - TOP);
+        c.fillStyle = 'rgba(160,175,230,.07)';
+        for (let y = TOP + RH; y < FB; y += RH) for (let x = CW; x < W; x += CW) c.fillRect(x - 1, y - 1, 2, 2);
       }), 0, 0, W, H);
-      const y = TOP + ((now / 12) % (FB - TOP));
-      g.fillStyle = `rgba(${gl},.10)`; g.fillRect(0, y, W, 2);
+      // two slow aurora blobs
+      g.save(); g.beginPath(); g.rect(0, TOP, W, LY - TOP); g.clip();
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.16;
+      const t = now / 4000;
+      g.drawImage(glow(au[0]), W * (0.25 + 0.2 * Math.sin(t)) - 260, TOP + 160 + 80 * Math.cos(t * 0.7) - 260, 520, 520);
+      g.drawImage(glow(au[1]), W * (0.75 + 0.2 * Math.cos(t * 0.8)) - 240, TOP + 420 + 90 * Math.sin(t * 0.6) - 240, 480, 480);
+      g.restore();
     },
   },
 
@@ -172,10 +178,14 @@ const THEMES = {
     },
   },
 };
-const THEME_ORDER = ['neon', 'candy', 'synth', 'jackpot', 'comic'];
+// Worlds in play order: a run starts in its chosen world and moves on every 3 bosses.
+const WORLD_ORDER = ['neon', 'synth', 'candy', 'comic', 'jackpot'];
+const BOSSES_PER_WORLD = 3;
+for (const k in THEMES) THEMES[k].id = k;
 let TH = THEMES.neon;
 function applyTheme(id) {
   TH = THEMES[id] || THEMES.neon;
+  stage.dataset.th = TH.id;
   const st = stage.style;
   for (const [k, v] of Object.entries(TH.css)) st.setProperty('--' + k, v);
   st.setProperty('--disp', TH.disp); st.setProperty('--ko', TH.ko); st.setProperty('--dsz', TH.dsz);

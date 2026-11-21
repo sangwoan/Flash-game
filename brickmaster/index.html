@@ -1,7 +1,7 @@
 <title>Brickmaster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&family=Bungee&family=Do+Hyeon&family=Jua&family=Lilita+One&family=Orbitron:wght@900&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&family=Bungee&family=Chakra+Petch:wght@600;700&family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@500;700&family=Jua&family=Lilita+One&family=Orbitron:wght@900&family=Press+Start+2P&display=swap">
 <style>
 /* Layout: one portrait arcade screen (420x780 logical), letterboxed and scaled to fit the phone.
    Each visual theme sets these tokens from JS (applyTheme); the values here are the neon theme. */
@@ -70,6 +70,21 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stats span:nth-child(even){font-family:var(--disp);font-size:calc(var(--s)*12px*var(--dsz));color:var(--gold);text-align:right;font-variant-numeric:tabular-nums}
 #build{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--s)*6px)}
 #build span{font-family:var(--disp);font-size:calc(var(--s)*8px*var(--dsz));padding:calc(var(--s)*6px);background:var(--c);color:#0a0c1c;border-radius:calc(var(--s)*3px)}
+/* Neon Glass (default world): soft glass panels, pill buttons, gradient type instead of hard pixel shadows */
+#stage[data-th="neon"] .ov{backdrop-filter:blur(calc(var(--s)*8px));-webkit-backdrop-filter:blur(calc(var(--s)*8px))}
+#stage[data-th="neon"] .logo{background:linear-gradient(100deg,#5ef2e0 0%,#ffffff 45%,#9d8cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 calc(var(--s)*14px) rgba(94,242,224,.45));letter-spacing:.04em}
+#stage[data-th="neon"] .sub{color:var(--dim);letter-spacing:.12em;font-size:calc(var(--s)*15px)}
+#stage[data-th="neon"] .btn{border-radius:calc(var(--s)*12px);border:1px solid var(--line);background:rgba(255,255,255,.04)}
+#stage[data-th="neon"] .btn.big{background:linear-gradient(120deg,#5ef2e0,#9d8cff);border:0;border-radius:999px;color:#070912;box-shadow:0 0 calc(var(--s)*28px) rgba(94,242,224,.45),inset 0 1px 0 rgba(255,255,255,.6);letter-spacing:.08em}
+#stage[data-th="neon"] .btn.big:active{transform:scale(.97);box-shadow:0 0 calc(var(--s)*14px) rgba(94,242,224,.45)}
+#stage[data-th="neon"] .btn.ad{border-color:rgba(94,242,224,.6)}
+#stage[data-th="neon"] .picker,#stage[data-th="neon"] .meta{border:1px solid var(--line);border-radius:calc(var(--s)*16px);background:rgba(17,21,42,.72)}
+#stage[data-th="neon"] .card{border:1px solid rgba(255,255,255,.1);border-left:calc(var(--s)*4px) solid var(--c);border-radius:calc(var(--s)*16px);background:linear-gradient(135deg,rgba(28,33,62,.95),rgba(14,17,34,.95));box-shadow:0 calc(var(--s)*10px) calc(var(--s)*30px) rgba(0,0,0,.45)}
+#stage[data-th="neon"] .tag{border-radius:calc(var(--s)*10px);font-size:calc(var(--s)*11px)}
+#stage[data-th="neon"] h2{text-shadow:0 0 calc(var(--s)*16px) rgba(255,198,107,.55);letter-spacing:.06em}
+#stage[data-th="neon"] .buy{border-radius:999px}
+#stage[data-th="neon"] .pips i{border-radius:50%}
+#stage[data-th="neon"] #build span{border-radius:999px}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
@@ -277,6 +292,8 @@ const FONT = {
   orbitron: '"Orbitron", "Black Han Sans", system-ui, sans-serif',
   bungee: '"Bungee", "Black Han Sans", system-ui, sans-serif',
   bangers: '"Bangers", "Black Han Sans", system-ui, sans-serif',
+  chakra: '"Chakra Petch", "IBM Plex Sans KR", system-ui, sans-serif',
+  plex: '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   doHyeon: '"Do Hyeon", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   jua: '"Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   blackHan: '"Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
@@ -302,28 +319,32 @@ function cachedLayer(key, paint) {
 
 const THEMES = {
   neon: {
-    chapters: ['네온 시티', '심해 기지', '용암 공장', '얼음 동굴', '궤도 정거장'],
-    name: '네온 아케이드', tag: 'NEON ARCADE', line: '90년대 오락실 CRT, 형광 네온과 8비트 사운드',
-    num: FONT.pixel, numSize: 10, disp: FONT.pixel, dsz: 1, ko: FONT.doHyeon, crt: true,
-    css: { bg: '#0a0c1c', panel: '#141939', line: '#2a3270', ink: '#eef0ff', dim: '#8c93c9', gold: '#ffd23f', hot: '#ff4f7b', cool: '#3ee6ff', ov: 'rgba(10,12,28,.86)', btnInk: '#0a0c1c', logo2: '#3ee6ff' },
-    hud: { bg: '#141939', line: '#2a3270', ink: '#eef0ff', dim: '#8c93c9', accent: '#ffd23f', xpBg: '#232a5c', xp: '#ffd23f', heart: '#ff4f7b', heartOff: '#2a3060', ch: '#3ee6ff' },
-    outline: '#0a0c1c', brick: 'pixel', numInk: '#0a0c1c',
-    ramp: k => `hsl(${(188 + k * 197) % 360},92%,${62 - k * 6}%)`,
-    special: { bomb: '#ff3b5c', chest: '#ffd23f', steel: '#9aa3b8', slime: '#7dffb0', boss: ['#ff4fa3', '#ff8a3d'] },
-    ball: { core: '#ffffff', glow: '#ffffff', temp: '#ff9be0' }, particle: 'square',
-    words: ['NICE!', 'GREAT!', 'AMAZING!', 'INSANE!', 'GODLIKE!'], wordStyle: 'plain',
-    accent: '#3ee6ff', fever: '#ff4fa3', line2: '#ff4f7b',
+    chapters: ['미드나잇 시티', '딥 블루', '앰버 팩토리', '오로라 필드', '오비탈 스테이션'],
+    name: '네온 글래스', tag: 'NEON GLASS', line: '유리처럼 맑은 벽돌과 은은한 오로라, 깔끔한 기본 월드',
+    num: FONT.chakra, numSize: 15, numWeight: '700', disp: FONT.chakra, dw: '700', dsz: 1.45, ko: FONT.plex, crt: false,
+    css: { bg: '#070912', panel: '#11152a', line: '#262d4d', ink: '#f2f4ff', dim: '#8a93b8', gold: '#ffc66b', hot: '#ff5d8f', cool: '#5ef2e0', ov: 'rgba(7,9,18,.78)', btnInk: '#070912', logo2: '#9d8cff' },
+    hud: { bg: '#0a0d1b', line: '#1f2642', ink: '#f2f4ff', dim: '#7d86ab', accent: '#ffc66b', xpBg: '#1a1f36', xp: '#5ef2e0', heart: '#ff5d8f', heartOff: '#272c47', ch: '#5ef2e0' },
+    outline: '#070912', brick: 'glass', numInk: '#ffffff', heartStyle: 'vector',
+    ramp: rampOf(['#2fcfc0', '#3a8cff', '#6a62ff', '#a95cff', '#ff5d8f', '#ffa95c']),
+    special: { bomb: '#ff4d6a', chest: '#ffb84d', steel: '#7f8aa8', slime: '#3fd98a', boss: ['#8a5cff', '#ff5d8f'] },
+    ball: { core: '#ffffff', glow: '#5ef2e0', temp: '#ff8fc7' }, particle: 'dust',
+    words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'], wordStyle: 'clean',
+    accent: '#5ef2e0', fever: '#ffc66b', line2: '#ff5d8f',
     field(g, now, ch) {
-      const pal = ['#0e1128', '#061a22', '#1c0c0e', '#0c1624', '#140b22'][(ch - 1) % 5], gl = ['70,84,170', '40,150,175', '180,80,60', '130,180,220', '150,90,210'][(ch - 1) % 5];
+      const au = [['#2fcfc0', '#6a62ff'], ['#3a8cff', '#2fcfc0'], ['#ffa95c', '#ff5d8f'], ['#3fd98a', '#3a8cff'], ['#a95cff', '#ff5d8f']][(ch - 1) % 5];
       g.drawImage(cachedLayer('neon' + ch, c => {
-        c.fillStyle = pal; c.fillRect(0, TOP, W, LY - TOP);
-        c.strokeStyle = `rgba(${gl},.18)`; c.lineWidth = 1; c.beginPath();
-        for (let i = 1; i < COLS; i++) { c.moveTo(i * CW + 0.5, TOP); c.lineTo(i * CW + 0.5, FB); }
-        for (let r = 1; r < ROWS; r++) { c.moveTo(0, TOP + r * RH + 0.5); c.lineTo(W, TOP + r * RH + 0.5); }
-        c.stroke();
+        const gr = c.createLinearGradient(0, TOP, 0, LY); gr.addColorStop(0, '#0c1024'); gr.addColorStop(1, '#06070f');
+        c.fillStyle = gr; c.fillRect(0, TOP, W, LY - TOP);
+        c.fillStyle = 'rgba(160,175,230,.07)';
+        for (let y = TOP + RH; y < FB; y += RH) for (let x = CW; x < W; x += CW) c.fillRect(x - 1, y - 1, 2, 2);
       }), 0, 0, W, H);
-      const y = TOP + ((now / 12) % (FB - TOP));
-      g.fillStyle = `rgba(${gl},.10)`; g.fillRect(0, y, W, 2);
+      // two slow aurora blobs
+      g.save(); g.beginPath(); g.rect(0, TOP, W, LY - TOP); g.clip();
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.16;
+      const t = now / 4000;
+      g.drawImage(glow(au[0]), W * (0.25 + 0.2 * Math.sin(t)) - 260, TOP + 160 + 80 * Math.cos(t * 0.7) - 260, 520, 520);
+      g.drawImage(glow(au[1]), W * (0.75 + 0.2 * Math.cos(t * 0.8)) - 240, TOP + 420 + 90 * Math.sin(t * 0.6) - 240, 480, 480);
+      g.restore();
     },
   },
 
@@ -443,10 +464,14 @@ const THEMES = {
     },
   },
 };
-const THEME_ORDER = ['neon', 'candy', 'synth', 'jackpot', 'comic'];
+// Worlds in play order: a run starts in its chosen world and moves on every 3 bosses.
+const WORLD_ORDER = ['neon', 'synth', 'candy', 'comic', 'jackpot'];
+const BOSSES_PER_WORLD = 3;
+for (const k in THEMES) THEMES[k].id = k;
 let TH = THEMES.neon;
 function applyTheme(id) {
   TH = THEMES[id] || THEMES.neon;
+  stage.dataset.th = TH.id;
   const st = stage.style;
   for (const [k, v] of Object.entries(TH.css)) st.setProperty('--' + k, v);
   st.setProperty('--disp', TH.disp); st.setProperty('--ko', TH.ko); st.setProperty('--dsz', TH.dsz);
@@ -460,13 +485,14 @@ function applyTheme(id) {
 // Progress lives in this browser only (localStorage). Every access is guarded:
 // private windows and blocked storage must still give a playable game.
 const SAVE_KEY = 'brickmaster.save.v1';
-let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, runs: 0, meta: {} };
+let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, runs: 0, meta: {}, worlds: 1, theme: 'neon' };
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (s && typeof s === 'object') SAVE = Object.assign(SAVE, s, { meta: Object.assign({}, s.meta) });
     if (!SAVE.bestTurn) SAVE.bestTurn = +localStorage.getItem('brickrogue.best') || 0; // prototype record
   } catch (e) {}
+  SAVE.worlds = clamp(Math.floor(+SAVE.worlds) || 1, 1, WORLD_ORDER.length);
   for (const k of Object.keys(META)) SAVE.meta[k] = clamp(+SAVE.meta[k] || 0, 0, META[k].max);
 }
 function writeSave() {
@@ -497,6 +523,7 @@ function newRun() {
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     revived: false, banner: null,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
+    world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
   };
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = [];
   for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
@@ -620,7 +647,7 @@ function kill(br) {
   const bonus = Math.floor(S.turn / 10);
   if (boss) {
     gainXp(25);
-    S.bosses++; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
+    S.bosses++; if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
     showBanner(`CHAPTER ${br.chapter} CLEAR`, '보스 격파! 다음 챕터로', TH.css.gold);
     sfx.clear();
@@ -861,6 +888,7 @@ function endTurn() {
     const ch = chapterOf(S.turn);
     showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
+  if (S.worldPending) switchWorld();
   spawnRow(S.turn, true);
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   if (S.hp <= 0) { S.hp = 0; S.phase = 'dying'; S.dieTimer = 0.9; sfx.over(); return; }
@@ -979,9 +1007,22 @@ function refreshTitle() {
   $('titleGold').textContent = `보유 골드 ${SAVE.gold}G`;
   $('best').textContent = SAVE.bestTurn ? `BEST TURN ${SAVE.bestTurn} · CHAPTER ${SAVE.bestChapter || chapterOf(SAVE.bestTurn)}` : '';
 }
+// Every BOSSES_PER_WORLD bosses the run moves to the next world (full visual theme).
+function switchWorld() {
+  S.worldPending = false;
+  S.world = (S.world + 1) % WORLD_ORDER.length;
+  applyTheme(WORLD_ORDER[S.world]);
+  S.wipe = 1; shake(10); sfx.clear(); buzz(120);
+  const isNew = S.world + 1 > SAVE.worlds;
+  if (isNew) { SAVE.worlds = S.world + 1; writeSave(); }
+  showBanner(`WORLD ${S.world + 1}`, isNew ? `${TH.name} 해금!` : TH.name, TH.accent);
+  S.banner.life = S.banner.max = 2.6;
+  for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
+}
 function startRun() {
   ensureAudio();
   titleEl.hidden = true; overEl.hidden = true;
+  applyTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon');
   newRun();
   showBanner('CHAPTER 1', chapterName(1), TH.accent);
   if (S.pendingLevels > 0) showLevel();
@@ -1035,6 +1076,7 @@ function updateFx(dt) {
     if (br.oy) { br.oy += (0 - br.oy) * Math.min(1, dt * 14); if (Math.abs(br.oy) < 0.3) br.oy = 0; }
   }
   if (S.banner) { S.banner.life -= dt; if (S.banner.life <= 0) S.banner = null; }
+  S.wipe = Math.max(0, S.wipe - dt * 1.4);
   S.shake = Math.max(0, S.shake - dt * 40);
   S.flash = Math.max(0, S.flash - dt * 2.2);
   S.comboPulse = Math.max(0, S.comboPulse - dt * 6);
@@ -1059,9 +1101,18 @@ function glow(col) {
 const HEART = ['01010', '11111', '11111', '01110', '00100'];
 function heart(x, y, on) {
   ctx.fillStyle = on ? TH.hud.heart : TH.hud.heartOff;
+  if (TH.heartStyle === 'vector') {
+    const cx = x + 7.5, cy = y + 4;
+    ctx.beginPath(); ctx.moveTo(cx, cy + 11);
+    ctx.bezierCurveTo(cx - 9, cy + 5, cx - 8, cy - 4, cx - 3.6, cy - 4); ctx.bezierCurveTo(cx - 1.6, cy - 4, cx, cy - 2.6, cx, cy - 1);
+    ctx.bezierCurveTo(cx, cy - 2.6, cx + 1.6, cy - 4, cx + 3.6, cy - 4); ctx.bezierCurveTo(cx + 8, cy - 4, cx + 9, cy + 5, cx, cy + 11);
+    ctx.fill();
+    if (on) { ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.arc(cx - 3.5, cy, 1.6, 0, Math.PI * 2); ctx.fill(); }
+    return;
+  }
   for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if (HEART[r][c] === '1') ctx.fillRect(x + c * 3, y + r * 3, 3, 3);
 }
-const DISP = s => `${Math.round(s * TH.dsz)}px ${TH.disp}`;
+const DISP = s => `${TH.dw || ''} ${Math.round(s * TH.dsz)}px ${TH.disp}`;
 const KO = s => `${s}px ${TH.ko}`;
 function fmt(n) { n = Math.ceil(n - 1e-6); return n >= 10000 ? Math.round(n / 1000) + 'K' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 function outlined(s, x, y, col, size, font = DISP) {
@@ -1113,6 +1164,13 @@ function brickBody(br, w, h, col, now) {
     for (let y = h / 2; y < h; y += 5) for (let x = (y % 10 ? 2.5 : 0); x < w; x += 5) { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(4, 4, w * 0.3, 3);
     ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, w, h);
+  } else if (st === 'glass') {
+    rr(0, 0, w, h, 7); ctx.fillStyle = col; ctx.fill();
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,255,255,.30)'); g.addColorStop(0.45, 'rgba(255,255,255,.04)'); g.addColorStop(1, 'rgba(0,0,20,.32)');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.38)'; ctx.lineWidth = 1; rr(0.5, 0.5, w - 1, h - 1, 6.5); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(8, 2, w - 16, 1);
   } else {
     ctx.fillStyle = col; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(0, 0, w, 3);
@@ -1168,10 +1226,11 @@ function drawBrick(br, now) {
   }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
   const label = br.type === 'boss' ? 'BOSS ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
-  ctx.font = `${br.type === 'boss' ? TH.numSize + 2 : TH.numSize}px ${TH.num}`;
+  ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + 2 : TH.numSize}px ${TH.num}`;
+  if (TH.brick === 'glass') { ctx.fillStyle = 'rgba(0,0,30,.35)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   if (TH.numStroke) { ctx.strokeStyle = TH.numStroke; ctx.lineWidth = 3; ctx.strokeText(label, w / 2, h / 2 + 1); }
   ctx.fillStyle = TH.numInk; ctx.fillText(label, w / 2, h / 2 + 1);
-  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'jelly') { rr(0, 0, w, h, 10); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
+  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'jelly' || TH.brick === 'glass') { rr(0, 0, w, h, TH.brick === 'glass' ? 7 : 10); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
 }
 
@@ -1193,6 +1252,11 @@ function drawParticles() {
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
       ctx.beginPath(); ctx.moveTo(-s, -s * 0.6); ctx.lineTo(s, -s * 0.2); ctx.lineTo(-s * 0.2, s); ctx.closePath();
       ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+    } else if (p.kind === 'dust') {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath(); ctx.arc(p.x, p.y, s * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = a * 0.35; ctx.beginPath(); ctx.arc(p.x, p.y, s * 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
     } else ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
   }
   ctx.globalAlpha = 1;
@@ -1231,6 +1295,14 @@ function drawBigWord(bw, now) {
     outlined(bw.s, 0, 0, '#ff2a3d', size);
   } else if (style === 'bubble') {
     ctx.font = DISP(size); ctx.fillStyle = TH.accent; ctx.fillText(bw.s, 0, 0);
+  } else if (style === 'clean') {
+    ctx.font = DISP(size); const tw = ctx.measureText(bw.s).width;
+    const g = ctx.createLinearGradient(-tw / 2, 0, tw / 2, 0);
+    g.addColorStop(0, bw.col || TH.accent); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, bw.col || '#9d8cff');
+    ctx.shadowColor = bw.col || TH.accent; ctx.shadowBlur = 18;
+    ctx.fillStyle = g; ctx.fillText(bw.s, 0, 0); ctx.shadowBlur = 0;
+    const lw = tw * Math.min(1, k * 4);
+    ctx.fillStyle = g; ctx.fillRect(-lw / 2, size * TH.dsz * 0.62, lw, 2);
   } else {
     const hue = (now / 4) % 360;
     outlined(bw.s, 0, 0, bw.col || `hsl(${hue},100%,65%)`, size);
@@ -1292,7 +1364,14 @@ function drawHud(now, ch) {
     for (let i = 0; i < S.maxHp; i++) heart(hx + i * 19, 24, i < S.hp);
   } else { heart(W / 2 - 34, 24, true); ctx.textAlign = 'left'; ctx.fillStyle = hd.ink; ctx.font = DISP(12); ctx.fillText(`${S.hp}/${S.maxHp}`, W / 2 - 12, 38); }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
-  ctx.fillStyle = hd.ch; ctx.fillText(`CH${ch}`, W / 2 - 70, 15);
+  ctx.fillStyle = hd.ch; ctx.fillText(`CH${ch}`, W / 2 - 78, 15);
+  // boss progress toward the next world: one diamond per boss in this world
+  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(`W${S.world + 1}`, 16, 72); ctx.textAlign = 'center';
+  for (let i = 0; i < BOSSES_PER_WORLD; i++) {
+    const x = 46 + i * 10, y = 69, on = i < S.bosses % BOSSES_PER_WORLD;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-2.6, -2.6, 5.2, 5.2); ctx.restore();
+  }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(Math.round(S.dmg * 10) / 10)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;
   ctx.save(); ctx.translate(W / 2, 50); ctx.scale(gs, gs); ctx.fillStyle = hd.accent; ctx.font = DISP(8); ctx.fillText(`${Math.floor(S.gold)}G`, 0, 0); ctx.restore();
@@ -1411,6 +1490,15 @@ function draw(now) {
     ctx.globalAlpha = 1;
   }
 
+  // world change: a bright iris opening from the centre
+  if (S.wipe > 0) {
+    const k = 1 - S.wipe;
+    ctx.save(); ctx.globalAlpha = S.wipe;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H * 0.45, k * 700, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    ctx.strokeStyle = TH.accent; ctx.lineWidth = 10 * S.wipe; ctx.beginPath(); ctx.arc(W / 2, H * 0.45, k * 700, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
   // level-up burst
   if (S.phase === 'lvlwait') {
     const k = 1 - S.lvlT / 0.6;
@@ -1479,31 +1567,35 @@ $('giveUp').onclick = showResults;
 $('claim').onclick = () => claim(1);
 $('claim2x').onclick = () => claim(2); // ad placeholder
 
-// ---------- themes: picker on the title screen, also reachable by link (#candy, #synth, ...) ----------
+// ---------- worlds: the title picker chooses the starting world among those unlocked ----------
+// A link with #synth, #candy, ... previews any world without unlocking it.
 function setTheme(id, remember) {
   applyTheme(id);
-  $('thNo').textContent = `THEME ${THEME_ORDER.indexOf(id) + 1}/${THEME_ORDER.length} · ${TH.tag}`;
-  if (remember) {
-    SAVE.theme = id; writeSave();
-    try { history.replaceState(null, '', '#' + id); } catch (e) {}
-  }
+  if (S) S.world = WORLD_ORDER.indexOf(id);
+  const n = WORLD_ORDER.indexOf(id) + 1;
+  $('thNo').textContent = `WORLD ${n} · ${TH.tag} · 해금 ${SAVE.worlds}/${WORLD_ORDER.length}`;
+  if (remember) { SAVE.theme = id; writeSave(); }
 }
 function stepTheme(d) {
-  const i = THEME_ORDER.indexOf(SAVE.theme in THEMES ? SAVE.theme : 'neon');
-  setTheme(THEME_ORDER[(i + d + THEME_ORDER.length) % THEME_ORDER.length], true);
+  const open = WORLD_ORDER.slice(0, Math.max(SAVE.worlds, WORLD_ORDER.indexOf(SAVE.theme) + 1));
+  const i = Math.max(0, open.indexOf(SAVE.theme));
+  setTheme(open[(i + d + open.length) % open.length], true);
   ensureAudio(); sfx.pick();
   burst(W / 2, H * 0.5, TH.accent, 40, 320);
+  if (open.length === 1) $('thLine').textContent = '보스 3마리를 잡으면 다음 월드가 열립니다';
 }
 $('thPrev').onclick = () => stepTheme(-1);
 $('thNext').onclick = () => stepTheme(1);
-addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) setTheme(id, true); });
+addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) { SAVE.theme = id; setTheme(id, false); } });
 
 // ---------- boot ----------
 loadSave();
 newRun(); S.phase = 'title';
 {
   const fromLink = location.hash.slice(1);
-  setTheme(THEMES[fromLink] ? fromLink : (THEMES[SAVE.theme] ? SAVE.theme : 'neon'), !!THEMES[fromLink]);
+  if (THEMES[fromLink]) SAVE.theme = fromLink;
+  else if (WORLD_ORDER.indexOf(SAVE.theme) + 1 > SAVE.worlds) SAVE.theme = 'neon';
+  setTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon', false);
 }
 refreshTitle();
 let last = performance.now();

@@ -44,31 +44,35 @@ $('giveUp').onclick = showResults;
 $('claim').onclick = () => claim(1);
 $('claim2x').onclick = () => claim(2); // ad placeholder
 
-// ---------- themes: picker on the title screen, also reachable by link (#candy, #synth, ...) ----------
+// ---------- worlds: the title picker chooses the starting world among those unlocked ----------
+// A link with #synth, #candy, ... previews any world without unlocking it.
 function setTheme(id, remember) {
   applyTheme(id);
-  $('thNo').textContent = `THEME ${THEME_ORDER.indexOf(id) + 1}/${THEME_ORDER.length} · ${TH.tag}`;
-  if (remember) {
-    SAVE.theme = id; writeSave();
-    try { history.replaceState(null, '', '#' + id); } catch (e) {}
-  }
+  if (S) S.world = WORLD_ORDER.indexOf(id);
+  const n = WORLD_ORDER.indexOf(id) + 1;
+  $('thNo').textContent = `WORLD ${n} · ${TH.tag} · 해금 ${SAVE.worlds}/${WORLD_ORDER.length}`;
+  if (remember) { SAVE.theme = id; writeSave(); }
 }
 function stepTheme(d) {
-  const i = THEME_ORDER.indexOf(SAVE.theme in THEMES ? SAVE.theme : 'neon');
-  setTheme(THEME_ORDER[(i + d + THEME_ORDER.length) % THEME_ORDER.length], true);
+  const open = WORLD_ORDER.slice(0, Math.max(SAVE.worlds, WORLD_ORDER.indexOf(SAVE.theme) + 1));
+  const i = Math.max(0, open.indexOf(SAVE.theme));
+  setTheme(open[(i + d + open.length) % open.length], true);
   ensureAudio(); sfx.pick();
   burst(W / 2, H * 0.5, TH.accent, 40, 320);
+  if (open.length === 1) $('thLine').textContent = '보스 3마리를 잡으면 다음 월드가 열립니다';
 }
 $('thPrev').onclick = () => stepTheme(-1);
 $('thNext').onclick = () => stepTheme(1);
-addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) setTheme(id, true); });
+addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) { SAVE.theme = id; setTheme(id, false); } });
 
 // ---------- boot ----------
 loadSave();
 newRun(); S.phase = 'title';
 {
   const fromLink = location.hash.slice(1);
-  setTheme(THEMES[fromLink] ? fromLink : (THEMES[SAVE.theme] ? SAVE.theme : 'neon'), !!THEMES[fromLink]);
+  if (THEMES[fromLink]) SAVE.theme = fromLink;
+  else if (WORLD_ORDER.indexOf(SAVE.theme) + 1 > SAVE.worlds) SAVE.theme = 'neon';
+  setTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon', false);
 }
 refreshTitle();
 let last = performance.now();

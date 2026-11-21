@@ -21,6 +21,7 @@ function newRun() {
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     revived: false, banner: null,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
+    world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
   };
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = [];
   for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
