@@ -45,19 +45,46 @@ body{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-selec
 .gold{font-family:var(--disp);font-size:calc(var(--s)*11px*var(--dsz));color:var(--gold);margin:0}
 .row{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--s)*10px)}
 h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--gold);margin:0;text-shadow:calc(var(--s)*3px) calc(var(--s)*3px) 0 var(--hot)}
-#cards,#metaList{display:grid;gap:calc(var(--s)*12px);width:100%}
-#metaList{gap:calc(var(--s)*8px)}
-.card{display:grid;grid-template-columns:calc(var(--s)*86px) 1fr;align-items:center;gap:calc(var(--s)*12px);width:100%;text-align:left;cursor:pointer;
-  background:var(--panel);color:var(--ink);border:calc(var(--s)*3px) solid var(--c,var(--line));padding:calc(var(--s)*14px);border-radius:calc(var(--s)*6px);font-family:var(--ko);
-  box-shadow:calc(var(--s)*4px) calc(var(--s)*4px) 0 rgba(0,0,0,.35);animation:pop .3s cubic-bezier(.2,1.6,.4,1) both}
-.card:nth-child(2){animation-delay:.07s}.card:nth-child(3){animation-delay:.14s}
-.card:active{transform:translate(calc(var(--s)*2px),calc(var(--s)*2px))}
-.tag{font-family:var(--disp);font-size:calc(var(--s)*9px*var(--dsz));background:var(--c);color:#0a0c1c;padding:calc(var(--s)*10px) calc(var(--s)*4px);text-align:center;line-height:1.3;border-radius:calc(var(--s)*3px)}
-.ct{display:grid;gap:calc(var(--s)*4px);min-width:0}
-.cn{font-size:calc(var(--s)*21px)}
-.cl{font-family:var(--disp);font-size:calc(var(--s)*8px*var(--dsz));color:var(--dim);margin-left:calc(var(--s)*6px)}
-.cd{font-size:calc(var(--s)*15px);color:var(--dim)}
+#metaList{display:grid;gap:calc(var(--s)*8px);width:100%}
+/* Level-up: three tall cards side by side that flip in, behind them slow light rays */
+#lvl{gap:calc(var(--s)*6px);padding-inline:calc(var(--s)*14px);overflow:hidden}
+#lvl > *{position:relative}
+#lvl .rays{position:absolute;left:50%;top:44%;width:calc(var(--s)*900px);height:calc(var(--s)*900px);margin:calc(var(--s)*-450px) 0 0 calc(var(--s)*-450px);pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--gold) 16%,transparent) 0 9deg,transparent 9deg 18deg);
+  -webkit-mask:radial-gradient(circle,#000 0,transparent 62%);mask:radial-gradient(circle,#000 0,transparent 62%);animation:spin 14s linear infinite,raysIn .35s ease-out both}
+.lvlKick{font-family:var(--disp);font-size:calc(var(--s)*10px*var(--dsz));letter-spacing:.3em;color:var(--cool);margin:0;animation:fadeUp .25s ease-out both}
+.lvlNum{font-family:var(--disp);font-size:calc(var(--s)*44px*var(--dsz));line-height:1;color:var(--gold);margin:0;text-shadow:0 0 calc(var(--s)*24px) color-mix(in srgb,var(--gold) 70%,transparent);animation:numPop .4s cubic-bezier(.2,1.8,.4,1) both}
+#lvl .note{margin-bottom:calc(var(--s)*10px)}
+#cards{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--s)*9px);width:100%;perspective:calc(var(--s)*800px)}
+.card{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:calc(var(--s)*7px);min-width:0;text-align:center;cursor:pointer;
+  background:var(--panel);color:var(--ink);border:calc(var(--s)*2px) solid var(--c,var(--line));padding:calc(var(--s)*14px) calc(var(--s)*8px) calc(var(--s)*12px);border-radius:calc(var(--s)*14px);font-family:var(--ko);
+  box-shadow:0 0 calc(var(--s)*22px) color-mix(in srgb,var(--c) 35%,transparent),0 calc(var(--s)*8px) calc(var(--s)*20px) rgba(0,0,0,.35);
+  animation:flipIn .32s cubic-bezier(.2,1.5,.4,1) backwards;transition:transform .16s ease,opacity .16s ease,box-shadow .16s ease}
+.card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+.card::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);transform:translateX(-120%);animation:shine .7s ease-out .3s both;pointer-events:none}
+.card:nth-child(2)::after{animation-delay:.36s}.card:nth-child(3)::after{animation-delay:.42s}
+.card:active{transform:scale(.96)}
+.card .ic{display:grid;place-items:center;width:calc(var(--s)*58px);height:calc(var(--s)*58px);border-radius:50%;background:var(--c);color:#0a0c1c;
+  box-shadow:0 0 0 calc(var(--s)*4px) color-mix(in srgb,var(--c) 25%,transparent),0 0 calc(var(--s)*18px) var(--c)}
+.card .ic svg{width:60%;height:60%;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.card .cn{font-size:calc(var(--s)*18px);line-height:1.1}
+.card .cd{font-size:calc(var(--s)*13px);line-height:1.3;color:var(--dim);flex:1}
+.card .lv{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--s)*3px)}
+.card .lv i{width:calc(var(--s)*7px);height:calc(var(--s)*7px);border-radius:50%;background:var(--line)}
+.card .lv i.on{background:var(--c)}
+.card .lv i.nx{background:var(--c);animation:blink .5s ease-in-out infinite alternate}
+.card .lvt{font-family:var(--disp);font-size:calc(var(--s)*8px*var(--dsz));color:var(--dim)}
+.card .new{position:absolute;top:calc(var(--s)*6px);right:calc(var(--s)*-22px);transform:rotate(35deg);background:var(--hot);color:#fff;font-family:var(--disp);font-size:calc(var(--s)*7px*var(--dsz));padding:calc(var(--s)*3px) calc(var(--s)*24px)}
+.card.chosen{transform:scale(1.1);z-index:2;box-shadow:0 0 calc(var(--s)*40px) var(--c),0 0 0 calc(var(--s)*3px) #fff}
+.card.dim{opacity:.18;transform:scale(.9)}
 .locked .card{pointer-events:none}
+@keyframes flipIn{from{transform:rotateY(95deg) scale(.7);opacity:0}to{transform:none;opacity:1}}
+@keyframes shine{to{transform:translateX(120%)}}
+@keyframes numPop{from{transform:scale(2.4);opacity:0}to{transform:none;opacity:1}}
+@keyframes fadeUp{from{transform:translateY(calc(var(--s)*10px));opacity:0}to{transform:none;opacity:1}}
+@keyframes raysIn{from{opacity:0;transform:scale(.4)}to{opacity:1}}
+@keyframes spin{to{rotate:360deg}}
+@keyframes blink{to{opacity:.35}}
 .meta{display:grid;grid-template-columns:1fr auto;align-items:center;gap:calc(var(--s)*10px);background:var(--panel);border:calc(var(--s)*2px) solid var(--line);border-radius:calc(var(--s)*6px);padding:calc(var(--s)*9px) calc(var(--s)*12px);text-align:left}
 .meta .mn{font-size:calc(var(--s)*19px)}
 .meta .md{font-size:calc(var(--s)*14px);color:var(--dim)}
@@ -79,8 +106,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stage[data-th="neon"] .btn.big:active{transform:scale(.97);box-shadow:0 0 calc(var(--s)*14px) rgba(94,242,224,.45)}
 #stage[data-th="neon"] .btn.ad{border-color:rgba(94,242,224,.6)}
 #stage[data-th="neon"] .picker,#stage[data-th="neon"] .meta{border:1px solid var(--line);border-radius:calc(var(--s)*16px);background:rgba(17,21,42,.72)}
-#stage[data-th="neon"] .card{border:1px solid rgba(255,255,255,.1);border-left:calc(var(--s)*4px) solid var(--c);border-radius:calc(var(--s)*16px);background:linear-gradient(135deg,rgba(28,33,62,.95),rgba(14,17,34,.95));box-shadow:0 calc(var(--s)*10px) calc(var(--s)*30px) rgba(0,0,0,.45)}
-#stage[data-th="neon"] .tag{border-radius:calc(var(--s)*10px);font-size:calc(var(--s)*11px)}
+#stage[data-th="neon"] .card{border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:calc(var(--s)*18px);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 16%,#141933),#0c0f20 70%)}
 #stage[data-th="neon"] h2{text-shadow:0 0 calc(var(--s)*16px) rgba(255,198,107,.55);letter-spacing:.06em}
 #stage[data-th="neon"] .buy{border-radius:999px}
 #stage[data-th="neon"] .pips i{border-radius:50%}
@@ -88,7 +114,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
-@media (prefers-reduced-motion:reduce){.card,.btn.big,.logo{animation:none}}
+@media (prefers-reduced-motion:reduce){.card,.card::after,.btn.big,.logo,#lvl .rays,.lvlNum,.lvlKick{animation:none}}
 </style>
 
 <div id="wrap"><div id="stage">
@@ -112,8 +138,10 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
   </div>
 
   <div id="lvl" class="ov" hidden>
-    <h2>LEVEL UP!</h2>
-    <p class="small" id="lvlLeft"></p>
+    <div class="rays" aria-hidden="true"></div>
+    <p class="lvlKick">LEVEL UP</p>
+    <p class="lvlNum" id="lvlNum"></p>
+    <p class="note" id="lvlLeft">능력 하나를 고르세요</p>
     <div id="cards"></div>
   </div>
 
@@ -267,9 +295,24 @@ const UPG = {
   pierce: { tag: 'PIERCE', name: '관통',      max: 4,  col: '#b98cff', w: 1.5, desc: n => `${15 * n}% 확률로 벽돌을 뚫고 지나감`, apply() { S.pierce = 0.15 * S.lv.pierce; } },
   split:  { tag: 'SPLIT',  name: '분열',      max: 4,  col: '#ff9be0', w: 2,   desc: n => `공이 처음 맞힐 때 ${n + 1}갈래로 갈라짐`, apply() {} },
   speed:  { tag: 'SPEED',  name: '가속',      max: 3,  col: '#7dffb0', w: 1.2, desc: n => `공 속도 +${15 * n}%`, apply() {} },
-  big:    { tag: 'BIG',    name: '거대화',    max: 3,  col: '#ffffff', w: 1.2, desc: n => `공 크기 +${30 * n}%`, apply() {} },
+  big:    { tag: 'BIG',    name: '거대화',    max: 3,  col: '#9fb4ff', w: 1.2, desc: n => `공 크기 +${30 * n}%`, apply() {} },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
   heal:   { tag: 'HP+1',   name: '수리',      max: 99, col: '#ff4f7b', w: 1,   desc: () => '체력 +1, 최대 체력 +1', apply() { S.maxHp++; S.hp++; } },
+};
+
+// Card icons: 24x24 stroke paths drawn in the card's colour circle.
+const ICONS = {
+  multi: '<circle cx="7" cy="16" r="3.2"/><circle cx="17" cy="16" r="3.2"/><circle cx="12" cy="7" r="3.2"/>',
+  power: '<path d="M14.5 3.5h6v6l-9.5 9.5-6-6z"/><path d="M4 16l4 4M2.5 21.5l3-3"/>',
+  crit: '<circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/><circle cx="12" cy="12" r="1.2"/>',
+  fire: '<path d="M12 2.5c1 4 6.5 6 6.5 11.5a6.5 6.5 0 0 1-13 0c0-3 2-4.5 2.2-7.5 2 1.2 3 3 3 5 1.3-2 1.6-5.6 1.3-9z"/>',
+  chain: '<path d="M13.5 2L5 13.5h6.5L10 22l9-12h-6.5z"/>',
+  pierce: '<rect x="9" y="4.5" width="6" height="15" rx="1.5"/><path d="M1.5 12h21M18.5 8l4 4-4 4"/>',
+  split: '<path d="M12 22v-9M12 13L6 4.5M12 13l6-8.5M3.5 6.5L6 4.5l2.2 2.3M20.5 6.5L18 4.5l-2.2 2.3"/>',
+  speed: '<path d="M4 5l7 7-7 7M12.5 5l7 7-7 7"/>',
+  big: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/>',
+  xp: '<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/>',
+  heal: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8z"/><path d="M12 9v6.5M8.8 12.2h6.4"/>',
 };
 
 // Permanent upgrades bought with gold in the workshop.
@@ -892,7 +935,7 @@ function endTurn() {
   spawnRow(S.turn, true);
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   if (S.hp <= 0) { S.hp = 0; S.phase = 'dying'; S.dieTimer = 0.9; sfx.over(); return; }
-  if (S.pendingLevels > 0) { S.phase = 'lvlwait'; S.lvlT = 0.6; bigWords.push({ s: 'LEVEL UP!', life: 0.6, max: 0.6, y: H * 0.42, size: 20, style: 'plain', col: TH.css.gold }); sfx.lvl(); shake(4); }
+  if (S.pendingLevels > 0) { showLevel(); sfx.lvl(); shake(4); }
   else S.phase = 'aim';
 }
 
@@ -912,18 +955,36 @@ function showLevel() {
   S.phase = 'levelup';
   curChoices = pickUpgrades(3);
   cardsEl.innerHTML = '';
-  $('lvlLeft').textContent = S.pendingLevels > 1 ? `남은 선택 ${S.pendingLevels}` : `LV ${S.level}`;
+  $('lvlNum').textContent = S.level > 0 ? 'LV ' + S.level : 'BONUS';
+  $('lvlLeft').textContent = S.pendingLevels > 1 ? `능력 하나를 고르세요 · 남은 선택 ${S.pendingLevels}` : '능력 하나를 고르세요';
   for (const k of curChoices) {
     const u = UPG[k], l = S.lv[k];
+    const lvl = u.max <= 6
+      ? `<span class="lv">${Array.from({ length: u.max }, (_, i) => `<i class="${i < l ? 'on' : i === l ? 'nx' : ''}"></i>`).join('')}</span>`
+      : `<span class="lvt">LV ${l} &gt; ${l + 1}</span>`;
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'card'; b.style.setProperty('--c', u.col);
-    b.innerHTML = `<span class="tag">${u.tag}</span><span class="ct"><span class="cn">${u.name}<span class="cl">LV ${l} &gt; ${l + 1}</span></span><span class="cd">${u.desc(l + 1)}</span></span>`;
-    b.onclick = () => { if (!lvlEl.classList.contains('locked')) choose(k); };
+    b.innerHTML = `${l === 0 ? '<span class="new">NEW</span>' : ''}<span class="ic"><svg viewBox="0 0 24 24">${ICONS[k]}</svg></span>`
+      + `<span class="cn">${u.name}</span>${lvl}<span class="cd">${u.desc(l + 1)}</span>`;
+    b.onclick = () => pickCard(k, b);
     cardsEl.appendChild(b);
   }
-  lvlEl.hidden = false;
+  // restart the entrance animations when the overlay is reused for a second pick
+  lvlEl.hidden = true; void lvlEl.offsetWidth; lvlEl.hidden = false;
   lvlEl.classList.add('locked');
-  setTimeout(() => lvlEl.classList.remove('locked'), 350);
+  setTimeout(() => lvlEl.classList.remove('locked'), 200);
+}
+// Tap feedback: the chosen card pops, the others fade, then the choice applies.
+function pickCard(k, el) {
+  if (lvlEl.classList.contains('locked') || S.phase !== 'levelup') return;
+  lvlEl.classList.add('locked');
+  for (const c of cardsEl.children) c.classList.add(c === el ? 'chosen' : 'dim');
+  const r = el.getBoundingClientRect(), cr = cv.getBoundingClientRect();
+  const x = (r.left + r.width / 2 - cr.left) / scale, y = (r.top + r.height / 2 - cr.top) / scale;
+  burst(x, y, UPG[k].col.length === 7 ? UPG[k].col : TH.accent, 50, 420);
+  rings.push({ x, y, r: 160, life: 0.35, max: 0.35, col: UPG[k].col });
+  sfx.clear(); buzz(30);
+  setTimeout(() => choose(k), 230);
 }
 function choose(k) {
   S.lv[k]++; UPG[k].apply(); S.pendingLevels--; sfx.pick();
@@ -1048,8 +1109,6 @@ function update(dt) {
     S.movers = S.movers.filter(b => b.alive);
     processBlasts(gdt);
     if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) endTurn();
-  } else if (S.phase === 'lvlwait') {
-    S.lvlT -= dt; if (S.lvlT <= 0) showLevel();
   } else if (S.phase === 'dying') {
     S.dieTimer -= dt;
     if (S.dieTimer <= 0) { if (S.revived) showResults(); else showRevive(); }
@@ -1497,15 +1556,6 @@ function draw(now) {
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H * 0.45, k * 700, 0, Math.PI * 2, true); ctx.fill('evenodd');
     ctx.strokeStyle = TH.accent; ctx.lineWidth = 10 * S.wipe; ctx.beginPath(); ctx.arc(W / 2, H * 0.45, k * 700, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
-  }
-
-  // level-up burst
-  if (S.phase === 'lvlwait') {
-    const k = 1 - S.lvlT / 0.6;
-    ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(now / 500); ctx.globalAlpha = 0.5 * (1 - k * 0.5);
-    ctx.fillStyle = TH.css.gold;
-    for (let i = 0; i < 16; i++) { ctx.rotate(Math.PI / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-14, -400); ctx.lineTo(14, -400); ctx.fill(); }
-    ctx.restore(); ctx.globalAlpha = 1;
   }
 
   drawHud(now, ch);

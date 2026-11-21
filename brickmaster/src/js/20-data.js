@@ -10,9 +10,24 @@ const UPG = {
   pierce: { tag: 'PIERCE', name: '관통',      max: 4,  col: '#b98cff', w: 1.5, desc: n => `${15 * n}% 확률로 벽돌을 뚫고 지나감`, apply() { S.pierce = 0.15 * S.lv.pierce; } },
   split:  { tag: 'SPLIT',  name: '분열',      max: 4,  col: '#ff9be0', w: 2,   desc: n => `공이 처음 맞힐 때 ${n + 1}갈래로 갈라짐`, apply() {} },
   speed:  { tag: 'SPEED',  name: '가속',      max: 3,  col: '#7dffb0', w: 1.2, desc: n => `공 속도 +${15 * n}%`, apply() {} },
-  big:    { tag: 'BIG',    name: '거대화',    max: 3,  col: '#ffffff', w: 1.2, desc: n => `공 크기 +${30 * n}%`, apply() {} },
+  big:    { tag: 'BIG',    name: '거대화',    max: 3,  col: '#9fb4ff', w: 1.2, desc: n => `공 크기 +${30 * n}%`, apply() {} },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
   heal:   { tag: 'HP+1',   name: '수리',      max: 99, col: '#ff4f7b', w: 1,   desc: () => '체력 +1, 최대 체력 +1', apply() { S.maxHp++; S.hp++; } },
+};
+
+// Card icons: 24x24 stroke paths drawn in the card's colour circle.
+const ICONS = {
+  multi: '<circle cx="7" cy="16" r="3.2"/><circle cx="17" cy="16" r="3.2"/><circle cx="12" cy="7" r="3.2"/>',
+  power: '<path d="M14.5 3.5h6v6l-9.5 9.5-6-6z"/><path d="M4 16l4 4M2.5 21.5l3-3"/>',
+  crit: '<circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/><circle cx="12" cy="12" r="1.2"/>',
+  fire: '<path d="M12 2.5c1 4 6.5 6 6.5 11.5a6.5 6.5 0 0 1-13 0c0-3 2-4.5 2.2-7.5 2 1.2 3 3 3 5 1.3-2 1.6-5.6 1.3-9z"/>',
+  chain: '<path d="M13.5 2L5 13.5h6.5L10 22l9-12h-6.5z"/>',
+  pierce: '<rect x="9" y="4.5" width="6" height="15" rx="1.5"/><path d="M1.5 12h21M18.5 8l4 4-4 4"/>',
+  split: '<path d="M12 22v-9M12 13L6 4.5M12 13l6-8.5M3.5 6.5L6 4.5l2.2 2.3M20.5 6.5L18 4.5l-2.2 2.3"/>',
+  speed: '<path d="M4 5l7 7-7 7M12.5 5l7 7-7 7"/>',
+  big: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/>',
+  xp: '<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/>',
+  heal: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8z"/><path d="M12 9v6.5M8.8 12.2h6.4"/>',
 };
 
 // Permanent upgrades bought with gold in the workshop.

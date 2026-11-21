@@ -46,7 +46,7 @@ function endTurn() {
   spawnRow(S.turn, true);
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   if (S.hp <= 0) { S.hp = 0; S.phase = 'dying'; S.dieTimer = 0.9; sfx.over(); return; }
-  if (S.pendingLevels > 0) { S.phase = 'lvlwait'; S.lvlT = 0.6; bigWords.push({ s: 'LEVEL UP!', life: 0.6, max: 0.6, y: H * 0.42, size: 20, style: 'plain', col: TH.css.gold }); sfx.lvl(); shake(4); }
+  if (S.pendingLevels > 0) { showLevel(); sfx.lvl(); shake(4); }
   else S.phase = 'aim';
 }
 
@@ -66,18 +66,36 @@ function showLevel() {
   S.phase = 'levelup';
   curChoices = pickUpgrades(3);
   cardsEl.innerHTML = '';
-  $('lvlLeft').textContent = S.pendingLevels > 1 ? `남은 선택 ${S.pendingLevels}` : `LV ${S.level}`;
+  $('lvlNum').textContent = S.level > 0 ? 'LV ' + S.level : 'BONUS';
+  $('lvlLeft').textContent = S.pendingLevels > 1 ? `능력 하나를 고르세요 · 남은 선택 ${S.pendingLevels}` : '능력 하나를 고르세요';
   for (const k of curChoices) {
     const u = UPG[k], l = S.lv[k];
+    const lvl = u.max <= 6
+      ? `<span class="lv">${Array.from({ length: u.max }, (_, i) => `<i class="${i < l ? 'on' : i === l ? 'nx' : ''}"></i>`).join('')}</span>`
+      : `<span class="lvt">LV ${l} &gt; ${l + 1}</span>`;
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'card'; b.style.setProperty('--c', u.col);
-    b.innerHTML = `<span class="tag">${u.tag}</span><span class="ct"><span class="cn">${u.name}<span class="cl">LV ${l} &gt; ${l + 1}</span></span><span class="cd">${u.desc(l + 1)}</span></span>`;
-    b.onclick = () => { if (!lvlEl.classList.contains('locked')) choose(k); };
+    b.innerHTML = `${l === 0 ? '<span class="new">NEW</span>' : ''}<span class="ic"><svg viewBox="0 0 24 24">${ICONS[k]}</svg></span>`
+      + `<span class="cn">${u.name}</span>${lvl}<span class="cd">${u.desc(l + 1)}</span>`;
+    b.onclick = () => pickCard(k, b);
     cardsEl.appendChild(b);
   }
-  lvlEl.hidden = false;
+  // restart the entrance animations when the overlay is reused for a second pick
+  lvlEl.hidden = true; void lvlEl.offsetWidth; lvlEl.hidden = false;
   lvlEl.classList.add('locked');
-  setTimeout(() => lvlEl.classList.remove('locked'), 350);
+  setTimeout(() => lvlEl.classList.remove('locked'), 200);
+}
+// Tap feedback: the chosen card pops, the others fade, then the choice applies.
+function pickCard(k, el) {
+  if (lvlEl.classList.contains('locked') || S.phase !== 'levelup') return;
+  lvlEl.classList.add('locked');
+  for (const c of cardsEl.children) c.classList.add(c === el ? 'chosen' : 'dim');
+  const r = el.getBoundingClientRect(), cr = cv.getBoundingClientRect();
+  const x = (r.left + r.width / 2 - cr.left) / scale, y = (r.top + r.height / 2 - cr.top) / scale;
+  burst(x, y, UPG[k].col.length === 7 ? UPG[k].col : TH.accent, 50, 420);
+  rings.push({ x, y, r: 160, life: 0.35, max: 0.35, col: UPG[k].col });
+  sfx.clear(); buzz(30);
+  setTimeout(() => choose(k), 230);
 }
 function choose(k) {
   S.lv[k]++; UPG[k].apply(); S.pendingLevels--; sfx.pick();
@@ -202,8 +220,6 @@ function update(dt) {
     S.movers = S.movers.filter(b => b.alive);
     processBlasts(gdt);
     if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) endTurn();
-  } else if (S.phase === 'lvlwait') {
-    S.lvlT -= dt; if (S.lvlT <= 0) showLevel();
   } else if (S.phase === 'dying') {
     S.dieTimer -= dt;
     if (S.dieTimer <= 0) { if (S.revived) showResults(); else showRevive(); }

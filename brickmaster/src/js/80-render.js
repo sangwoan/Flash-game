@@ -411,15 +411,6 @@ function draw(now) {
     ctx.restore();
   }
 
-  // level-up burst
-  if (S.phase === 'lvlwait') {
-    const k = 1 - S.lvlT / 0.6;
-    ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(now / 500); ctx.globalAlpha = 0.5 * (1 - k * 0.5);
-    ctx.fillStyle = TH.css.gold;
-    for (let i = 0; i < 16; i++) { ctx.rotate(Math.PI / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-14, -400); ctx.lineTo(14, -400); ctx.fill(); }
-    ctx.restore(); ctx.globalAlpha = 1;
-  }
-
   drawHud(now, ch);
 
   if (S.phase === 'fire' && S.timeScale > 1) {
