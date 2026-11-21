@@ -50,6 +50,7 @@ const sfx = {
   orb() { if (!gate('orb', 50)) return; tone(988, 0.05, 'square', 0.04); tone(1318, 0.08, 'square', 0.04, 0, 0.05); },
   lvl() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.1, 'square', 0.05, 0, i * 0.07)); },
   pick() { tone(784, 0.06, 'square', 0.05); tone(1175, 0.1, 'square', 0.05, 0, 0.06); },
+  tick() { if (gate('tick', 45)) tone(1760 + rnd() * 400, 0.03, 'square', 0.02); },
   coin() { tone(1318, 0.06, 'square', 0.04); tone(1760, 0.14, 'square', 0.04, 0, 0.06); },
   hurt() { tone(170, 0.35, 'sawtooth', 0.12, 0.45); noise(0.2, 0.15, 400); },
   boss() { [196, 185, 175].forEach((f, i) => tone(f, 0.18, 'sawtooth', 0.08, 0, i * 0.2)); },

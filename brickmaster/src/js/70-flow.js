@@ -2,6 +2,7 @@
 let curChoices = [];
 
 function fire() {
+  S.kick = 1; rings.push({ x: S.launchX, y: LY, r: 40, life: 0.25, max: 0.25, col: TH.accent });
   S.phase = 'fire'; S.toFire = S.balls; S.fireTimer = 0; S.turnTime = 0; S.timeScale = 1;
   S.combo = 0; S.nextLaunchX = null; S.aiming = false;
 }
@@ -16,7 +17,7 @@ function recall() {
 function comboWord(c) { return c >= 40 ? 'INSANE' : c >= 25 ? 'AMAZING' : c >= 15 ? 'GREAT' : 'NICE'; }
 function endTurn() {
   recallEl.hidden = true;
-  if (S.combo >= 8) texts.push(mkText(W / 2, 420, comboWord(S.combo) + ' x' + S.combo, '#3ee6ff', 1.2, 16));
+  if (S.combo >= 8) texts.push(mkText(W / 2, 420, comboWord(S.combo) + ' x' + S.combo, TH.accent, 1.2, 16));
   S.launchX = S.nextLaunchX ?? S.launchX; S.nextLaunchX = null;
   if (S.orbsGot) { S.balls += S.orbsGot; S.orbsGot = 0; }
   S.bricks = S.bricks.filter(b => !b.dead);
@@ -27,11 +28,11 @@ function endTurn() {
     br.dead = true;
     if (isItem(br)) continue;
     hurt += br.type === 'boss' ? 2 : 1;
-    burst(br.X + br.Wd / 2, FB - 10, '#ff4f7b', 16, 260);
+    burst(br.X + br.Wd / 2, FB - 10, TH.css.hot, 16, 260);
   }
   if (hurt) {
     S.hp -= hurt; shake(12); S.flash = 0.55; S.flashCol = '255,79,123'; sfx.hurt(); buzz(120);
-    texts.push(mkText(W / 2, FB - 40, 'HP -' + hurt, '#ff4f7b', 1.1, 16));
+    texts.push(mkText(W / 2, FB - 40, 'HP -' + hurt, TH.css.hot, 1.1, 16));
   }
   S.bricks = S.bricks.filter(b => !b.dead);
   rebuildGrid();
@@ -39,12 +40,13 @@ function endTurn() {
   addGold(BAL.goldPerTurn);
   if (S.turn % BAL.bossEvery === 1) {
     const ch = chapterOf(S.turn);
-    showBanner(`CHAPTER ${ch}`, themeOf(ch).name, '#3ee6ff');
+    showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
   spawnRow(S.turn, true);
-  S.combo = 0; S.timeScale = 1;
+  S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   if (S.hp <= 0) { S.hp = 0; S.phase = 'dying'; S.dieTimer = 0.9; sfx.over(); return; }
-  if (S.pendingLevels > 0) showLevel(); else S.phase = 'aim';
+  if (S.pendingLevels > 0) { S.phase = 'lvlwait'; S.lvlT = 0.6; bigWords.push({ s: 'LEVEL UP!', life: 0.6, max: 0.6, y: H * 0.42, size: 20, style: 'plain', col: TH.css.gold }); sfx.lvl(); shake(4); }
+  else S.phase = 'aim';
 }
 
 // ---------- level-up ----------
@@ -93,7 +95,7 @@ function revive() {
   S.bricks = S.bricks.filter(b => !b.dead); rebuildGrid();
   S.hp = Math.max(1, Math.ceil(S.maxHp / 2));
   shake(10); S.flash = 0.6; S.flashCol = '62,230,255'; sfx.clear();
-  showBanner('REVIVE', '다시 한 번!', '#3ee6ff');
+  showBanner('REVIVE', '다시 한 번!', TH.accent);
   if (S.pendingLevels > 0) showLevel(); else S.phase = 'aim';
 }
 let runGold = 0;
@@ -162,7 +164,7 @@ function startRun() {
   ensureAudio();
   titleEl.hidden = true; overEl.hidden = true;
   newRun();
-  showBanner('CHAPTER 1', themeOf(1).name, '#3ee6ff');
+  showBanner('CHAPTER 1', chapterName(1), TH.accent);
   if (S.pendingLevels > 0) showLevel();
 }
 
@@ -186,6 +188,8 @@ function update(dt) {
     S.movers = S.movers.filter(b => b.alive);
     processBlasts(gdt);
     if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) endTurn();
+  } else if (S.phase === 'lvlwait') {
+    S.lvlT -= dt; if (S.lvlT <= 0) showLevel();
   } else if (S.phase === 'dying') {
     S.dieTimer -= dt;
     if (S.dieTimer <= 0) { if (S.revived) showResults(); else showRevive(); }
@@ -193,11 +197,16 @@ function update(dt) {
   updateFx(dt);
 }
 function updateFx(dt) {
-  for (const p of parts) { p.vy += 700 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+  for (const p of parts) { p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; if (p.kind === 'confetti' || p.kind === 'spark') { p.vx *= 1 - dt * 2.5; p.vy *= 1 - dt * 1.5; } }
   parts = parts.filter(p => p.life > 0);
   for (const r of rings) r.life -= dt; rings = rings.filter(r => r.life > 0);
   for (const b of bolts) b.life -= dt; bolts = bolts.filter(b => b.life > 0);
   for (const b of beams) b.life -= dt; beams = beams.filter(b => b.life > 0);
+  for (const p of pops) p.life -= dt; pops = pops.filter(p => p.life > 0);
+  for (const w of bigWords) w.life -= dt; bigWords = bigWords.filter(w => w.life > 0);
+  for (const c of flyers) { c.t += dt; if (c.t >= c.dur) { c.done = true; S.goldBump = 1; sfx.tick(); } }
+  flyers = flyers.filter(c => !c.done);
+  for (const p of parts) p.rot += p.vr * dt;
   for (const t of texts) { t.life -= dt; t.y += t.vy * dt; t.vy *= 0.94; } texts = texts.filter(t => t.life > 0);
   const tx = S.nextLaunchX ?? S.launchX;
   for (const h of homers) { const d = tx - h.x; h.x += Math.sign(d) * Math.min(Math.abs(d), 900 * dt); if (Math.abs(d) < 1) h.done = true; }
@@ -210,4 +219,7 @@ function updateFx(dt) {
   S.shake = Math.max(0, S.shake - dt * 40);
   S.flash = Math.max(0, S.flash - dt * 2.2);
   S.comboPulse = Math.max(0, S.comboPulse - dt * 6);
+  S.kick = Math.max(0, S.kick - dt * 5);
+  S.goldBump = Math.max(0, S.goldBump - dt * 6);
+  S.xpFlash = Math.max(0, S.xpFlash - dt * 4);
 }

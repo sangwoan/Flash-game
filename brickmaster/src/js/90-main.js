@@ -44,9 +44,32 @@ $('giveUp').onclick = showResults;
 $('claim').onclick = () => claim(1);
 $('claim2x').onclick = () => claim(2); // ad placeholder
 
+// ---------- themes: picker on the title screen, also reachable by link (#candy, #synth, ...) ----------
+function setTheme(id, remember) {
+  applyTheme(id);
+  $('thNo').textContent = `THEME ${THEME_ORDER.indexOf(id) + 1}/${THEME_ORDER.length} · ${TH.tag}`;
+  if (remember) {
+    SAVE.theme = id; writeSave();
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  }
+}
+function stepTheme(d) {
+  const i = THEME_ORDER.indexOf(SAVE.theme in THEMES ? SAVE.theme : 'neon');
+  setTheme(THEME_ORDER[(i + d + THEME_ORDER.length) % THEME_ORDER.length], true);
+  ensureAudio(); sfx.pick();
+  burst(W / 2, H * 0.5, TH.accent, 40, 320);
+}
+$('thPrev').onclick = () => stepTheme(-1);
+$('thNext').onclick = () => stepTheme(1);
+addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) setTheme(id, true); });
+
 // ---------- boot ----------
 loadSave();
 newRun(); S.phase = 'title';
+{
+  const fromLink = location.hash.slice(1);
+  setTheme(THEMES[fromLink] ? fromLink : (THEMES[SAVE.theme] ? SAVE.theme : 'neon'), !!THEMES[fromLink]);
+}
 refreshTitle();
 let last = performance.now();
 function frame(now) {
@@ -65,4 +88,7 @@ window.__bm = {
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
   newRun(meta) { if (meta) Object.assign(SAVE.meta, meta); newRun(); if (S.pendingLevels > 0) showLevel(); },
+  theme(id) { setTheme(id, false); },
+  word(i) { bigWords.push({ s: TH.words[i], life: 0.85, max: 1.1, y: H * 0.3, size: 16 + i * 2 }); },
+  draw(now = performance.now()) { draw(now); },
 };

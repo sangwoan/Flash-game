@@ -26,15 +26,8 @@ const BAL = {
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
-const CHAPTERS = [
-  { name: '네온 시티',   field: '#0e1128', grid: '70,84,170' },
-  { name: '심해 기지',   field: '#061a22', grid: '40,150,175' },
-  { name: '용암 공장',   field: '#1c0c0e', grid: '180,80,60' },
-  { name: '얼음 동굴',   field: '#0c1624', grid: '130,180,220' },
-  { name: '궤도 정거장', field: '#140b22', grid: '150,90,210' },
-];
 const chapterOf = t => Math.ceil(t / BAL.bossEvery);
-const themeOf = ch => CHAPTERS[(ch - 1) % CHAPTERS.length];
+const chapterName = ch => TH.chapters[(ch - 1) % TH.chapters.length];
 
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');

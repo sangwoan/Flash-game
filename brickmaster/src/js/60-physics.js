@@ -10,8 +10,8 @@ function touchItem(b, br, r, c) {
   if (dx * dx + dy * dy >= (b.r + 10) ** 2) return;
   if (br.type === 'orb') {
     br.dead = true; grid[r * COLS + c] = null; S.orbsGot++;
-    texts.push(mkText(br.X + br.Wd / 2, br.Y + 6, '+1', '#3ee6ff', 0.8, 11));
-    rings.push({ x: br.X + br.Wd / 2, y: br.Y + br.Ht / 2, r: 30, life: 0.25, max: 0.25, col: '#3ee6ff' });
+    texts.push(mkText(br.X + br.Wd / 2, br.Y + 6, '+1', TH.accent, 0.8, 11));
+    rings.push({ x: br.X + br.Wd / 2, y: br.Y + br.Ht / 2, r: 30, life: 0.25, max: 0.25, col: TH.accent });
     sfx.orb();
   } else if (!b.touched.has(br)) {
     b.touched.add(br); fireLaser(br);
@@ -27,12 +27,19 @@ function collide(b, axis) {
     if (isItem(br)) { touchItem(b, br, r, c); continue; }
     if (b.ghost.has(br) || !overlaps(b, br)) continue;
     if (S.pierce && rnd() < S.pierce) { b.ghost.add(br); hitBrick(br, b); continue; }
+    // Push out on the side the ball's centre is on (not by velocity sign), and never
+    // through a wall: a ball squeezed between a brick and the wall bounces vertically.
+    let nx = null;
     if (axis === 0) {
-      b.x = b.vx > 0 ? br.X - b.r - 0.01 : br.X + br.Wd + b.r + 0.01;
-      b.vx = -b.vx;
-    } else {
-      b.y = b.vy > 0 ? br.Y - b.r - 0.01 : br.Y + br.Ht + b.r + 0.01;
-      b.vy = -b.vy;
+      const left = b.x < br.X + br.Wd / 2;
+      nx = left ? br.X - b.r - 0.01 : br.X + br.Wd + b.r + 0.01;
+      if (nx >= b.r && nx <= W - b.r) { b.x = nx; b.vx = left ? -Math.abs(b.vx) : Math.abs(b.vx); }
+      else nx = null;
+    }
+    if (nx === null) {
+      const up = b.y < br.Y + br.Ht / 2;
+      b.y = up ? br.Y - b.r - 0.01 : br.Y + br.Ht + b.r + 0.01;
+      b.vy = up ? -Math.abs(b.vy) : Math.abs(b.vy);
     }
     hitBrick(br, b);
     return;

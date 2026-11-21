@@ -1,7 +1,7 @@
 // Run state, the brick grid and row spawning.
 let S, uid = 0;
 const grid = new Array(COLS * ROWS).fill(null);
-let parts = [], rings = [], bolts = [], texts = [], beams = [], homers = [];
+let parts = [], rings = [], bolts = [], texts = [], beams = [], homers = [], pops = [], bigWords = [], flyers = [];
 
 // Items sit in a cell like a brick, but balls pass through them.
 const ITEMS = { orb: 1, lzh: 1, lzv: 1 };
@@ -20,9 +20,11 @@ function newRun() {
     combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     revived: false, banner: null,
+    fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
   };
-  grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = [];
-  for (let i = 0; i < 3; i++) { shiftDown(false); spawnRow(1, false); }
+  grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = [];
+  for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
+  rebuildGrid();
 }
 
 const ballR = () => 6 * (1 + 0.3 * S.lv.big);
@@ -51,7 +53,7 @@ function spawnRow(t, slide = true) {
     const c = Math.floor(rnd() * (COLS - 2));
     addBrick({ c, r: 0, span: 3, type: 'boss', hp: h * BAL.bossHp, chapter: chapterOf(t) }, slide);
     used[c] = used[c + 1] = used[c + 2] = true;
-    showBanner('BOSS', `챕터 ${chapterOf(t)} 보스가 나타났다`, '#ff4f7b');
+    showBanner('BOSS', `챕터 ${chapterOf(t)} 보스가 나타났다`, TH.css.hot);
     sfx.boss();
   }
   let placed = 0;
@@ -75,10 +77,18 @@ function spawnRow(t, slide = true) {
 
 // ---------- fx helpers ----------
 function mkText(x, y, s, col, life = 0.9, size = 12) { return { x, y, s, col, life, max: life, size, vy: -40 }; }
+// Particle look follows the theme: squares, confetti, sparks, coins or comic shards.
 function burst(x, y, col, n, spd = 220) {
+  const kind = TH.particle;
+  if (typeof col !== 'string') col = TH.accent;
   for (let i = 0; i < n && parts.length < 700; i++) {
     const a = rnd() * Math.PI * 2, v = spd * (0.3 + rnd());
-    parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, life: 0.4 + rnd() * 0.4, max: 0.8, size: 2 + rnd() * 3, col });
+    const p = { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, life: 0.4 + rnd() * 0.4, max: 0.8, size: 2 + rnd() * 3, col, kind, rot: rnd() * 6.3, vr: (rnd() - 0.5) * 24, g: 700 };
+    if (kind === 'confetti') { p.size = 4 + rnd() * 4; p.g = 260; p.life += 0.4; p.max = 1.2; if (rnd() < 0.65) p.col = TH.confetti[Math.floor(rnd() * TH.confetti.length)]; }
+    else if (kind === 'coin') { if (rnd() < 0.5) { p.kind = 'coin'; p.size = 3 + rnd() * 2; } else p.kind = 'square'; }
+    else if (kind === 'spark') { p.g = 120; p.size = 2 + rnd() * 2; p.vx *= 1.4; p.vy *= 1.4; }
+    else if (kind === 'shard') { p.size = 3 + rnd() * 5; p.g = 900; }
+    parts.push(p);
   }
 }
 function shake(a) { S.shake = Math.min(14, S.shake + a * (RM ? 0.25 : 1)); }

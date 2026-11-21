@@ -1,37 +1,47 @@
 // Damage, kills, explosions, lasers, XP and gold.
-const SPECIAL_COL = { bomb: '#ff3b5c', chest: '#ffd23f', boss: '#ff4fa3', steel: '#9aa3b8', slime: '#7dffb0' };
-function brickColor(br) {
-  if (SPECIAL_COL[br.type]) return SPECIAL_COL[br.type];
-  const k = clamp(br.hp / (BAL.hp(S.turn) * 2.2), 0, 1);
-  return `hsl(${(188 + k * 197) % 360},92%,${62 - k * 6}%)`;
-}
 
 function gainXp(n) {
   S.xp += n * (S.xpBase + 0.4 * S.lv.xp);
   while (S.xp >= S.xpNeed) {
-    S.xp -= S.xpNeed; S.level++; S.pendingLevels++;
+    S.xp -= S.xpNeed; S.level++; S.pendingLevels++; S.xpFlash = 1;
     S.xpNeed = BAL.xpNeed(S.level);
-    texts.push(mkText(W / 2, 360, 'LEVEL UP!', '#ffd23f', 1.1, 18));
+    texts.push(mkText(W / 2, 360, 'LEVEL UP!', TH.css.gold, 1.1, 18));
     sfx.lvl();
   }
 }
 function addGold(n, x, y) {
   S.gold += n;
-  if (x !== undefined) texts.push(mkText(x, y, '+' + Math.round(n) + 'G', '#ffd23f', 1.2, 12));
+  if (x !== undefined) {
+    texts.push(mkText(x, y, '+' + Math.round(n) + 'G', TH.css.gold, 1.2, 12));
+    for (let i = 0; i < Math.min(12, 2 + n / 3); i++) flyCoin(x + (rnd() - 0.5) * 30, y + (rnd() - 0.5) * 20);
+  }
 }
+// A cosmetic coin that arcs up to the HUD gold counter.
+function flyCoin(x, y) {
+  if (flyers.length > 60) return;
+  flyers.push({ sx: x, sy: y, cx: x + (rnd() - 0.5) * 160, cy: y - 60 - rnd() * 80, t: 0, dur: 0.55 + rnd() * 0.3 });
+}
+const COMBO_MILES = [8, 15, 25, 40, 60];
 
 function dealDamage(br, d, crit) {
   if (br.dead || isItem(br)) return;
   br.hp -= d; br.flash = 1;
-  if (crit) texts.push(mkText(br.X + br.Wd / 2, br.Y, 'CRIT ' + fmtDmg(Math.round(d * 10) / 10), '#ffd23f', 0.7, 9));
+  if (crit) texts.push(mkText(br.X + br.Wd / 2, br.Y, 'CRIT ' + fmtDmg(Math.round(d * 10) / 10), TH.css.gold, 0.7, 9));
   if (br.hp <= 1e-6) kill(br);
 }
 
 function kill(br) {
   br.dead = true; clearCells(br);
   const cx = br.X + br.Wd / 2, cy = br.Y + br.Ht / 2, boss = br.type === 'boss';
-  burst(cx, cy, brickColor(br), boss ? 70 : 12, boss ? 380 : 220);
+  burst(cx, cy, brickColor(br), boss ? 70 : 14, boss ? 380 : 240);
+  pops.push({ x: br.X, y: br.Y, w: br.Wd, h: br.Ht, life: 0.22, max: 0.22 });
   S.combo++; S.kills++; S.comboPulse = 1; S.maxCombo = Math.max(S.maxCombo, S.combo);
+  if (S.comboMile < COMBO_MILES.length && S.combo >= COMBO_MILES[S.comboMile]) {
+    bigWords.push({ s: TH.words[S.comboMile], life: 1.1, max: 1.1, y: H * 0.3, size: 16 + S.comboMile * 2 });
+    S.comboMile++; shake(5); sfx.clear(); buzz(40);
+  }
+  if (S.combo >= 20 && !S.fever) { S.fever = true; S.flash = 0.35; S.flashCol = '255,255,255'; }
+  if (!boss && rnd() < (S.fever ? 0.5 : 0.25)) flyCoin(cx, cy);
   shake(boss ? 14 : 1.6);
   sfx.brk(S.combo); buzz(boss ? 60 : 8);
   const bonus = Math.floor(S.turn / 10);
@@ -39,12 +49,12 @@ function kill(br) {
     gainXp(25);
     S.bosses++; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
-    showBanner(`CHAPTER ${br.chapter} CLEAR`, '보스 격파! 다음 챕터로', '#ffd23f');
+    showBanner(`CHAPTER ${br.chapter} CLEAR`, '보스 격파! 다음 챕터로', TH.css.gold);
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
   else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5) + S.dmg * 2, kind: 'bomb', t: 0.06 });
-  if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', '#ffd23f', 1, 14)); sfx.lvl(); }
+  if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
 }
@@ -70,7 +80,7 @@ function processBlasts(dt) {
   const due = S.blasts.filter(b => b.t <= 0);
   S.blasts = S.blasts.filter(b => b.t > 0);
   for (const b of due) {
-    const col = b.kind === 'bomb' ? '#ff4f7b' : '#ff8a3d';
+    const col = b.kind === 'bomb' ? TH.css.hot : '#ff8a3d';
     rings.push({ x: b.x, y: b.y, r: b.rad, life: 0.3, max: 0.3, col });
     burst(b.x, b.y, col, b.kind === 'bomb' ? 22 : 8, 260);
     if (b.kind === 'bomb') { shake(7); sfx.boom(); buzz(30); S.hitstop = Math.max(S.hitstop, 0.04); } else shake(1.2);
