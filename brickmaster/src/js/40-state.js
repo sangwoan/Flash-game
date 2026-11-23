@@ -1,7 +1,7 @@
 // Run state, the brick grid and row spawning.
 let S, uid = 0;
 const grid = new Array(COLS * ROWS).fill(null);
-let parts = [], rings = [], bolts = [], texts = [], beams = [], homers = [], pops = [], bigWords = [], flyers = [];
+let parts = [], rings = [], bolts = [], texts = [], beams = [], homers = [], pops = [], bigWords = [], flyers = [], shards = [];
 
 // Items sit in a cell like a brick, but balls pass through them.
 const ITEMS = { orb: 1, lzh: 1, lzv: 1 };
@@ -11,7 +11,7 @@ function newRun() {
   const lv = {}; Object.keys(UPG).forEach(k => lv[k] = 0);
   const m = SAVE.meta;
   S = {
-    phase: 'aim', turn: 1, hp: BAL.startHp + m.hp, maxHp: BAL.startHp + m.hp,
+    phase: 'aim', turn: 1, hp: 1, maxHp: 1,
     level: 0, xp: 0, xpNeed: BAL.xpNeed(0), pendingLevels: m.start,
     balls: BAL.startBalls + m.balls, orbsGot: 0, launchX: W / 2, nextLaunchX: null,
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
@@ -19,12 +19,13 @@ function newRun() {
     dmg: 1 + 0.1 * m.power, crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
     combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
-    revived: false, banner: null,
+    banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
+    camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
     world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
     shield: 0, ironLeft: 0, encoreChecked: false, acidDone: false, cleared: false,
   };
-  grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = [];
+  grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = []; shards = [];
   for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
   rebuildGrid();
 }
@@ -74,6 +75,9 @@ function spawnRow(t, slide = true) {
   for (let c = 0; c < COLS; c++) if (!used[c]) free.push(c);
   const take = () => free.splice(Math.floor(rnd() * free.length), 1)[0];
   while (placed < 2 && t % BAL.bossEvery !== 0 && free.length > 1) { addBrick({ c: take(), r: 0, span: 1, type: 'n', hp: h }, slide); placed++; }
+  // remember how full the row was, so clearing a full row can be celebrated
+  const rowBricks = S.bricks.filter(b => b.r === 0 && !b.dead && !isItem(b));
+  for (const b of rowBricks) b.rowSize = rowBricks.length;
   if (free.length && rnd() < chance('orb', t)) addBrick({ c: take(), r: 0, span: 1, type: 'orb', hp: 1 }, slide);
   if (free.length && rnd() < chance('laser', t)) addBrick({ c: take(), r: 0, span: 1, type: rnd() < 0.5 ? 'lzh' : 'lzv', hp: 1 }, slide);
 }

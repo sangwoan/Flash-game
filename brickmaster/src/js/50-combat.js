@@ -25,16 +25,92 @@ const COMBO_MILES = [8, 15, 25, 40, 60];
 
 function dealDamage(br, d, crit) {
   if (br.dead || isItem(br)) return;
+  br.col = brickColor(br); // colour while still alive, for shards
   br.hp -= d; br.flash = 1;
+  br.kx = (br.kx || 0) + (br.kdx || 0) * 2.5; br.ky = (br.ky || 0) + (br.kdy || 0) * 2.5;
   if (crit) texts.push(mkText(br.X + br.Wd / 2, br.Y, 'CRIT ' + fmtDmg(Math.round(d * 10) / 10), TH.css.gold, 0.7, 9));
   if (br.hp <= 1e-6) kill(br);
+}
+
+// ---------- break feel ----------
+// A dying brick shatters into triangular shards that fly along the hit direction.
+function shatter(br) {
+  const w = br.Wd, h = br.Ht, col = br.col || brickColor(br), nx = br.span > 1 ? 6 : 3, ny = 2;
+  const jx = w / nx * 0.3, jy = h / ny * 0.3;
+  const P = [];
+  for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
+    const edge = i === 0 || i === nx || j === 0 || j === ny;
+    P.push([i * w / nx + (edge ? 0 : (rnd() - 0.5) * jx * 2), j * h / ny + (edge ? 0 : (rnd() - 0.5) * jy * 2)]);
+  }
+  const at = (i, j) => P[j * (nx + 1) + i];
+  const kx = br.kdx || 0, ky = br.kdy || -1, power = br.type === 'boss' ? 520 : 300;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const a = at(i, j), b = at(i + 1, j), c = at(i + 1, j + 1), d = at(i, j + 1);
+    for (const tri of (rnd() < 0.5 ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]])) {
+      const gx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3, gy = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
+      const ox = gx - w / 2, oy = gy - h / 2, sp = power * (0.45 + rnd() * 0.75);
+      shards.push({
+        x: br.X + gx, y: br.Y + gy, pts: tri.map(p => [p[0] - gx, p[1] - gy]),
+        vx: ox * 7 + kx * sp + (rnd() - 0.5) * 120, vy: oy * 7 + ky * sp - 140 - rnd() * 160,
+        rot: 0, vr: (rnd() - 0.5) * 22, col, shade: rnd() * 0.35 - 0.15, life: 1.1 + rnd() * 0.5, max: 1.6, bounced: 0,
+      });
+    }
+  }
+  if (shards.length > 480) shards.splice(0, shards.length - 480);
+}
+// Neighbours of a broken brick get shoved away from it (they spring back).
+function shockwave(cx, cy, rad, force) {
+  for (const o of S.bricks) {
+    if (o.dead || isItem(o)) continue;
+    const dx = o.X + o.Wd / 2 - cx, dy = o.Y + o.Ht / 2 - cy, d = Math.hypot(dx, dy);
+    if (d > 0 && d < rad) { const f = force * (1 - d / rad); o.kx = (o.kx || 0) + dx / d * f; o.ky = (o.ky || 0) + dy / d * f; }
+  }
+}
+// Several bricks broken within a quarter second escalate into slow motion and a camera punch.
+const MULTI = [
+  { n: 4, word: 'BREAK', shake: 6, zoom: 0.02, slow: 0, chroma: 0, hap: 30 },
+  { n: 8, word: 'SMASH', shake: 10, zoom: 0.035, slow: 0.28, chroma: 0.35, hap: 60 },
+  { n: 14, word: 'DEVASTATION', shake: 14, zoom: 0.05, slow: 0.45, chroma: 0.6, hap: 90 },
+  { n: 22, word: 'ANNIHILATION', shake: 16, zoom: 0.07, slow: 0.6, chroma: 0.9, hap: 140 },
+];
+function countBurst() {
+  S.burstN++; S.burstT = 0.28;
+  const lv = MULTI.findIndex(m => m.n === S.burstN);
+  if (lv < 0) return;
+  const m = MULTI[lv];
+  shake(m.shake); S.camZ = Math.max(S.camZ, m.zoom); S.camR = (rnd() < 0.5 ? -1 : 1) * m.zoom * 0.5;
+  S.chroma = Math.max(S.chroma, m.chroma);
+  if (m.slow) { S.slowmo = Math.max(S.slowmo, m.slow); sfx.whoosh(); }
+  bigWords.push({ s: `${m.word} x${S.burstN}`, life: 1.1, max: 1.1, y: H * 0.46, size: 15 + lv * 3, style: 'slam' });
+  sfx.slam(lv); buzz(m.hap);
+  if (lv >= 1) { S.flash = 0.25 + lv * 0.08; S.flashCol = '255,255,255'; }
+}
+function lineClear(br) {
+  const y = br.Y + br.Ht / 2;
+  beams.push({ x: 0, y: y - 8, w: W, h: 16, life: 0.3, max: 0.3 });
+  for (let x = 20; x < W; x += 40) burst(x, y, TH.accent, 3, 200);
+  texts.push(mkText(W / 2, y - 6, 'LINE CLEAR', TH.css.gold, 1.1, 14));
+  addGold(3, W / 2, y); shake(5); S.camZ = Math.max(S.camZ, 0.02); sfx.laser(); buzz(40);
+}
+function perfectClear() {
+  S.perfectDone = true;
+  bigWords.push({ s: 'PERFECT!', life: 1.8, max: 1.8, y: H * 0.38, size: 30, style: 'slam' });
+  S.slowmo = Math.max(S.slowmo, 0.8); S.flash = 0.7; S.flashCol = '255,255,255'; S.chroma = 1; S.camZ = 0.08; shake(14);
+  for (let i = 0; i < 8; i++) burst(W * (i + 0.5) / 8, TOP + 120 + rnd() * 300, TH.accent, 24, 420);
+  addGold(10 + S.turn, W / 2, H * 0.45); sfx.whoosh(); sfx.slam(3); sfx.clear(); buzz(200);
 }
 
 function kill(br) {
   br.dead = true; clearCells(br);
   const cx = br.X + br.Wd / 2, cy = br.Y + br.Ht / 2, boss = br.type === 'boss';
-  burst(cx, cy, brickColor(br), boss ? 70 : 14, boss ? 380 : 240);
+  shatter(br);
+  burst(cx, cy, br.col || brickColor(br), boss ? 50 : 5, boss ? 380 : 220);
   pops.push({ x: br.X, y: br.Y, w: br.Wd, h: br.Ht, life: 0.22, max: 0.22 });
+  shockwave(cx, cy, CW * (boss ? 4 : 1.7), boss ? 14 : 5);
+  countBurst();
+  sfx.crunch(S.burstN);
+  if (!boss && br.rowSize >= 4 && !S.bricks.some(o => !o.dead && !isItem(o) && o.r === br.r)) lineClear(br);
+  if (!S.perfectDone && S.phase === 'fire' && !S.bricks.some(o => !o.dead && !isItem(o))) perfectClear();
   S.combo++; S.kills++; S.comboPulse = 1; S.maxCombo = Math.max(S.maxCombo, S.combo);
   if (S.comboMile < COMBO_MILES.length && S.combo >= COMBO_MILES[S.comboMile]) {
     bigWords.push({ s: TH.words[S.comboMile], life: 1.1, max: 1.1, y: H * 0.3, size: 16 + S.comboMile * 2 });
@@ -42,8 +118,8 @@ function kill(br) {
   }
   if (S.combo >= 20 && !S.fever) { S.fever = true; S.flash = 0.35; S.flashCol = '255,255,255'; }
   if (!boss && rnd() < (S.fever ? 0.5 : 0.25)) flyCoin(cx, cy);
-  shake(boss ? 14 : 1.6);
-  sfx.brk(S.combo); buzz(boss ? 60 : 8);
+  shake(boss ? 14 : 1.2);
+  sfx.brk(S.combo); buzz(boss ? 80 : 8);
   const bonus = Math.floor(S.turn / 10);
   if (boss) {
     gainXp(25);
@@ -90,7 +166,11 @@ function processBlasts(dt) {
     for (const br of S.bricks) {
       if (br.dead || isItem(br)) continue;
       const dx = Math.max(br.X - b.x, 0, b.x - (br.X + br.Wd)), dy = Math.max(br.Y - b.y, 0, b.y - (br.Y + br.Ht));
-      if (dx * dx + dy * dy <= (b.rad * 0.55) ** 2) dealDamage(br, b.dmg, false);
+      if (dx * dx + dy * dy <= (b.rad * 0.55) ** 2) {
+        const ux = br.X + br.Wd / 2 - b.x, uy = br.Y + br.Ht / 2 - b.y, ul = Math.hypot(ux, uy) || 1;
+        br.kdx = ux / ul; br.kdy = uy / ul;
+        dealDamage(br, b.dmg, false);
+      }
     }
   }
 }
@@ -143,6 +223,13 @@ function fireLaser(item) {
 
 function hitBrick(br, b) {
   let d = S.dmg, crit = false;
+  // knockback and shards push the brick away from the ball
+  const ux = br.X + br.Wd / 2 - b.x, uy = br.Y + br.Ht / 2 - b.y, ul = Math.hypot(ux, uy) || 1;
+  br.kdx = ux / ul; br.kdy = uy / ul;
+  if (parts.length < 600) for (let i = 0; i < 2; i++) {
+    const a = Math.atan2(b.vy, b.vx) + (rnd() - 0.5) * 1.2, v = 260 + rnd() * 220;
+    parts.push({ x: b.x, y: b.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.18, max: 0.22, size: 2.4, col: '#ffffff', kind: 'spark', rot: 0, vr: 0, g: 0 });
+  }
   if (b.iron) d *= S.lv.iron + 2;
   if (S.lv.rush) {
     d *= 1 + b.rush * 0.12 * S.lv.rush;

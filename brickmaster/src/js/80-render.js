@@ -109,7 +109,7 @@ function drawItem(br, now) {
 }
 function drawBrick(br, now) {
   if (isItem(br)) { drawItem(br, now); return; }
-  const x = br.X, y = br.Y + br.oy, w = br.Wd, h = br.Ht, f = br.flash;
+  const x = br.X + (br.kx || 0), y = br.Y + br.oy + (br.ky || 0), w = br.Wd, h = br.Ht, f = br.flash;
   ctx.save();
   ctx.translate(x + w / 2, y + h / 2);
   ctx.scale(1 + f * 0.1, 1 - f * 0.06);
@@ -133,6 +133,7 @@ function drawBrick(br, now) {
     if ((now / 400 + br.id) % 3 < 1) { ctx.fillStyle = '#fff'; ctx.fillRect(6, 6, 3, 3); ctx.fillRect(5, 7, 5, 1); ctx.fillRect(7, 5, 1, 5); }
   }
   ctx.restore();
+  drawCracks(br, w, h);
   if (br.acid) { // acid stacks as green drops
     ctx.fillStyle = UPG.acid.col;
     for (let i = 0; i < Math.min(3, 1 + Math.floor(br.acid / 4)); i++) { ctx.beginPath(); ctx.arc(w - 7 - i * 7, 7, 2.6, 0, Math.PI * 2); ctx.fill(); }
@@ -148,6 +149,48 @@ function drawBrick(br, now) {
   ctx.fillStyle = TH.numInk; ctx.fillText(label, w / 2, h / 2 + 1);
   if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'jelly' || TH.brick === 'glass') { rr(0, 0, w, h, TH.brick === 'glass' ? 7 : 10); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
+}
+
+// Cracks spread as a brick loses HP: one set below 70%, a second below 40%.
+function crackSet(br, w, h) {
+  let seed = br.id * 9301 + 49297;
+  const r = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const lines = [];
+  for (let n = 0; n < 4; n++) {
+    const side = Math.floor(r() * 4);
+    let px = side === 0 ? r() * w : side === 1 ? w : side === 2 ? r() * w : 0;
+    let py = side === 0 ? 0 : side === 1 ? r() * h : side === 2 ? h : r() * h;
+    const pts = [[px, py]], tx = w * (0.3 + r() * 0.4), ty = h * (0.3 + r() * 0.4);
+    for (let k = 1; k <= 3; k++) { px += (tx - px) * 0.5 + (r() - 0.5) * 8; py += (ty - py) * 0.5 + (r() - 0.5) * 6; pts.push([px, py]); }
+    lines.push(pts);
+  }
+  return lines;
+}
+function drawCracks(br, w, h) {
+  const f = br.hp / br.maxHp;
+  if (f > 0.7 || br.hp <= 0) return;
+  br.cracks = br.cracks || crackSet(br, w, h);
+  const n = f > 0.4 ? 2 : 4, dark = TH.brick === 'comic' ? '#111' : 'rgba(0,0,20,.5)';
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip(); ctx.lineJoin = 'round';
+  for (const [col, lw, off] of [['rgba(255,255,255,.45)', 1, 0.8], [dark, TH.brick === 'comic' ? 2 : 1.4, 0]]) {
+    ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+    for (let i = 0; i < n; i++) br.cracks[i].forEach(([px, py], j) => j ? ctx.lineTo(px + off, py + off) : ctx.moveTo(px + off, py + off));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawShards() {
+  const edge = TH.brick === 'comic' ? '#111' : TH.brick === 'glass' || TH.brick === 'neon' ? 'rgba(255,255,255,.55)' : null;
+  for (const h of shards) {
+    ctx.globalAlpha = Math.min(1, h.life / 0.4);
+    ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot);
+    ctx.beginPath(); ctx.moveTo(h.pts[0][0], h.pts[0][1]); ctx.lineTo(h.pts[1][0], h.pts[1][1]); ctx.lineTo(h.pts[2][0], h.pts[2][1]); ctx.closePath();
+    ctx.fillStyle = h.col; ctx.fill();
+    ctx.fillStyle = h.shade > 0 ? `rgba(255,255,255,${h.shade})` : `rgba(0,0,0,${-h.shade})`; ctx.fill();
+    if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = TH.brick === 'comic' ? 1.6 : 0.8; ctx.stroke(); }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ---------- particles ----------
@@ -185,6 +228,16 @@ function drawBigWord(bw, now) {
   const x = W / 2, y = bw.y, size = bw.size;
   ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(pop, pop);
   const style = bw.style || TH.wordStyle;
+  if (style === 'slam') {
+    // multi-break callout: drops in from 3x, shakes, then settles
+    const k2 = 1 - bw.life / bw.max, sc = k2 < 0.1 ? 3 - k2 * 20 : 1 + Math.max(0, 0.15 - (k2 - 0.1)) ;
+    ctx.restore(); ctx.save(); ctx.globalAlpha = Math.min(1, bw.life / (bw.max * 0.25));
+    ctx.translate(W / 2 + (k2 < 0.3 ? (rnd() - 0.5) * 6 : 0), bw.y); ctx.rotate(-0.06); ctx.scale(sc, sc);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.font = DISP(bw.size); ctx.fillText(bw.s, 4, 5);
+    outlined(bw.s, 0, 0, TH.css.gold, bw.size);
+    ctx.restore(); return;
+  }
   if (style === 'burst') {
     ctx.rotate(-0.08);
     ctx.beginPath();
@@ -282,15 +335,15 @@ function drawHud(now, ch) {
   ctx.fillStyle = hd.ink; ctx.font = DISP(18); ctx.fillText(String(S.turn), 16, 48);
   ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText('LEVEL', W - 16, 22);
   ctx.fillStyle = hd.accent; ctx.font = DISP(18); ctx.fillText(String(S.level), W - 16, 48);
-  if (S.maxHp <= 9) {
-    const hw = S.maxHp * 19 - 4, hx = W / 2 - hw / 2;
-    for (let i = 0; i < S.maxHp; i++) heart(hx + i * 19, 24, i < S.hp);
-  } else { heart(W / 2 - 34, 24, true); ctx.textAlign = 'left'; ctx.fillStyle = hd.ink; ctx.font = DISP(12); ctx.fillText(`${S.hp}/${S.maxHp}`, W / 2 - 12, 38); }
-  // shield charges, right of the hearts
-  for (let i = 0; i < S.lv.shield; i++) {
-    const x = W / 2 + Math.min(S.maxHp, 9) * 9.5 + 10 + i * 12, y = 27, on = i < S.shield;
-    ctx.fillStyle = on ? UPG.shield.col : hd.heartOff;
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y + 2); ctx.lineTo(x + 8, y + 7); ctx.lineTo(x + 4, y + 12); ctx.lineTo(x, y + 7); ctx.lineTo(x, y + 2); ctx.closePath(); ctx.fill();
+  // one life: a single heart that beats faster as bricks close in
+  {
+    const bp = 1 + (S.beatPulse || 0) * 0.35;
+    ctx.save(); ctx.translate(W / 2, 27); ctx.scale(1.3 * bp, 1.3 * bp); heart(-7.5, -6, true); ctx.restore();
+    if (S.shield > 0) {
+      const x = W / 2 + 22, y = 22;
+      ctx.fillStyle = SHIELD_COL;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 10, y + 2.5); ctx.lineTo(x + 10, y + 9); ctx.lineTo(x + 5, y + 15); ctx.lineTo(x, y + 9); ctx.lineTo(x, y + 2.5); ctx.closePath(); ctx.fill();
+    }
   }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
   ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `CH${ch}` : STG.id, W / 2 - 78, 15);
@@ -316,14 +369,17 @@ function draw(now) {
   const sx = S.shake ? (rnd() - 0.5) * 2 * S.shake : 0, sy = S.shake ? (rnd() - 0.5) * 2 * S.shake : 0;
   const ch = chapterOf(S.turn);
   ctx.save(); ctx.translate(sx, sy);
+  if (S.camZ > 0.001) { // camera punch on big breaks
+    ctx.translate(W / 2, H * 0.45); ctx.scale(1 + S.camZ, 1 + S.camZ); ctx.rotate(S.camR); ctx.translate(-W / 2, -H * 0.45);
+  }
 
   TH.field(ctx, now, ch);
   ctx.strokeStyle = TH.line2; ctx.globalAlpha = 0.7; ctx.setLineDash([8, 6]); ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, FB + 1); ctx.lineTo(W, FB + 1); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
   if (S.shield > 0) { // shield barrier on the red line
     ctx.globalAlpha = 0.55 + 0.25 * Math.sin(now / 200);
-    ctx.drawImage(glow(UPG.shield.col), -40, FB - 12, W + 80, 26);
-    ctx.fillStyle = UPG.shield.col; ctx.fillRect(0, FB, W, 2); ctx.globalAlpha = 1;
+    ctx.drawImage(glow(SHIELD_COL), -40, FB - 12, W + 80, 26);
+    ctx.fillStyle = SHIELD_COL; ctx.fillRect(0, FB, W, 2); ctx.globalAlpha = 1;
   }
   if (S.lv.bounce) { // bounce pad along the launcher line
     ctx.globalAlpha = 0.5; ctx.drawImage(glow(UPG.bounce.col), -40, LY + 1, W + 80, 18); ctx.globalAlpha = 1;
@@ -351,6 +407,7 @@ function draw(now) {
   }
   ctx.globalAlpha = 1;
 
+  drawShards();
   if (S.phase === 'aim' && S.aiming && S.aimOk) drawAim();
   drawBalls(now);
 
@@ -402,6 +459,22 @@ function draw(now) {
   for (const bw of bigWords) drawBigWord(bw, now);
   ctx.restore(); // end shake
 
+  // impact ghosting: two offset copies of the frame right after a big break
+  if (S.chroma > 0.02) {
+    const off = S.chroma * 7 * dpr * scale;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = TH.light ? 'multiply' : 'lighter'; ctx.globalAlpha = S.chroma * 0.28;
+    ctx.drawImage(cv, off, 0); ctx.drawImage(cv, -off, 0);
+    ctx.restore();
+  }
+  // danger: red pulse from the bottom when bricks approach the red line
+  if (S.danger > 0 && (S.phase === 'aim' || S.phase === 'fire')) {
+    const a = S.danger * (0.18 + 0.22 * (S.beatPulse || 0));
+    const g = ctx.createLinearGradient(0, FB - 220, 0, FB + 10);
+    g.addColorStop(0, 'rgba(255,40,70,0)'); g.addColorStop(1, `rgba(255,40,70,${a})`);
+    ctx.fillStyle = g; ctx.fillRect(0, FB - 220, W, 230);
+    if (S.danger >= 0.5 && Math.floor(now / 350) % 2 === 0) { ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; outlined('DANGER', W / 2, FB - 16, '#ff2846', 10); }
+  }
   // coins flying to the HUD gold counter
   for (const c of flyers) {
     const k = clamp(c.t / c.dur, 0, 1), e = k * k, x = (1 - e) * ((1 - k) * c.sx + k * c.cx) + e * W / 2, y = (1 - e) * ((1 - k) * c.sy + k * c.cy) + e * 50;

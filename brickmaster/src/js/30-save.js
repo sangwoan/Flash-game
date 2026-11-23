@@ -14,6 +14,12 @@ function loadSave() {
   SAVE.worlds = clamp(Math.floor(+SAVE.worlds) || 1, 1, WORLD_ORDER.length);
   SAVE.unlocked = clamp(Math.floor(+SAVE.unlocked) || 0, 0, 999);
   if (!SAVE.stars || typeof SAVE.stars !== 'object') SAVE.stars = {};
+  // v0.7 removed the armour upgrade (one life only): refund what was spent on it
+  if (SAVE.meta.hp > 0) {
+    for (let l = 0; l < SAVE.meta.hp; l++) SAVE.gold += Math.round(120 * Math.pow(1.45, l) / 5) * 5;
+    SAVE.refunded = true;
+  }
+  delete SAVE.meta.hp;
   for (const k of Object.keys(META)) SAVE.meta[k] = clamp(+SAVE.meta[k] || 0, 0, META[k].max);
 }
 function writeSave() {

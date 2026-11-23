@@ -10,7 +10,7 @@ const $ = id => document.getElementById(id);
 
 // Balance knobs. Every tuning number lives here; t = turn number.
 const BAL = {
-  startBalls: 5, startHp: 3,
+  startBalls: 5,
   ballSpeed: 760, fireGap: 0.055,
   hp: t => Math.max(1, Math.round(t * (1 + t / 12) * Math.pow(1.045, t))), // exponential tail ends runaway builds
   density: t => Math.min(0.82, 0.48 + t * 0.012),
@@ -33,5 +33,5 @@ const chapterName = ch => TH.chapters[(ch - 1) % TH.chapters.length];
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');
 const stage = $('stage'), wrap = $('wrap');
-const titleEl = $('title'), lvlEl = $('lvl'), cardsEl = $('cards'), overEl = $('over'), reviveEl = $('revive'), shopEl = $('shop');
+const titleEl = $('title'), lvlEl = $('lvl'), cardsEl = $('cards'), overEl = $('over'), shopEl = $('shop');
 const recallEl = $('recall'), sndEl = $('snd');

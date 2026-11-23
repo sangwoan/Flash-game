@@ -142,6 +142,18 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 .newNote{margin:0;font-size:calc(var(--s)*17px);color:var(--cool)}
 #over.win h2{animation:numPop .5s cubic-bezier(.2,1.8,.4,1) both}
 @keyframes starPop{from{transform:scale(0) rotate(-90deg);opacity:0}to{transform:none;opacity:1}}
+#shieldOffer{position:absolute;left:calc(var(--s)*12px);right:calc(var(--s)*12px);bottom:calc(var(--s)*92px);display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:calc(var(--s)*10px);
+  padding:calc(var(--s)*10px) calc(var(--s)*12px);background:color-mix(in srgb,var(--panel) 92%,transparent);border:calc(var(--s)*2px) solid #6ec8ff;border-radius:calc(var(--s)*14px);
+  box-shadow:0 0 calc(var(--s)*24px) rgba(110,200,255,.5);color:var(--ink);overflow:hidden;z-index:5}
+#shieldOffer.go{animation:offerIn .35s cubic-bezier(.2,1.6,.4,1) both}
+#shieldOffer svg{width:calc(var(--s)*30px);height:calc(var(--s)*30px);fill:#6ec8ff}
+#shieldOffer b{display:block;font-size:calc(var(--s)*17px)}
+#shieldOffer span{display:block;font-size:calc(var(--s)*12px);color:var(--dim)}
+#shieldOffer .btn{padding:calc(var(--s)*8px) calc(var(--s)*10px)}
+#shieldOffer .bar{position:absolute;left:0;bottom:0;height:calc(var(--s)*3px);width:100%;background:#6ec8ff;transform-origin:left}
+#shieldOffer.go .bar{animation:drain 6s linear both}
+@keyframes offerIn{from{transform:translateY(calc(var(--s)*60px));opacity:0}to{transform:none;opacity:1}}
+@keyframes drain{to{transform:scaleX(0)}}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
@@ -176,12 +188,12 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
     <div id="cards"></div>
   </div>
 
-  <div id="revive" class="ov" hidden>
-    <h2>CONTINUE?</h2>
-    <p class="note">아래쪽 벽돌 5줄을 날리고 체력 절반으로 다시 시작합니다.<br>한 판에 한 번만 쓸 수 있어요.</p>
-    <button id="reviveBtn" class="btn ko ad" type="button">부활하기</button>
-    <button id="giveUp" class="btn ko" type="button">포기하고 결과 보기</button>
-    <p class="small">AD = 광고 자리. 지금은 바로 실행됩니다.</p>
+  <div id="shieldOffer" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/></svg>
+    <div><b>위기! 방어막 1회</b><span>벽돌 하나를 막아줍니다 · 이번 판 한 번뿐</span></div>
+    <button id="shieldTake" class="btn ko ad" type="button">받기</button>
+    <button id="shieldSkip" class="btn" type="button" aria-label="닫기">✕</button>
+    <i class="bar"></i>
   </div>
 
   <div id="over" class="ov" hidden>

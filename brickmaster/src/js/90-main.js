@@ -44,8 +44,8 @@ $('mapPlay').onclick = () => startStage(mapSel);
 $('titleShop').onclick = () => openShop(titleEl);
 $('overShop').onclick = () => openShop(overEl);
 $('shopClose').onclick = closeShop;
-$('reviveBtn').onclick = revive;   // ad placeholder: a rewarded ad would play here
-$('giveUp').onclick = () => showResults(false);
+$('shieldTake').onclick = takeShield; // ad placeholder: a rewarded ad would play here
+$('shieldSkip').onclick = hideShieldOffer;
 $('claim').onclick = () => claim(1);
 $('claim2x').onclick = () => claim(2); // ad placeholder
 

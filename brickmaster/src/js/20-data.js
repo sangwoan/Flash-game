@@ -14,9 +14,7 @@ const UPG = {
   encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `턴이 끝날 때 ${15 * n}% 확률로 공 전부를 한 번 더 발사`, apply() {} },
   bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `공이 바닥에 닿으면 ${n}번까지 다시 튕겨 오름`, apply() {} },
   acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힌 벽돌에 부식이 쌓여 턴이 끝날 때 한꺼번에 피해 (${n}중첩/타격)`, apply() {} },
-  shield: { tag: 'SHIELD', name: '방어막',    max: 3,  col: '#6ec8ff', w: 1.4, desc: n => `빨간 선에 닿은 벽돌을 ${n}번 막고 폭파 (챕터마다 충전)`, apply() { S.shield = S.lv.shield; } },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
-  heal:   { tag: 'HP+1',   name: '수리',      max: 99, col: '#ff4f7b', w: 1,   desc: () => '체력 +1, 최대 체력 +1', apply() { S.maxHp++; S.hp++; } },
 };
 
 // Card icons: 24x24 stroke paths drawn in the card's colour circle.
@@ -38,11 +36,13 @@ const ICONS = {
   heal: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8z"/><path d="M12 9v6.5M8.8 12.2h6.4"/>',
 };
 
+// The one-off shield that can be offered once per run (rewarded-ad placeholder).
+const SHIELD_COL = '#6ec8ff';
+
 // Permanent upgrades bought with gold in the workshop.
 const META = {
   balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40 },
   power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50 },
-  hp:    { name: '장갑',      desc: '최대 체력 +1',             max: 3,  base: 120 },
   xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 60 },
   start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 150 },
   gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 80 },
