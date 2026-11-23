@@ -39,7 +39,7 @@ function rr(x, y, w, h, r) {
 function brickColor(br) {
   const sp = TH.special[br.type];
   if (sp) return Array.isArray(sp) ? sp[0] : sp;
-  return TH.ramp(br.hp / (BAL.hp(S.turn) * 2.2));
+  return TH.ramp(br.hp / (BAL.hp(S.turn) * STG.hpMul * 2.2));
 }
 function ballColor() { return S.lv.fire ? '#ffb36b' : S.lv.chain ? '#bfefff' : TH.ball.core; }
 
@@ -76,6 +76,25 @@ function brickBody(br, w, h, col, now) {
     for (let y = h / 2; y < h; y += 5) for (let x = (y % 10 ? 2.5 : 0); x < w; x += 5) { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(4, 4, w * 0.3, 3);
     ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, w, h);
+  } else if (st === 'frost') {
+    // soft glass: tinted translucent slab, frosted highlight, soft shadow
+    ctx.fillStyle = 'rgba(40,30,90,.14)'; rr(1, 4, w, h, 9); ctx.fill();
+    rr(0, 0, w, h, 9); ctx.fillStyle = col; ctx.globalAlpha = 0.78; ctx.fill(); ctx.globalAlpha = 1;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(0.5, 'rgba(255,255,255,.12)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.2; rr(0.6, 0.6, w - 1.2, h - 1.2, 8.5); ctx.stroke();
+  } else if (st === 'clay') {
+    // soft clay: rounded matte block with inner light and a soft drop shadow
+    ctx.fillStyle = 'rgba(60,30,90,.18)'; rr(0, 5, w, h, 13); ctx.fill();
+    rr(0, 0, w, h, 13); ctx.fillStyle = col; ctx.fill();
+    const g = ctx.createRadialGradient(w * 0.35, h * 0.2, 2, w * 0.4, h * 0.3, w * 0.8);
+    g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(0.45, 'rgba(255,255,255,.08)'); g.addColorStop(1, 'rgba(60,20,80,.18)');
+    ctx.fillStyle = g; ctx.fill();
+  } else if (st === 'flat') {
+    // minimal flat: crisp block with a darker lip
+    rr(0, 0, w, h, 5); ctx.fillStyle = col; ctx.fill();
+    ctx.save(); ctx.clip(); ctx.fillStyle = 'rgba(20,10,40,.22)'; ctx.fillRect(0, h - 4, w, 4); ctx.restore();
   } else if (st === 'glass') {
     rr(0, 0, w, h, 7); ctx.fillStyle = col; ctx.fill();
     const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -145,9 +164,11 @@ function drawBrick(br, now) {
   const label = br.type === 'boss' ? 'BOSS ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
   ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + 2 : TH.numSize}px ${TH.num}`;
   if (TH.brick === 'glass') { ctx.fillStyle = 'rgba(0,0,30,.35)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
+  const ink = TH.numInk === 'auto' ? inkFor(typeof col === 'string' ? col : TH.special.boss[0]) : TH.numInk;
+  if (TH.numInk === 'auto' && ink === '#ffffff') { ctx.fillStyle = 'rgba(30,20,60,.25)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   if (TH.numStroke) { ctx.strokeStyle = TH.numStroke; ctx.lineWidth = 3; ctx.strokeText(label, w / 2, h / 2 + 1); }
-  ctx.fillStyle = TH.numInk; ctx.fillText(label, w / 2, h / 2 + 1);
-  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'jelly' || TH.brick === 'glass') { rr(0, 0, w, h, TH.brick === 'glass' ? 7 : 10); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
+  ctx.fillStyle = ink; ctx.fillText(label, w / 2, h / 2 + 1);
+  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if ({ jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]) { rr(0, 0, w, h, { jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
 }
 
@@ -180,7 +201,7 @@ function drawCracks(br, w, h) {
   ctx.restore();
 }
 function drawShards() {
-  const edge = TH.brick === 'comic' ? '#111' : TH.brick === 'glass' || TH.brick === 'neon' ? 'rgba(255,255,255,.55)' : null;
+  const edge = TH.brick === 'comic' ? '#111' : ['glass', 'neon', 'frost'].includes(TH.brick) ? 'rgba(255,255,255,.7)' : null;
   for (const h of shards) {
     ctx.globalAlpha = Math.min(1, h.life / 0.4);
     ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot);
@@ -204,7 +225,7 @@ function drawParticles() {
       ctx.beginPath(); ctx.ellipse(p.x, p.y, Math.max(0.6, s * Math.abs(Math.cos(p.rot))), s, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#ffd54a'; ctx.fill(); ctx.strokeStyle = '#a8740a'; ctx.lineWidth = 1; ctx.stroke();
     } else if (p.kind === 'spark') {
-      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = p.col; ctx.lineWidth = s * 0.6;
+      ctx.globalCompositeOperation = TH.light ? 'source-over' : 'lighter'; ctx.strokeStyle = p.col; ctx.lineWidth = s * 0.6;
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.035, p.y - p.vy * 0.035); ctx.stroke();
       ctx.globalCompositeOperation = 'source-over';
     } else if (p.kind === 'shard') {
@@ -212,7 +233,7 @@ function drawParticles() {
       ctx.beginPath(); ctx.moveTo(-s, -s * 0.6); ctx.lineTo(s, -s * 0.2); ctx.lineTo(-s * 0.2, s); ctx.closePath();
       ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
     } else if (p.kind === 'dust') {
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalCompositeOperation = TH.light ? 'source-over' : 'lighter';
       ctx.beginPath(); ctx.arc(p.x, p.y, s * 0.6, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = a * 0.35; ctx.beginPath(); ctx.arc(p.x, p.y, s * 1.6, 0, Math.PI * 2); ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
@@ -267,7 +288,7 @@ function drawBigWord(bw, now) {
   } else if (style === 'clean') {
     ctx.font = DISP(size); const tw = ctx.measureText(bw.s).width;
     const g = ctx.createLinearGradient(-tw / 2, 0, tw / 2, 0);
-    g.addColorStop(0, bw.col || TH.accent); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, bw.col || '#9d8cff');
+    g.addColorStop(0, bw.col || TH.accent); g.addColorStop(0.5, TH.light ? (TH.ball.temp || '#9d8cff') : '#ffffff'); g.addColorStop(1, bw.col || (TH.light ? TH.accent : '#9d8cff'));
     ctx.shadowColor = bw.col || TH.accent; ctx.shadowBlur = 18;
     ctx.fillStyle = g; ctx.fillText(bw.s, 0, 0); ctx.shadowBlur = 0;
     const lw = tw * Math.min(1, k * 4);

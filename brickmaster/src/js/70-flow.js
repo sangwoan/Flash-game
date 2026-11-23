@@ -175,7 +175,7 @@ function showResults(cleared = false) {
     const before = SAVE.unlocked;
     SAVE.unlocked = Math.max(SAVE.unlocked, STG.n + 1);
     bonus = clearBonus(STG, first);
-    if (SAVE.unlocked > before && STG.n + 1 < STAGES.length && STAGES[STG.n + 1].w !== STG.w) note = `새 월드 해금: ${THEMES[STAGES[STG.n + 1].world].name}`;
+    if (SAVE.unlocked > before && STG.n + 1 < STAGES.length && STAGES[STG.n + 1].w !== STG.w) note = `새 월드 해금: ${themeFor(STAGES[STG.n + 1].world).name}`;
     else if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = '무한 모드 해금!';
     SAVE.worlds = Math.max(SAVE.worlds, Math.min(WORLD_ORDER.length, Math.floor(SAVE.unlocked / STAGES_PER_WORLD) + 1));
   }
@@ -268,7 +268,7 @@ function renderMap() {
   const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
   $('mapInfo').textContent = `★ ${allStars}/${STAGES.length * 3} · 보유 골드 ${SAVE.gold}G`;
   WORLD_ORDER.forEach((wid, w) => {
-    const th = THEMES[wid], open = w * STAGES_PER_WORLD <= SAVE.unlocked;
+    const th = themeFor(wid), open = w * STAGES_PER_WORLD <= SAVE.unlocked;
     const sec = document.createElement('section');
     sec.className = 'world' + (open ? '' : ' locked');
     sec.style.cssText = `--wb:${th.css.bg};--wp:${th.css.panel};--wa:${th.accent};--wi:${th.css.ink};--wd:${th.css.dim};--wf:${th.disp}`;
@@ -350,6 +350,7 @@ function updateWorld(dt) {
     S.turnTime += dt;
     S.timeScale = S.turnTime > 14 ? 4 : S.turnTime > 8 ? 3 : S.turnTime > 4 ? 2 : 1;
     if (S.turnTime > 1.5 && recallEl.hidden) recallEl.hidden = false;
+    if (S.turnTime > 45 && S.movers.length) recall(); // safety: no turn runs forever (e.g. endless bounce loops)
     const gdt = dt * S.timeScale;
     if (S.burstT > 0) { S.burstT -= gdt; if (S.burstT <= 0) S.burstN = 0; }
     if (S.toFire > 0) {

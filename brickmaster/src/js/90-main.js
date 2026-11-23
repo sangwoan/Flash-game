@@ -55,8 +55,15 @@ STG = STAGES[nextStageIndex()];
 applyTheme(STG.world);
 newRun(); S.phase = 'title';
 refreshTitle();
-// A link ending in #synth, #candy, ... previews that world's look on the title screen.
-function previewFromHash() { const id = location.hash.slice(1); if (THEMES[id] && S.phase === 'title') applyTheme(id); }
+// Design-draft links: #glass, #clay, #flat restyle the whole game; #clay-blossom previews one world.
+function previewFromHash() {
+  const id = location.hash.slice(1);
+  if (DIRECTIONS[id]) PREVIEW_DIR = id;
+  else if (themeFor(id) && id.includes('-')) PREVIEW_DIR = id.split('-')[0];
+  else if (!id) PREVIEW_DIR = null;
+  if (S.phase === 'title') { refreshTitle(); if (themeFor(id) && id.includes('-')) applyTheme(id); }
+  else applyTheme(STG.world);
+}
 addEventListener('hashchange', previewFromHash);
 previewFromHash();
 let last = performance.now();

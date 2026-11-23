@@ -1,7 +1,7 @@
 <title>Brickmaster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&family=Bungee&family=Chakra+Petch:wght@600;700&family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@500;700&family=Jua&family=Lilita+One&family=Orbitron:wght@900&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&family=Bungee&family=Chakra+Petch:wght@600;700&family=Do+Hyeon&family=Fredoka:wght@600;700&family=IBM+Plex+Sans+KR:wght@500;700&family=Outfit:wght@600;800&family=Sora:wght@600;800&family=Jua&family=Lilita+One&family=Orbitron:wght@900&family=Press+Start+2P&display=swap">
 <style>
 /* Layout: one portrait arcade screen (420x780 logical), letterboxed and scaled to fit the phone.
    Each visual theme sets these tokens from JS (applyTheme); the values here are the neon theme. */
@@ -154,6 +154,34 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #shieldOffer.go .bar{animation:drain 6s linear both}
 @keyframes offerIn{from{transform:translateY(calc(var(--s)*60px));opacity:0}to{transform:none;opacity:1}}
 @keyframes drain{to{transform:scaleX(0)}}
+/* ---- Design drafts (v0.8): soft glass / clay / flat over the painted worlds ---- */
+#stage[data-dir="glass"] .ov{backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15);-webkit-backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15)}
+#stage[data-dir="glass"] .btn{border-radius:calc(var(--s)*14px);border:1px solid rgba(255,255,255,.7);background:color-mix(in srgb,var(--panel) 70%,transparent);color:var(--ink)}
+#stage[data-dir="glass"] .btn.big{background:linear-gradient(120deg,var(--cool),var(--logo2));color:#fff;border:0;border-radius:999px;box-shadow:0 calc(var(--s)*8px) calc(var(--s)*24px) color-mix(in srgb,var(--cool) 45%,transparent);text-shadow:0 1px 2px rgba(0,0,0,.2);letter-spacing:.06em}
+#stage[data-dir="glass"] .btn.big:active{transform:scale(.97)}
+#stage[data-dir="glass"] .logo{background:linear-gradient(100deg,var(--cool),var(--logo2));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 calc(var(--s)*3px) calc(var(--s)*8px) rgba(255,255,255,.7));letter-spacing:.02em}
+#stage[data-dir="glass"] h2{color:var(--ink);text-shadow:none;letter-spacing:.04em}
+#stage[data-dir="glass"] .sub{color:var(--dim);letter-spacing:.14em;font-size:calc(var(--s)*15px)}
+#stage[data-dir="glass"] .card,#stage[data-dir="glass"] .meta,#stage[data-dir="glass"] .mapSel{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);box-shadow:0 calc(var(--s)*10px) calc(var(--s)*28px) rgba(60,40,120,.18)}
+#stage[data-dir="glass"] .card .ic{color:#fff}
+
+#stage[data-dir="clay"] .btn{border:0;border-radius:calc(var(--s)*18px);background:var(--panel);color:var(--ink);box-shadow:0 calc(var(--s)*4px) 0 rgba(60,30,90,.2)}
+#stage[data-dir="clay"] .btn.big{background:var(--cool);color:#fff;border-radius:calc(var(--s)*24px);box-shadow:0 calc(var(--s)*6px) 0 color-mix(in srgb,var(--cool) 55%,#2c2a4a)}
+#stage[data-dir="clay"] .btn.big:active{transform:translateY(calc(var(--s)*4px));box-shadow:0 calc(var(--s)*2px) 0 color-mix(in srgb,var(--cool) 55%,#2c2a4a)}
+#stage[data-dir="clay"] .logo{color:#fff;text-shadow:0 calc(var(--s)*4px) 0 var(--cool),0 calc(var(--s)*8px) 0 var(--logo2)}
+#stage[data-dir="clay"] h2{color:#fff;text-shadow:0 calc(var(--s)*3px) 0 var(--cool)}
+#stage[data-dir="clay"] .card{border:0;border-radius:calc(var(--s)*24px);box-shadow:0 calc(var(--s)*6px) 0 color-mix(in srgb,var(--c) 60%,#2c2a4a)}
+#stage[data-dir="clay"] .meta,#stage[data-dir="clay"] .mapSel{border:0;border-radius:calc(var(--s)*22px);box-shadow:0 calc(var(--s)*5px) 0 rgba(60,30,90,.16)}
+#stage[data-dir="clay"] .card .ic{color:#fff;box-shadow:none}
+
+#stage[data-dir="flat"] .ov{background:color-mix(in srgb,var(--bg) 82%,transparent)}
+#stage[data-dir="flat"] .btn{border-radius:calc(var(--s)*8px);border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+#stage[data-dir="flat"] .btn.big{background:var(--ink);color:var(--bg);border:0;border-radius:calc(var(--s)*10px);box-shadow:none;letter-spacing:.14em;animation:none}
+#stage[data-dir="flat"] .logo{color:var(--ink);text-shadow:none;letter-spacing:-.02em;animation:none;border-bottom:calc(var(--s)*6px) solid var(--cool);padding-bottom:calc(var(--s)*6px)}
+#stage[data-dir="flat"] h2{color:var(--ink);text-shadow:none;letter-spacing:.1em}
+#stage[data-dir="flat"] .card{border:1px solid var(--line);border-top:calc(var(--s)*5px) solid var(--c);border-radius:calc(var(--s)*10px);box-shadow:none}
+#stage[data-dir="flat"] .meta,#stage[data-dir="flat"] .mapSel{border-radius:calc(var(--s)*10px)}
+#stage[data-dir="flat"] .card .ic{box-shadow:none;color:#fff}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}

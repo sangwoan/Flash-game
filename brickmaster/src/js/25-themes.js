@@ -184,8 +184,9 @@ const BOSSES_PER_WORLD = 3;
 for (const k in THEMES) THEMES[k].id = k;
 let TH = THEMES.neon;
 function applyTheme(id) {
-  TH = THEMES[id] || THEMES.neon;
+  TH = themeFor(id) || THEMES.neon;
   stage.dataset.th = TH.id;
+  stage.dataset.dir = TH.dir || 'classic';
   const st = stage.style;
   for (const [k, v] of Object.entries(TH.css)) st.setProperty('--' + k, v);
   st.setProperty('--disp', TH.disp); st.setProperty('--ko', TH.ko); st.setProperty('--dsz', TH.dsz);
