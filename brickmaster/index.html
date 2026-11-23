@@ -157,6 +157,10 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 
 
 #rank{justify-content:flex-start;gap:calc(var(--s)*8px)}
+.zoneHead{display:flex;align-items:baseline;gap:calc(var(--s)*10px);padding:calc(var(--s)*6px) calc(var(--s)*4px) 0;border-bottom:calc(var(--s)*2px) solid var(--wa);box-shadow:0 calc(var(--s)*6px) calc(var(--s)*14px) calc(var(--s)*-10px) var(--wa)}
+.zoneHead b{font-family:var(--disp);font-size:calc(var(--s)*11px);color:var(--wa);letter-spacing:.14em}
+.zoneHead span{font-family:var(--disp);font-size:calc(var(--s)*20px);font-weight:700;color:#fff;text-shadow:0 0 calc(var(--s)*10px) var(--wa),0 0 calc(var(--s)*22px) var(--wb);letter-spacing:.06em}
+.zoneHead em{font-style:normal;font-size:calc(var(--s)*13px);color:var(--wb);margin-left:auto}
 .prize{width:100%;display:grid;grid-template-columns:1.6fr 1fr;gap:calc(var(--s)*8px)}
 .prize div{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*14px);padding:calc(var(--s)*8px);display:grid;gap:calc(var(--s)*2px)}
 .prize div:first-child{background:linear-gradient(135deg,#ffe9a8,#ffc46b);color:#5a3a00;border:0}
@@ -207,7 +211,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 
   <div id="shieldOffer" hidden>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/></svg>
-    <div><b>위기! 방어막 1회</b><span>벽돌 하나를 막아줍니다 · 이번 판 한 번뿐</span></div>
+    <div><b>위기! 방어막 1회</b><span>빨간 선에 닿는 벽돌 하나를 막아 줍니다 · 한 판에 한 번</span></div>
     <button id="shieldTake" class="btn ko ad" type="button">받기</button>
     <button id="shieldSkip" class="btn" type="button" aria-label="닫기">✕</button>
     <i class="bar"></i>
@@ -286,19 +290,21 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 3 ? 0.025 : 0,
+  chest: t => t > 2 ? 0.035 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   bossEvery: 10, bossHp: 6,
   levelHp: g => 1 + 0.06 * g, // brick HP multiplier for classic level g (0-based)
-  xpNeed: lvl => Math.round(3 + lvl * 2 + 0.25 * Math.pow(lvl, 2.2)), // fast early levels, slow after ~15
+  xpNeed: lvl => Math.round(3 + lvl * 2.5 + 0.28 * Math.pow(lvl, 2.2)),
+  // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
+  // Tuned to about one level-up every 5 turns early on (it was about 2 in 5).
+  xpBrick: 0.55, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
 const chapterOf = t => Math.ceil(t / BAL.bossEvery);
-const chapterName = () => TH.name;
 
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -389,14 +395,14 @@ const UPG = {
   power:  { tag: 'DMG+1',  name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +1 (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += 1; } },
   crit:   { tag: 'CRIT',   name: '치명타',    max: 4,  col: '#ffd23f', w: 2,   desc: n => `${12 * n}% 확률로 3배 피해`, apply() { S.crit = 0.12 * S.lv.crit; } },
   fire:   { tag: 'FIRE',   name: '화염탄',    max: 5,  col: '#ff8a3d', w: 2,   desc: n => `벽돌을 부수면 주변에 불꽃 폭발 (공격력 ×${n + 1})`, apply() {} },
-  chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 번개가 벽돌 ${n + 1}개를 지짐`, apply() {} },
+  chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 가까운 벽돌 ${n + 1}개에 번개가 떨어짐`, apply() {} },
   pierce: { tag: 'PIERCE', name: '관통',      max: 4,  col: '#b98cff', w: 1.5, desc: n => `${15 * n}% 확률로 벽돌을 뚫고 지나감`, apply() { S.pierce = 0.15 * S.lv.pierce; } },
   split:  { tag: 'SPLIT',  name: '분열',      max: 4,  col: '#ff9be0', w: 2,   desc: n => `공이 처음 맞힐 때 ${n + 1}갈래로 갈라짐`, apply() {} },
-  rush:   { tag: 'RUSH',   name: '폭주',      max: 4,  col: '#ff6a3d', w: 2,   desc: n => `튕길 때마다 그 공의 피해 +${12 * n}%, 점점 빨라짐`, apply() {} },
-  iron:   { tag: 'IRON',   name: '철구',      max: 3,  col: '#b8c2d9', w: 1.6, desc: n => `매 턴 ${n >= 3 ? '첫 공 2개' : '첫 공'}가 쇠공: 벽돌을 모두 뚫고 ${n + 2}배 피해`, apply() {} },
-  encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `턴이 끝날 때 ${15 * n}% 확률로 공 전부를 한 번 더 발사`, apply() {} },
-  bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `공이 바닥에 닿으면 ${n}번까지 다시 튕겨 오름`, apply() {} },
-  acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힌 벽돌에 부식이 쌓여 턴이 끝날 때 한꺼번에 피해 (${n}중첩/타격)`, apply() {} },
+  rush:   { tag: 'RUSH',   name: '폭주',      max: 4,  col: '#ff6a3d', w: 2,   desc: n => `벽돌을 맞힐 때마다 그 공의 피해 +${12 * n}%, 속도도 빨라짐`, apply() {} },
+  iron:   { tag: 'IRON',   name: '철구',      max: 3,  col: '#b8c2d9', w: 1.6, desc: n => `매 턴 ${n >= 3 ? '처음 두 공이' : '첫 공이'} 쇠공이 되어 벽돌을 모두 뚫고 ${n + 2}배 피해`, apply() {} },
+  encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `공이 모두 돌아오면 ${15 * n}% 확률로 같은 방향으로 한 번 더 발사`, apply() {} },
+  bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `바닥에 닿은 공이 ${n}번 더 튕겨 오름`, apply() {} },
+  acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힐 때마다 부식이 ${n}씩 쌓이고, 턴이 끝날 때 쌓인 만큼 한꺼번에 피해`, apply() {} },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
 };
 
@@ -442,10 +448,23 @@ const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.45, l) / 5) * 5;
 // The scene is drawn as glowing outlines on black: dark silhouettes hide the lines behind them,
 // so the layers still read in depth. The static art is cached; the game dims or brightens it
 // with combo energy (see drawBackdrop in 80-render.js).
-const NEON_PALS = [
-  ['#00e5ff', '#ff2bd6'], ['#7c4dff', '#00f0ff'], ['#ff2b6a', '#ffb000'], ['#39ff88', '#00b3ff'],
-  ['#ff6a3d', '#b14dff'], ['#00ffd5', '#ff4dc4'], ['#4d7cff', '#ff3d6e'], ['#ffd000', '#ff2bd6'],
+// Zones: every 5 stages the mood changes (palettes, backdrop light show, brick shape).
+// Stages 1-5 NEON DAWN, 6-10 DEEP BLUE, 11-15 INFERNO, 16-20 AURORA, 21-25 COSMOS, then again
+// as remixes. The 25 places in LANDS are grouped to suit their zone.
+const ZONES = [
+  { key: 'dawn', name: 'NEON DAWN', ko: '네온 새벽', style: 'grid', shape: 'round', pals: [['#00e5ff', '#ff2bd6'], ['#7c4dff', '#00f0ff'], ['#00ffd5', '#ff4dc4']] },
+  { key: 'blue', name: 'DEEP BLUE', ko: '딥 블루', style: 'waves', shape: 'pill', pals: [['#00d9ff', '#7c4dff'], ['#00ffc8', '#3d7bff'], ['#4dd6ff', '#b14dff']] },
+  { key: 'inferno', name: 'INFERNO', ko: '인페르노', style: 'embers', shape: 'chamfer', pals: [['#ff6a3d', '#ffd000'], ['#ff2b6a', '#ffb000'], ['#ff4d1a', '#ff2bd6']] },
+  { key: 'aurora', name: 'AURORA', ko: '오로라', style: 'crystal', shape: 'facet', pals: [['#39ff88', '#b14dff'], ['#00ffd5', '#7c4dff'], ['#a6ff3d', '#00b3ff']] },
+  { key: 'cosmos', name: 'COSMOS', ko: '코스모스', style: 'warp', shape: 'orb', pals: [['#b14dff', '#ffd000'], ['#ff4dc4', '#4d7cff'], ['#9b4dff', '#00e5ff']] },
 ];
+const STAGES_PER_ZONE = 5;
+// zone of stage s (classic) or of endless level s, with a roman numeral once the cycle repeats
+const ROMAN = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', ' IX', ' X'];
+function zoneOf(s) {
+  const n = Math.floor(s / STAGES_PER_ZONE), Z = ZONES[n % ZONES.length], cyc = Math.floor(n / ZONES.length);
+  return { ...Z, n, title: Z.name + (cyc ? ROMAN[cyc] || ` ${cyc + 1}` : ''), first: s % STAGES_PER_ZONE === 0 };
+}
 function seeded(seed) { let s = seed * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
 const wrapN = (v, m) => ((v % m) + m) % m;
 const SHADE = '#05060c';
@@ -642,6 +661,7 @@ function neonAnim(g, R, pal, now, e) {
 
 // ---------- 25 places (name, sky, light, layers, details) ----------
 const LANDS = [
+  // zone 1: NEON DAWN
   { key: 'moraine', name: '모레인 호수의 새벽', place: 'CANADA', pal: 'cool', accent: '#7a8cf0', accent2: '#f29ac2',
     sky: ['#9fb7f0', '#d9c6ee', '#ffe0c8'], skyEnd: 0.6, sun: { x: 0.68, y: 0.56, r: 22 }, clouds: [[0.2, 0.17, 120, 24, 0.5], [0.75, 0.26, 100, 20, 0.4]],
     layers: [{ k: 'peaks', b: 0.5, a: 0.18, f: 5, p: 1, c: '#b9b4e4', snow: '#f4f1ff' }, { k: 'peaks', b: 0.57, a: 0.08, f: 8, p: 4, c: '#9a95d2' }],
@@ -651,113 +671,117 @@ const LANDS = [
     sky: ['#ffdbe7', '#fff0e4', '#fff7ee'], clouds: [[0.3, 0.16, 160, 40, 0.7], [0.8, 0.3, 120, 30, 0.6]],
     layers: [{ k: 'smooth', b: 0.58, a: 0.03, f: 0.012, p: 0.5, c: '#d6eed8' }, { k: 'smooth', b: 0.67, a: 0.025, f: 0.016, p: 2, c: '#bfe5c6' }, { k: 'smooth', b: 0.79, a: 0.02, f: 0.02, p: 4, c: '#a7dab3' }],
     trees: [{ k: 'blossom', items: [[0.12, 0.66, 1], [0.3, 0.7, 0.8], [0.82, 0.64, 1.1], [0.62, 0.76, 0.9]] }], particles: { k: 'petals', n: 34 } },
+  { key: 'provence', name: '프로방스 라벤더 들판', place: 'FRANCE', pal: 'bloom', accent: '#9b7fd4', accent2: '#f7a982',
+    sky: ['#a8c6f5', '#ffe1c2', '#ffd29a'], skyEnd: 0.6, sun: { x: 0.3, y: 0.5, r: 20 },
+    layers: [{ k: 'smooth', b: 0.52, a: 0.02, f: 0.01, p: 2, c: '#c9b8d8' }, { k: 'rows', b: 0.57, n: 8, c: '#9b7fd4', c2: '#c7b2ec' }],
+    trees: [{ k: 'cypress', c: '#4f6b5a', items: [[0.18, 0.56, 0.9], [0.22, 0.56, 0.7], [0.84, 0.55, 1]] }], particles: { k: 'butterflies', n: 10 } },
+  { key: 'bali', name: '발리 계단식 논', place: 'INDONESIA', pal: 'earth', accent: '#6fb86a', accent2: '#f6a57e',
+    sky: ['#bde3f2', '#e9f6e6'],
+    layers: [{ k: 'canopy', b: 0.44, r: 20, p: 2, c: '#7cbf8a' }, { k: 'terraces', b: 0.5, n: 9, cols: ['#b8e08a', '#9fd47a', '#c9e89c'] }],
+    trees: [{ k: 'palm', c: '#3f7d55', items: [[0.08, 0.6, 1], [0.9, 0.56, 1.2], [0.75, 0.62, 0.8]] }], particles: { k: 'butterflies', n: 10 } },
+  { key: 'newzealand', name: '뉴질랜드 초원 언덕', place: 'NEW ZEALAND', pal: 'green', accent: '#5fbf7a', accent2: '#8ab0f0',
+    sky: ['#a9d4f5', '#e6f3fb'], clouds: [[0.25, 0.15, 110, 34, 0.85], [0.7, 0.22, 90, 28, 0.8]],
+    layers: [{ k: 'peaks', b: 0.5, a: 0.1, f: 4, p: 2, c: '#b9cbe6', snow: '#f4f8ff' }, { k: 'smooth', b: 0.6, a: 0.04, f: 0.01, p: 1, c: '#b6e3a0' }, { k: 'smooth', b: 0.72, a: 0.035, f: 0.014, p: 3, c: '#93d18a' }, { k: 'smooth', b: 0.84, a: 0.03, f: 0.02, p: 5, c: '#78c07a' }],
+    extras: [{ k: 'sheep', y0: 0.66, y1: 0.8, front: true }], particles: { k: 'birds', n: 4 } },
+  // zone 2: DEEP BLUE
   { key: 'maldives', name: '몰디브 산호 바다', place: 'MALDIVES', pal: 'sea', accent: '#2fb5c8', accent2: '#f48fb8',
     sky: ['#c8f4ef', '#86d8dc', '#4fa9c4', '#2f7aa8'],
     layers: [{ k: 'smooth', b: 0.88, a: 0.012, f: 0.018, p: 1, c: '#f1ddb4' }, { k: 'smooth', b: 0.92, a: 0.01, f: 0.025, p: 3, c: '#e8cf9f' }],
     extras: [{ k: 'coral', items: [[0.12, 0.9, 1, '#ff9fb8'], [0.36, 0.92, 0.8, '#ffb48a'], [0.7, 0.9, 1, '#c7a0ff'], [0.9, 0.92, 0.7, '#ff9fb8']] }, { k: 'rays' }, { k: 'seaweed', xs: [0.05, 0.35, 0.65, 0.95] }],
     particles: { k: 'bubbles', n: 22 } },
-  { key: 'iceland', name: '아이슬란드 오로라', place: 'ICELAND', pal: 'night', accent: '#6ff2c6', accent2: '#c38cff', dark: true,
-    sky: ['#0a1430', '#172c58', '#2b4a7c'], stars: 90, aurora: ['#6ff2c6', '#62cdf5', '#c38cff'],
-    layers: [{ k: 'smooth', b: 0.8, a: 0.018, f: 0.014, p: 2, c: '#cfdcf2' }, { k: 'smooth', b: 0.86, a: 0.013, f: 0.02, p: 5, c: '#e6eefa' }],
-    trees: [{ k: 'pine', c: '#132a48', items: [[0.03, 0.82, 0.9], [0.12, 0.82, 1.1], [0.22, 0.83, 0.8], [0.7, 0.82, 1], [0.8, 0.82, 1.2], [0.9, 0.83, 0.8], [0.97, 0.82, 1]] }],
-    particles: { k: 'snow', n: 40 } },
-  { key: 'haleakala', name: '할레아칼라 구름 위 노을', place: 'HAWAII', pal: 'warm', accent: '#f2789a', accent2: '#9d8cf5',
-    sky: ['#7b73ea', '#c98bd9', '#ff9fb0', '#ffd49c'], skyEnd: 0.75, sun: { x: 0.5, y: 0.62, r: 34, glow: 150, halo: '#fff0c8' },
-    clouds: [[0.25, 0.2, 140, 22, 0.6], [0.78, 0.34, 120, 18, 0.6]],
-    layers: [{ k: 'canopy', b: 0.68, r: 26, p: 3, c: '#ffd8cc' }, { k: 'canopy', b: 0.76, r: 30, p: 7, c: '#ffc2cf' }, { k: 'canopy', b: 0.86, r: 34, p: 11, c: '#f4aacb' }],
-    particles: { k: 'birds', n: 5 } },
-  { key: 'sahara', name: '사하라 사막의 별밤', place: 'MOROCCO', pal: 'night', accent: '#f6b26b', accent2: '#8a9cff', dark: true,
-    sky: ['#141a3d', '#3a2f6b', '#c47a8a'], stars: 130, milky: true, moon: { x: 0.76, y: 0.16, r: 15 },
-    layers: [{ k: 'dunes', b: 0.72, a: 0.05, f: 0.008, p: 1, c: '#c98a6a' }, { k: 'dunes', b: 0.8, a: 0.05, f: 0.011, p: 3, c: '#a96c56' }, { k: 'dunes', b: 0.9, a: 0.04, f: 0.015, p: 6, c: '#8a5446' }],
-    particles: { k: 'sparkles', n: 30 } },
-  { key: 'provence', name: '프로방스 라벤더 들판', place: 'FRANCE', pal: 'bloom', accent: '#9b7fd4', accent2: '#f7a982',
-    sky: ['#a8c6f5', '#ffe1c2', '#ffd29a'], skyEnd: 0.6, sun: { x: 0.3, y: 0.5, r: 20 },
-    layers: [{ k: 'smooth', b: 0.52, a: 0.02, f: 0.01, p: 2, c: '#c9b8d8' }, { k: 'rows', b: 0.57, n: 8, c: '#9b7fd4', c2: '#c7b2ec' }],
-    trees: [{ k: 'cypress', c: '#4f6b5a', items: [[0.18, 0.56, 0.9], [0.22, 0.56, 0.7], [0.84, 0.55, 1]] }], particles: { k: 'butterflies', n: 10 } },
+  { key: 'halong', name: '하롱베이 에메랄드 바다', place: 'VIETNAM', pal: 'sea', accent: '#3fb8a8', accent2: '#ffad7a',
+    sky: ['#b9e2f0', '#e8f4ee', '#fff3df'],
+    layers: [{ k: 'pillars', b: 0.62, a: 0.14, f: 7, p: 3, c: '#9cc8b8', w: 2.2 }, { k: 'pillars', b: 0.64, a: 0.2, f: 4, p: 8, c: '#6fae9a', w: 2.6 }],
+    water: { y: 0.63, c: ['#9fe0d0', '#4fb3a8'] }, extras: [{ k: 'boat', x: 0.7, y: 0.72, c: '#b06a5a', front: true }], particles: { k: 'birds', n: 4 } },
+  { key: 'boracay', name: '보라카이 하얀 해변', place: 'PHILIPPINES', pal: 'sea', accent: '#2fb8c8', accent2: '#ffad7a',
+    sky: ['#9fdcf5', '#dff4fb'], clouds: [[0.3, 0.2, 100, 26, 0.8], [0.75, 0.14, 90, 22, 0.7]],
+    water: { y: 0.6, c: ['#7fe0e0', '#3fb7c9'] },
+    layers: [{ k: 'smooth', b: 0.8, a: 0.015, f: 0.012, p: 2, c: '#fbe8c8', front: true }],
+    trees: [{ k: 'palm', c: '#3f8d65', front: true, items: [[0.1, 0.82, 1.2], [0.88, 0.8, 1.1]] }], extras: [{ k: 'waves', y: 0.77 }], particles: { k: 'sparkles', n: 16, c: '#ffffff' } },
   { key: 'uyuni', name: '우유니 하늘 거울', place: 'BOLIVIA', pal: 'cool', accent: '#6fa8ff', accent2: '#f59ab8',
     sky: ['#8fc3ff', '#c9dcff', '#ffe9f2'], skyEnd: 0.5,
     clouds: [[0.2, 0.18, 90, 36, 0.9], [0.55, 0.12, 110, 40, 0.9], [0.85, 0.24, 80, 30, 0.85], [0.4, 0.33, 70, 22, 0.8]],
     layers: [{ k: 'smooth', b: 0.495, a: 0.008, f: 0.02, p: 1, c: '#b9c3e8' }],
     water: { y: 0.5, c: ['#d7e4ff', '#f5e4f0'], mirror: true }, particles: { k: 'sparkles', n: 18, c: '#ffffff' } },
-  { key: 'guilin', name: '계림 안개 산수', place: 'CHINA', pal: 'green', accent: '#5fae95', accent2: '#f59ab8',
-    sky: ['#d7e6e0', '#eef3ea', '#f6f1e6'],
-    layers: [{ k: 'pillars', b: 0.62, a: 0.3, f: 9, p: 2, c: '#b8cfc5' }, { k: 'pillars', b: 0.7, a: 0.26, f: 6, p: 5, c: '#8fb3a5', w: 1.6 }],
-    water: { y: 0.72, c: ['#cfe3dc', '#a7c9bf'] }, extras: [{ k: 'boat', x: 0.4, y: 0.78, front: true }, { k: 'mistband', y: 0.55 }], particles: { k: 'mist', n: 5 } },
-  { key: 'canyon', name: '그랜드 캐니언 노을', place: 'USA', pal: 'warm', accent: '#e9895f', accent2: '#8a8ee8',
-    sky: ['#6d7fd6', '#f2a07b', '#ffd8a0'], skyEnd: 0.6, sun: { x: 0.72, y: 0.46, r: 18 },
-    layers: [{ k: 'mesa', b: 0.6, a: 0.12, p: 1, c: '#e3a585' }, { k: 'mesa', b: 0.72, a: 0.14, p: 4, c: '#c97a5e' }, { k: 'mesa', b: 0.86, a: 0.12, p: 7, c: '#a85a48' }],
-    particles: { k: 'birds', n: 4 } },
   { key: 'fjord', name: '노르웨이 피오르', place: 'NORWAY', pal: 'cool', accent: '#5f9fc0', accent2: '#f29ac2',
     sky: ['#9cc4e8', '#d5e7f2', '#f3efe6'],
     layers: [{ k: 'cliffs', b: 0.66, top: 0.22, w: 0.42, c: '#9ab3c6' }, { k: 'cliffs', b: 0.7, top: 0.34, w: 0.3, c: '#6f8fa6' }],
     water: { y: 0.66, c: ['#9fc6d6', '#5f97ad'] }, extras: [{ k: 'waterfall', x: 0.2, y0: 0.38, y1: 0.66, w: 8 }, { k: 'boat', x: 0.58, y: 0.74, front: true }], particles: { k: 'mist', n: 4 } },
-  { key: 'halong', name: '하롱베이 에메랄드 바다', place: 'VIETNAM', pal: 'sea', accent: '#3fb8a8', accent2: '#ffad7a',
-    sky: ['#b9e2f0', '#e8f4ee', '#fff3df'],
-    layers: [{ k: 'pillars', b: 0.62, a: 0.14, f: 7, p: 3, c: '#9cc8b8', w: 2.2 }, { k: 'pillars', b: 0.64, a: 0.2, f: 4, p: 8, c: '#6fae9a', w: 2.6 }],
-    water: { y: 0.63, c: ['#9fe0d0', '#4fb3a8'] }, extras: [{ k: 'boat', x: 0.7, y: 0.72, c: '#b06a5a', front: true }], particles: { k: 'birds', n: 4 } },
-  { key: 'bali', name: '발리 계단식 논', place: 'INDONESIA', pal: 'earth', accent: '#6fb86a', accent2: '#f6a57e',
-    sky: ['#bde3f2', '#e9f6e6'],
-    layers: [{ k: 'canopy', b: 0.44, r: 20, p: 2, c: '#7cbf8a' }, { k: 'terraces', b: 0.5, n: 9, cols: ['#b8e08a', '#9fd47a', '#c9e89c'] }],
-    trees: [{ k: 'palm', c: '#3f7d55', items: [[0.08, 0.6, 1], [0.9, 0.56, 1.2], [0.75, 0.62, 0.8]] }], particles: { k: 'butterflies', n: 10 } },
-  { key: 'maple', name: '캐나다 단풍 숲', place: 'QUEBEC', pal: 'earth', accent: '#e7804f', accent2: '#8ab0f0',
-    sky: ['#c7d8f0', '#f5e2cf'],
-    layers: [{ k: 'smooth', b: 0.6, a: 0.03, f: 0.01, p: 1, c: '#e8b08a' }, { k: 'smooth', b: 0.75, a: 0.02, f: 0.015, p: 3, c: '#d98a5e' }],
-    trees: [{ k: 'maple', items: [[0.08, 0.66, 1], [0.24, 0.7, 0.9], [0.42, 0.66, 0.8], [0.6, 0.71, 1], [0.78, 0.66, 0.9], [0.94, 0.7, 1.1]] }], particles: { k: 'leaves', n: 26 } },
+  // zone 3: INFERNO
+  { key: 'sahara', name: '사하라 사막의 별밤', place: 'MOROCCO', pal: 'night', accent: '#f6b26b', accent2: '#8a9cff', dark: true,
+    sky: ['#141a3d', '#3a2f6b', '#c47a8a'], stars: 130, milky: true, moon: { x: 0.76, y: 0.16, r: 15 },
+    layers: [{ k: 'dunes', b: 0.72, a: 0.05, f: 0.008, p: 1, c: '#c98a6a' }, { k: 'dunes', b: 0.8, a: 0.05, f: 0.011, p: 3, c: '#a96c56' }, { k: 'dunes', b: 0.9, a: 0.04, f: 0.015, p: 6, c: '#8a5446' }],
+    particles: { k: 'sparkles', n: 30 } },
+  { key: 'canyon', name: '그랜드 캐니언 노을', place: 'USA', pal: 'warm', accent: '#e9895f', accent2: '#8a8ee8',
+    sky: ['#6d7fd6', '#f2a07b', '#ffd8a0'], skyEnd: 0.6, sun: { x: 0.72, y: 0.46, r: 18 },
+    layers: [{ k: 'mesa', b: 0.6, a: 0.12, p: 1, c: '#e3a585' }, { k: 'mesa', b: 0.72, a: 0.14, p: 4, c: '#c97a5e' }, { k: 'mesa', b: 0.86, a: 0.12, p: 7, c: '#a85a48' }],
+    particles: { k: 'birds', n: 4 } },
+  { key: 'baobab', name: '마다가스카르 바오밥 길', place: 'MADAGASCAR', pal: 'warm', accent: '#e9895f', accent2: '#8a8ee8',
+    sky: ['#7d8ae0', '#f5a98a', '#ffd9a3'], skyEnd: 0.8, sun: { x: 0.55, y: 0.7, r: 36, glow: 160, halo: '#ffe2b0' },
+    layers: [{ k: 'smooth', b: 0.79, a: 0.006, f: 0.01, p: 1, c: '#c98b6b' }],
+    trees: [{ k: 'baobab', c: '#6b4a5e', items: [[0.1, 0.8, 1.3], [0.28, 0.8, 1], [0.46, 0.8, 1.2], [0.72, 0.8, 1.1], [0.9, 0.8, 1.4]] }], particles: { k: 'birds', n: 5 } },
+  { key: 'haleakala', name: '할레아칼라 구름 위 노을', place: 'HAWAII', pal: 'warm', accent: '#f2789a', accent2: '#9d8cf5',
+    sky: ['#7b73ea', '#c98bd9', '#ff9fb0', '#ffd49c'], skyEnd: 0.75, sun: { x: 0.5, y: 0.62, r: 34, glow: 150, halo: '#fff0c8' },
+    clouds: [[0.25, 0.2, 140, 22, 0.6], [0.78, 0.34, 120, 18, 0.6]],
+    layers: [{ k: 'canopy', b: 0.68, r: 26, p: 3, c: '#ffd8cc' }, { k: 'canopy', b: 0.76, r: 30, p: 7, c: '#ffc2cf' }, { k: 'canopy', b: 0.86, r: 34, p: 11, c: '#f4aacb' }],
+    particles: { k: 'birds', n: 5 } },
+  { key: 'aegean', name: '에게해 노을 바다', place: 'GREECE', pal: 'warm', accent: '#e9789a', accent2: '#8a8ee8',
+    sky: ['#7f86e6', '#f39fb5', '#ffd29e'], skyEnd: 0.6, sun: { x: 0.5, y: 0.57, r: 28, glow: 140 },
+    layers: [{ k: 'smooth', b: 0.59, a: 0.015, f: 0.02, p: 2, c: '#8e7fb8' }],
+    water: { y: 0.6, c: ['#f6b9b0', '#9a8fd8'], shimmer: true }, extras: [{ k: 'boat', x: 0.25, y: 0.7, c: '#6a5a8a', front: true }], particles: { k: 'birds', n: 5 } },
+  // zone 4: AURORA
+  { key: 'iceland', name: '아이슬란드 오로라', place: 'ICELAND', pal: 'night', accent: '#6ff2c6', accent2: '#c38cff', dark: true,
+    sky: ['#0a1430', '#172c58', '#2b4a7c'], stars: 90, aurora: ['#6ff2c6', '#62cdf5', '#c38cff'],
+    layers: [{ k: 'smooth', b: 0.8, a: 0.018, f: 0.014, p: 2, c: '#cfdcf2' }, { k: 'smooth', b: 0.86, a: 0.013, f: 0.02, p: 5, c: '#e6eefa' }],
+    trees: [{ k: 'pine', c: '#132a48', items: [[0.03, 0.82, 0.9], [0.12, 0.82, 1.1], [0.22, 0.83, 0.8], [0.7, 0.82, 1], [0.8, 0.82, 1.2], [0.9, 0.83, 0.8], [0.97, 0.82, 1]] }],
+    particles: { k: 'snow', n: 40 } },
+  { key: 'antarctica', name: '남극 빙산의 바다', place: 'ANTARCTICA', pal: 'cool', accent: '#5f9fd8', accent2: '#c69cf0',
+    sky: ['#9fc0ea', '#d8e7f8', '#f4f8ff'],
+    layers: [{ k: 'peaks', b: 0.61, a: 0.06, f: 6, p: 3, c: '#e9f2fc', snow: '#ffffff' }],
+    water: { y: 0.62, c: ['#8fc0e6', '#5a92c4'] }, extras: [{ k: 'icebergs', front: true, items: [[0.22, 0.7, 1.3], [0.62, 0.67, 0.8], [0.84, 0.78, 1.6]] }],
+    particles: { k: 'snow', n: 24 } },
+  { key: 'patagonia', name: '파타고니아 분홍 봉우리', place: 'ARGENTINA', pal: 'cool', accent: '#e98aa0', accent2: '#7f9fd0',
+    sky: ['#9fb1ea', '#f3bfd0', '#ffd9b8'], skyEnd: 0.7,
+    layers: [{ k: 'peaks', b: 0.6, a: 0.34, f: 3, p: 7, c: '#e9a6b8', snow: '#fff0f4' }, { k: 'peaks', b: 0.68, a: 0.1, f: 6, p: 2, c: '#8b88b8' }],
+    water: { y: 0.7, c: ['#a6c3e6', '#7f9fd0'] }, particles: { k: 'motes', n: 16, c: '#ffe8f0' } },
+  { key: 'zhangjiajie', name: '장가계 구름 기둥', place: 'CHINA', pal: 'green', accent: '#6f9f96', accent2: '#c69cf0',
+    sky: ['#cfdcec', '#eef2f5'],
+    layers: [{ k: 'pillars', b: 0.7, a: 0.45, f: 10, p: 4, c: '#a9bcb8', cap: '#b9d4b0' }, { k: 'pillars', b: 0.8, a: 0.42, f: 6, p: 9, c: '#6f8f88', cap: '#8fbf86', w: 1.3 }],
+    extras: [{ k: 'mistband', y: 0.62 }, { k: 'mistband', y: 0.78 }], particles: { k: 'mist', n: 6 } },
+  { key: 'guilin', name: '계림 안개 산수', place: 'CHINA', pal: 'green', accent: '#5fae95', accent2: '#f59ab8',
+    sky: ['#d7e6e0', '#eef3ea', '#f6f1e6'],
+    layers: [{ k: 'pillars', b: 0.62, a: 0.3, f: 9, p: 2, c: '#b8cfc5' }, { k: 'pillars', b: 0.7, a: 0.26, f: 6, p: 5, c: '#8fb3a5', w: 1.6 }],
+    water: { y: 0.72, c: ['#cfe3dc', '#a7c9bf'] }, extras: [{ k: 'boat', x: 0.4, y: 0.78, front: true }, { k: 'mistband', y: 0.55 }], particles: { k: 'mist', n: 5 } },
+  // zone 5: COSMOS
+  { key: 'mongolia', name: '몽골 초원의 은하수', place: 'MONGOLIA', pal: 'night', accent: '#8a9cff', accent2: '#ffd27a', dark: true,
+    sky: ['#0b1030', '#1c2a5a', '#3b4f7a'], stars: 160, milky: true,
+    layers: [{ k: 'smooth', b: 0.8, a: 0.012, f: 0.01, p: 2, c: '#2f4d4a' }, { k: 'smooth', b: 0.88, a: 0.008, f: 0.015, p: 4, c: '#26403d' }],
+    extras: [{ k: 'yurt', x: 0.7, y: 0.81 }], particles: { k: 'sparkles', n: 30 } },
+  { key: 'amazon', name: '아마존 열대우림 안개', place: 'PERU', pal: 'green', accent: '#4fae7a', accent2: '#ffd166',
+    sky: ['#cfe8d8', '#eef6ea'],
+    layers: [{ k: 'canopy', b: 0.5, r: 26, p: 1, c: '#9cc9a0' }, { k: 'canopy', b: 0.64, r: 30, p: 5, c: '#76b083' }, { k: 'canopy', b: 0.8, r: 34, p: 9, c: '#559a6b' }],
+    extras: [{ k: 'mistband', y: 0.56 }, { k: 'mistband', y: 0.72 }], particles: { k: 'butterflies', n: 12 } },
   { key: 'iguazu', name: '이구아수 폭포와 무지개', place: 'BRAZIL', pal: 'green', accent: '#45b38c', accent2: '#ff9ec7',
     sky: ['#bfe4ef', '#e6f5ee'],
     layers: [{ k: 'canopy', b: 0.34, r: 18, p: 4, c: '#7fbf8f' }, { k: 'cliffs', b: 0.78, top: 0.36, w: 0.5, c: '#5f9b7a' }],
     water: { y: 0.8, c: ['#bfe3e0', '#7fbfbd'] },
     extras: [{ k: 'waterfall', x: 0.36, y0: 0.4, y1: 0.8, w: 22 }, { k: 'waterfall', x: 0.5, y0: 0.38, y1: 0.8, w: 30 }, { k: 'waterfall', x: 0.64, y0: 0.42, y1: 0.8, w: 18 }, { k: 'rainbow', x: 0.5, y: 0.82, r: 120 }],
     particles: { k: 'mist', n: 5 } },
-  { key: 'newzealand', name: '뉴질랜드 초원 언덕', place: 'NEW ZEALAND', pal: 'green', accent: '#5fbf7a', accent2: '#8ab0f0',
-    sky: ['#a9d4f5', '#e6f3fb'], clouds: [[0.25, 0.15, 110, 34, 0.85], [0.7, 0.22, 90, 28, 0.8]],
-    layers: [{ k: 'peaks', b: 0.5, a: 0.1, f: 4, p: 2, c: '#b9cbe6', snow: '#f4f8ff' }, { k: 'smooth', b: 0.6, a: 0.04, f: 0.01, p: 1, c: '#b6e3a0' }, { k: 'smooth', b: 0.72, a: 0.035, f: 0.014, p: 3, c: '#93d18a' }, { k: 'smooth', b: 0.84, a: 0.03, f: 0.02, p: 5, c: '#78c07a' }],
-    extras: [{ k: 'sheep', y0: 0.66, y1: 0.8, front: true }], particles: { k: 'birds', n: 4 } },
-  { key: 'zhangjiajie', name: '장가계 구름 기둥', place: 'CHINA', pal: 'green', accent: '#6f9f96', accent2: '#c69cf0',
-    sky: ['#cfdcec', '#eef2f5'],
-    layers: [{ k: 'pillars', b: 0.7, a: 0.45, f: 10, p: 4, c: '#a9bcb8', cap: '#b9d4b0' }, { k: 'pillars', b: 0.8, a: 0.42, f: 6, p: 9, c: '#6f8f88', cap: '#8fbf86', w: 1.3 }],
-    extras: [{ k: 'mistband', y: 0.62 }, { k: 'mistband', y: 0.78 }], particles: { k: 'mist', n: 6 } },
-  { key: 'mongolia', name: '몽골 초원의 은하수', place: 'MONGOLIA', pal: 'night', accent: '#8a9cff', accent2: '#ffd27a', dark: true,
-    sky: ['#0b1030', '#1c2a5a', '#3b4f7a'], stars: 160, milky: true,
-    layers: [{ k: 'smooth', b: 0.8, a: 0.012, f: 0.01, p: 2, c: '#2f4d4a' }, { k: 'smooth', b: 0.88, a: 0.008, f: 0.015, p: 4, c: '#26403d' }],
-    extras: [{ k: 'yurt', x: 0.7, y: 0.81 }], particles: { k: 'sparkles', n: 30 } },
-  { key: 'patagonia', name: '파타고니아 분홍 봉우리', place: 'ARGENTINA', pal: 'cool', accent: '#e98aa0', accent2: '#7f9fd0',
-    sky: ['#9fb1ea', '#f3bfd0', '#ffd9b8'], skyEnd: 0.7,
-    layers: [{ k: 'peaks', b: 0.6, a: 0.34, f: 3, p: 7, c: '#e9a6b8', snow: '#fff0f4' }, { k: 'peaks', b: 0.68, a: 0.1, f: 6, p: 2, c: '#8b88b8' }],
-    water: { y: 0.7, c: ['#a6c3e6', '#7f9fd0'] }, particles: { k: 'motes', n: 16, c: '#ffe8f0' } },
-  { key: 'aegean', name: '에게해 노을 바다', place: 'GREECE', pal: 'warm', accent: '#e9789a', accent2: '#8a8ee8',
-    sky: ['#7f86e6', '#f39fb5', '#ffd29e'], skyEnd: 0.6, sun: { x: 0.5, y: 0.57, r: 28, glow: 140 },
-    layers: [{ k: 'smooth', b: 0.59, a: 0.015, f: 0.02, p: 2, c: '#8e7fb8' }],
-    water: { y: 0.6, c: ['#f6b9b0', '#9a8fd8'], shimmer: true }, extras: [{ k: 'boat', x: 0.25, y: 0.7, c: '#6a5a8a', front: true }], particles: { k: 'birds', n: 5 } },
-  { key: 'amazon', name: '아마존 열대우림 안개', place: 'PERU', pal: 'green', accent: '#4fae7a', accent2: '#ffd166',
-    sky: ['#cfe8d8', '#eef6ea'],
-    layers: [{ k: 'canopy', b: 0.5, r: 26, p: 1, c: '#9cc9a0' }, { k: 'canopy', b: 0.64, r: 30, p: 5, c: '#76b083' }, { k: 'canopy', b: 0.8, r: 34, p: 9, c: '#559a6b' }],
-    extras: [{ k: 'mistband', y: 0.56 }, { k: 'mistband', y: 0.72 }], particles: { k: 'butterflies', n: 12 } },
-  { key: 'baobab', name: '마다가스카르 바오밥 길', place: 'MADAGASCAR', pal: 'warm', accent: '#e9895f', accent2: '#8a8ee8',
-    sky: ['#7d8ae0', '#f5a98a', '#ffd9a3'], skyEnd: 0.8, sun: { x: 0.55, y: 0.7, r: 36, glow: 160, halo: '#ffe2b0' },
-    layers: [{ k: 'smooth', b: 0.79, a: 0.006, f: 0.01, p: 1, c: '#c98b6b' }],
-    trees: [{ k: 'baobab', c: '#6b4a5e', items: [[0.1, 0.8, 1.3], [0.28, 0.8, 1], [0.46, 0.8, 1.2], [0.72, 0.8, 1.1], [0.9, 0.8, 1.4]] }], particles: { k: 'birds', n: 5 } },
-  { key: 'boracay', name: '보라카이 하얀 해변', place: 'PHILIPPINES', pal: 'sea', accent: '#2fb8c8', accent2: '#ffad7a',
-    sky: ['#9fdcf5', '#dff4fb'], clouds: [[0.3, 0.2, 100, 26, 0.8], [0.75, 0.14, 90, 22, 0.7]],
-    water: { y: 0.6, c: ['#7fe0e0', '#3fb7c9'] },
-    layers: [{ k: 'smooth', b: 0.8, a: 0.015, f: 0.012, p: 2, c: '#fbe8c8', front: true }],
-    trees: [{ k: 'palm', c: '#3f8d65', front: true, items: [[0.1, 0.82, 1.2], [0.88, 0.8, 1.1]] }], extras: [{ k: 'waves', y: 0.77 }], particles: { k: 'sparkles', n: 16, c: '#ffffff' } },
-  { key: 'antarctica', name: '남극 빙산의 바다', place: 'ANTARCTICA', pal: 'cool', accent: '#5f9fd8', accent2: '#c69cf0',
-    sky: ['#9fc0ea', '#d8e7f8', '#f4f8ff'],
-    layers: [{ k: 'peaks', b: 0.61, a: 0.06, f: 6, p: 3, c: '#e9f2fc', snow: '#ffffff' }],
-    water: { y: 0.62, c: ['#8fc0e6', '#5a92c4'] }, extras: [{ k: 'icebergs', front: true, items: [[0.22, 0.7, 1.3], [0.62, 0.67, 0.8], [0.84, 0.78, 1.6]] }],
-    particles: { k: 'snow', n: 24 } },
+  { key: 'maple', name: '캐나다 단풍 숲', place: 'QUEBEC', pal: 'earth', accent: '#e7804f', accent2: '#8ab0f0',
+    sky: ['#c7d8f0', '#f5e2cf'],
+    layers: [{ k: 'smooth', b: 0.6, a: 0.03, f: 0.01, p: 1, c: '#e8b08a' }, { k: 'smooth', b: 0.75, a: 0.02, f: 0.015, p: 3, c: '#d98a5e' }],
+    trees: [{ k: 'maple', items: [[0.08, 0.66, 1], [0.24, 0.7, 0.9], [0.42, 0.66, 0.8], [0.6, 0.71, 1], [0.78, 0.66, 0.9], [0.94, 0.7, 1.1]] }], particles: { k: 'leaves', n: 26 } },
   { key: 'jeju', name: '제주 유채꽃과 한라산', place: 'KOREA', pal: 'earth', accent: '#f2b632', accent2: '#6fa8ff',
     sky: ['#a7d0f5', '#e6f3fb'], clouds: [[0.3, 0.15, 120, 30, 0.8], [0.78, 0.25, 90, 24, 0.7]],
     layers: [{ k: 'smooth', b: 0.5, a: 0.07, f: 0.006, p: 4.2, c: '#8fb5a6' }, { k: 'smooth', b: 0.62, a: 0.015, f: 0.012, p: 1, c: '#a9d39a' }, { k: 'field', b: 0.66, c: '#ffe680', dot: '#f2b400' }, { k: 'smooth', b: 0.78, a: 0.012, f: 0.02, p: 3, c: 'rgba(120,180,100,.55)' }, { k: 'field', b: 0.8, c: '#ffdf5a', dot: '#e9a800' }],
     particles: { k: 'butterflies', n: 12 } },
 ];
 // Once every place has been seen they return as colour remixes, so stages never run out.
-const VARIANTS = [null, { suffix: 'REMIX', shift: 3 }, { suffix: 'HYPER', shift: 5 }, { suffix: 'OVERDRIVE', shift: 6 }];
+const VARIANTS = [null, { suffix: 'REMIX' }, { suffix: 'HYPER' }, { suffix: 'OVERDRIVE' }];
 const landOf = s => {
-  const i = wrapN(s, LANDS.length), R = LANDS[i], V = VARIANTS[Math.floor(s / LANDS.length) % VARIANTS.length];
-  const pal = NEON_PALS[(i + (V ? V.shift : 0)) % NEON_PALS.length];
-  return { R, V, pal, name: V ? `${R.name} · ${V.suffix}` : R.name, key: `${R.key}${V ? '-' + V.suffix : ''}` };
+  const i = wrapN(s, LANDS.length), R = LANDS[i], cyc = Math.floor(s / LANDS.length), V = VARIANTS[cyc % VARIANTS.length];
+  const Z = zoneOf(s), pal = Z.pals[(s + cyc) % Z.pals.length];
+  return { R, V, Z, pal, name: V ? `${R.name} · ${V.suffix}` : R.name, key: `${R.key}-${Z.key}-${cyc}` };
 };
 // A small thumbnail of a stage's scene for the map.
 const thumbCache = {};
@@ -805,7 +829,7 @@ const NEON_RAMP = ['#00e5ff', '#3d7bff', '#9b4dff', '#ff2bd6', '#ff6a3d', '#ffd0
 function makeLandTheme(s) {
   const L = landOf(s), [A, B] = L.pal;
   return {
-    id: 'land-' + s, land: s, name: L.name, tag: L.R.place, light: false, landKey: L.key, R: L.R, pal: L.pal,
+    id: 'land-' + s, land: s, name: L.name, tag: L.R.place, light: false, landKey: L.key, R: L.R, pal: L.pal, zone: L.Z,
     num: FONT.display, numSize: 15, numWeight: '700', disp: FONT.display, dw: '700', dsz: 1.35, ko: FONT.plex,
     css: {
       bg: '#04050a', panel: 'rgba(12,14,26,.9)', line: 'rgba(255,255,255,.12)', ink: '#f2f4ff', dim: '#8f96b8',
@@ -965,7 +989,7 @@ function spawnRow(t, slide = true) {
     const c = Math.floor(rnd() * (COLS - 2));
     addBrick({ c, r: 0, span: 3, type: 'boss', hp: h * BAL.bossHp, chapter: chapterOf(t) }, slide);
     used[c] = used[c + 1] = used[c + 2] = true;
-    showBanner('BOSS', STG.endless ? `챕터 ${chapterOf(t)} 보스가 나타났다` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
+    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
     sfx.boss();
   }
   let placed = 0;
@@ -1143,18 +1167,18 @@ function kill(br) {
   if (!boss && rnd() < (S.fever ? 0.5 : 0.25)) flyCoin(cx, cy);
   shake(boss ? 14 : 1.2);
   sfx.brk(S.combo); buzz(boss ? 80 : 8);
-  const bonus = Math.floor(S.turn / 10);
+  const bonus = BAL.xpTurnBonus ? Math.floor(S.turn / BAL.xpTurnBonus) : 0;
   if (boss) {
-    gainXp(25);
+    gainXp(BAL.xpBoss);
     S.bosses++; S.hitstop = 0.16;
     if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
-    if (S.cleared) showBanner('STAGE CLEAR', `스테이지 ${STG.id} 돌파!`, TH.css.gold);
+    if (S.cleared) showBanner('LEVEL CLEAR', `레벨 ${STG.id} 돌파!`, TH.css.gold);
     else showBanner(STG.endless ? `LEVEL ${S.world + 1} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
     sfx.clear();
-  } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
-  else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }
+  } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
+  else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);
@@ -1461,10 +1485,6 @@ function endTurn() {
   rebuildGrid();
   S.turn++;
   addGold(BAL.goldPerTurn);
-  if (S.turn % BAL.bossEvery === 1 && !STG.endless) {
-    const ch = chapterOf(S.turn);
-    showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
-  }
   if (S.worldPending) switchWorld();
   spawnRow(S.turn, true);
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
@@ -1646,7 +1666,7 @@ function refreshTitle() {
   applyTheme(nx.land);
   $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
-  $('nextInfo').textContent = `${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
+  $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
   $('endless').disabled = !open;
   $('endless').textContent = open ? '무한 모드' : '무한 모드 (스테이지 1 클리어 시 열림)';
@@ -1668,6 +1688,12 @@ function renderMap() {
   const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
+    if (st % STAGES_PER_ZONE === 0) {
+      const Z = zoneOf(st), hd = document.createElement('div');
+      hd.className = 'zoneHead'; hd.style.cssText = `--wa:${Z.pals[0][0]};--wb:${Z.pals[0][1]}`;
+      hd.innerHTML = `<b>ZONE ${Z.n + 1}</b><span>${Z.title}</span><em>${Z.ko}</em>`;
+      list.appendChild(hd);
+    }
     const sec = document.createElement('section');
     sec.className = 'world' + (open ? '' : ' locked');
     sec.style.cssText = `--wa:${R.accent};--thumb:url(${landThumb(st)})`;
@@ -1708,7 +1734,8 @@ function startLevel(g) {
   STG = levelInfo(Math.max(0, g));
   applyTheme(STG.land);
   beginRun();
-  showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
+  if (STG.l === 0 && STG.s % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
+  else showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = ENDLESS;
@@ -1716,14 +1743,21 @@ function startEndless() {
   beginRun();
   showBanner('ENDLESS', '보스를 잡을 때마다 레벨과 풍경이 바뀝니다', TH.accent);
 }
+// Entering a new zone (every 5 stages): a longer banner and a light sweep.
+function zoneBanner(Z) {
+  showBanner(`ZONE ${Z.n + 1} · ${Z.title}`, `${Z.ko} · ${TH.name}`, TH.accent);
+  S.banner.life = S.banner.max = 3.2;
+  S.wipe = 1; S.pulse = 1; S.flash = 0.3; S.flashCol = '255,255,255';
+  for (let i = 0; i < 5; i++) burst(W * (0.1 + 0.2 * i), H * 0.42, i % 2 ? TH.accent : TH.accent2, 26, 380);
+}
 // Endless: each boss raises the level and moves to the next landscape.
 function switchWorld() {
   S.worldPending = false;
   S.world++;
   applyTheme(S.world);
   S.wipe = 1; shake(10); sfx.clear(); buzz(120);
-  showBanner(`LEVEL ${S.world + 1}`, TH.name, TH.accent);
-  S.banner.life = S.banner.max = 2.6;
+  if (S.world % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
+  else { showBanner(`LEVEL ${S.world + 1}`, TH.name, TH.accent); S.banner.life = S.banner.max = 2.6; }
   for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
 }
 
@@ -1877,6 +1911,19 @@ function brickColor(br) {
 function ballColor() { return S.lv.fire ? '#ffb36b' : S.lv.chain ? '#bfefff' : TH.ball.core; }
 
 // ---------- bricks ----------
+// Brick outline for the current zone: round (dawn), pill (deep blue), chamfered (inferno),
+// faceted gem (aurora), soft orb (cosmos).
+function brickPath(x, y, w, h) {
+  const sh = TH.zone ? TH.zone.shape : 'round';
+  if (sh === 'pill') { rr(x, y, w, h, Math.min(h / 2 - 1, 14)); return; }
+  if (sh === 'orb') { rr(x, y, w, h, 10); return; }
+  if (sh === 'chamfer' || sh === 'facet') {
+    const c = sh === 'chamfer' ? 7 : 10, a = sh === 'facet' ? 0 : c; // facet: cut top-left and bottom-right only
+    ctx.beginPath(); ctx.moveTo(x + c, y); ctx.lineTo(x + w - a, y); ctx.lineTo(x + w, y + a); ctx.lineTo(x + w, y + h - c);
+    ctx.lineTo(x + w - c, y + h); ctx.lineTo(x + a, y + h); ctx.lineTo(x, y + h - a); ctx.lineTo(x, y + c); ctx.closePath(); return;
+  }
+  rr(x, y, w, h, 6);
+}
 function brickBody(br, w, h, col, now) {
   const st = TH.brick;
   if (st === 'jelly') {
@@ -1911,7 +1958,7 @@ function brickBody(br, w, h, col, now) {
     ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, w, h);
   } else if (st === 'neonx') {
     // sleek neon: dark glass core, a crisp lit edge and a soft bloom around it
-    rr(0, 0, w, h, 6);
+    brickPath(0, 0, w, h);
     ctx.fillStyle = 'rgba(7,9,18,.86)'; ctx.fill();
     ctx.fillStyle = col; ctx.globalAlpha = 0.14; ctx.fill(); ctx.globalAlpha = 1;
     const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -1920,6 +1967,12 @@ function brickBody(br, w, h, col, now) {
     ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = col;
     ctx.globalAlpha = 0.3; ctx.lineWidth = 6; ctx.stroke();
     ctx.globalAlpha = 1; ctx.lineWidth = 1.8; ctx.stroke();
+    const sh = TH.zone ? TH.zone.shape : 'round';
+    if (sh === 'facet') { ctx.globalAlpha = 0.45; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(w * 0.42, h); ctx.stroke(); }
+    else if (sh === 'pill') { ctx.globalAlpha = 0.35; ctx.lineWidth = 1; brickPath(3, 3, w - 6, h - 6); ctx.stroke(); }
+    else if (sh === 'chamfer') { ctx.globalAlpha = 0.55; ctx.fillStyle = col; ctx.fillRect(9, h - 3, w - 18, 1.5); }
+    else if (sh === 'orb') { ctx.globalAlpha = 0.9; ctx.drawImage(glow(typeof col === 'string' ? col : TH.accent), 3, h / 2 - 7, 14, 14); }
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   } else if (st === 'frost') {
     // soft glass: tinted translucent slab, frosted highlight, soft shadow
@@ -2000,8 +2053,8 @@ function drawBrick(br, now) {
   drawCracks(br, w, h);
   if (TH.brick === 'neonx' && f > 0.25) { // hit: the edge splits into red/cyan for a moment
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1.6; ctx.globalAlpha = f * 0.9;
-    ctx.strokeStyle = '#ff2b6a'; rr(2.5 * f, 0, w, h, 6); ctx.stroke();
-    ctx.strokeStyle = '#00e5ff'; rr(-2.5 * f, 0, w, h, 6); ctx.stroke();
+    ctx.strokeStyle = '#ff2b6a'; brickPath(2.5 * f, 0, w, h); ctx.stroke();
+    ctx.strokeStyle = '#00e5ff'; brickPath(-2.5 * f, 0, w, h); ctx.stroke();
     ctx.restore();
   }
   if (br.acid) { // acid stacks as green drops
@@ -2019,7 +2072,7 @@ function drawBrick(br, now) {
   if (TH.numInk === 'auto' && ink === '#ffffff') { ctx.fillStyle = 'rgba(30,20,60,.25)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   if (TH.numStroke) { ctx.strokeStyle = TH.numStroke; ctx.lineWidth = 3; ctx.strokeText(label, w / 2, h / 2 + 1); }
   ctx.fillStyle = ink; ctx.fillText(label, w / 2, h / 2 + 1);
-  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if ({ jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5, neonx: 6 }[TH.brick]) { rr(0, 0, w, h, { jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5, neonx: 6 }[TH.brick]); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
+  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'neonx') { brickPath(0, 0, w, h); ctx.fill(); } else if ({ jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]) { rr(0, 0, w, h, { jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
 }
 
@@ -2178,55 +2231,152 @@ function drawBigWord(bw, now) {
 // energy (0..1) follows the combo; pulse spikes on every break. Layers come in as it rises:
 // ambient glow and the scene's line art, then floor grid, sweeping beams, sparkles, EQ bars.
 function drawBackdrop(now) {
-  const E = S.energy || 0, P = S.pulse || 0, A = TH.accent, B = TH.accent2, fever = S.fever;
+  const E = S.energy || 0, P = S.pulse || 0, A = TH.accent, B = TH.accent2;
   ctx.fillStyle = '#04050a'; ctx.fillRect(-30, -30, W + 60, H + 60);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = 0.04 + 0.2 * E + 0.16 * P; ctx.drawImage(glow(A), -W * 0.4, H * 0.15, W * 1.8, H * 1.0);
   ctx.globalAlpha = 0.14 + 0.42 * E + 0.18 * P;
   ctx.drawImage(cachedLayer(TH.landKey, c => neonStatic(c, TH.R, TH.pal)), 0, 0, W, H);
   ctx.globalAlpha = 1; neonAnim(ctx, TH.R, TH.pal, now, E);
-  // floor grid rushing toward the player
-  if (E > 0.08) {
-    const hz = H * 0.6, vx = W / 2, a = Math.min(1, (E - 0.08) * 1.4);
-    ctx.strokeStyle = fever ? RAINBOW[Math.floor(now / 180) % RAINBOW.length] : A; ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.12 * a + 0.25 * P; ctx.beginPath();
-    for (let i = -10; i <= 10; i++) { ctx.moveTo(vx + i * 10, hz); ctx.lineTo(vx + i * 70, LY); }
-    const ph = (now / (700 - 400 * E)) % 1;
-    for (let i = 0; i < 9; i++) { const k = (i + ph) / 9, y = hz + (LY - hz) * k * k; ctx.moveTo(0, y); ctx.lineTo(W, y); }
-    ctx.stroke();
-  }
-  // sweeping spotlight beams
-  const nb = E > 0.3 ? Math.round(2 + (E - 0.3) * 6) : 0;
-  for (let i = 0; i < nb; i++) {
-    const ox = (i + 0.5) / nb * W, an = -Math.PI / 2 + Math.sin(now / (1300 - i * 90) + i * 1.9) * 0.55, len = H * 1.1;
-    const col = fever ? RAINBOW[(i + Math.floor(now / 220)) % RAINBOW.length] : i % 2 ? A : B;
-    const gr = ctx.createLinearGradient(ox, LY, ox + Math.cos(an) * len, LY + Math.sin(an) * len);
-    gr.addColorStop(0, hexOf(col) + '66'); gr.addColorStop(1, hexOf(col) + '00');
-    ctx.globalAlpha = Math.min(1, (E - 0.3) * 1.6) * (0.55 + 0.45 * P); ctx.fillStyle = gr;
-    const sp = 0.07;
-    ctx.beginPath(); ctx.moveTo(ox, LY + 10);
-    ctx.lineTo(ox + Math.cos(an - sp) * len, LY + Math.sin(an - sp) * len); ctx.lineTo(ox + Math.cos(an + sp) * len, LY + Math.sin(an + sp) * len); ctx.fill();
-  }
-  // sparkles drifting up
-  const nk = Math.round(E * 42);
-  for (let i = 0; i < nk; i++) {
-    const x = wrapN(i * 97 + Math.sin(now / 1700 + i) * 30, W), y = wrapN(i * 61 - now * 0.03 * (1 + i % 3), H);
-    const tw = Math.abs(Math.sin(now / 260 + i * 2.3)), sz = 5 + (i % 4) * 4;
-    ctx.globalAlpha = 0.25 + 0.75 * tw; ctx.drawImage(glow(i % 3 === 0 ? '#ffffff' : i % 2 ? A : B), x - sz, y - sz, sz * 2, sz * 2);
-  }
-  // equalizer along the bottom
-  if (E > 0.5) {
-    const n = 28, bw = W / n, a = Math.min(1, (E - 0.5) * 2);
-    for (let i = 0; i < n; i++) {
-      const h = (0.25 + 0.75 * Math.abs(Math.sin(now / 150 + i * 1.3 + Math.sin(now / 900) * 2))) * 46 * a + P * 34;
-      ctx.globalAlpha = 0.35 * a; ctx.fillStyle = fever ? RAINBOW[(i + Math.floor(now / 120)) % RAINBOW.length] : i % 2 ? A : B;
-      ctx.fillRect(i * bw + 1, H - h, bw - 2, h);
-    }
-  }
+  const zs = TH.zone ? TH.zone.style : 'grid';
+  (ZONE_SHOWS[zs] || ZONE_SHOWS.grid)(now, E, P, A, B);
   // every break throws light onto the black behind it
   for (const f of bgFlashes) { const k = f.life / f.max, r = 120 * (1.3 - 0.3 * k); ctx.globalAlpha = k * 0.3; ctx.drawImage(glow(f.col), f.x - r, f.y - r, r * 2, r * 2); }
   ctx.restore();
 }
+// colour i of a light show: the zone's pair, or the rainbow during FEVER
+const showCol = (i, now, A, B, speed = 220) => S.fever ? RAINBOW[(i + Math.floor(now / speed)) % RAINBOW.length] : i % 2 ? A : B;
+function beamWedge(ox, oy, an, len, spread, col, alpha) {
+  const gr = ctx.createLinearGradient(ox, oy, ox + Math.cos(an) * len, oy + Math.sin(an) * len);
+  gr.addColorStop(0, hexOf(col) + '66'); gr.addColorStop(1, hexOf(col) + '00');
+  ctx.globalAlpha = alpha; ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(ox, oy);
+  ctx.lineTo(ox + Math.cos(an - spread) * len, oy + Math.sin(an - spread) * len); ctx.lineTo(ox + Math.cos(an + spread) * len, oy + Math.sin(an + spread) * len); ctx.fill();
+}
+// Each zone's light show, layered in as energy E (0..1) rises; P is the break pulse.
+const ZONE_SHOWS = {
+  // NEON DAWN: floor grid rushing in, spotlight beams from below, sparkles, equalizer
+  grid(now, E, P, A, B) {
+    if (E > 0.08) {
+      const hz = H * 0.6, vx = W / 2, a = Math.min(1, (E - 0.08) * 1.4);
+      ctx.strokeStyle = showCol(0, now, A, A, 180); ctx.lineWidth = 1; ctx.globalAlpha = 0.12 * a + 0.25 * P; ctx.beginPath();
+      for (let i = -10; i <= 10; i++) { ctx.moveTo(vx + i * 10, hz); ctx.lineTo(vx + i * 70, LY); }
+      const ph = (now / (700 - 400 * E)) % 1;
+      for (let i = 0; i < 9; i++) { const k = (i + ph) / 9, y = hz + (LY - hz) * k * k; ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
+    }
+    const nb = E > 0.3 ? Math.round(2 + (E - 0.3) * 6) : 0;
+    for (let i = 0; i < nb; i++) beamWedge((i + 0.5) / nb * W, LY + 10, -Math.PI / 2 + Math.sin(now / (1300 - i * 90) + i * 1.9) * 0.55, H * 1.1, 0.07, showCol(i, now, A, B), Math.min(1, (E - 0.3) * 1.6) * (0.55 + 0.45 * P));
+    for (let i = 0, nk = Math.round(E * 42); i < nk; i++) {
+      const x = wrapN(i * 97 + Math.sin(now / 1700 + i) * 30, W), y = wrapN(i * 61 - now * 0.03 * (1 + i % 3), H), tw = Math.abs(Math.sin(now / 260 + i * 2.3)), sz = 5 + (i % 4) * 4;
+      ctx.globalAlpha = 0.25 + 0.75 * tw; ctx.drawImage(glow(i % 3 === 0 ? '#ffffff' : i % 2 ? A : B), x - sz, y - sz, sz * 2, sz * 2);
+    }
+    if (E > 0.5) {
+      const n = 28, bw = W / n, a = Math.min(1, (E - 0.5) * 2);
+      for (let i = 0; i < n; i++) {
+        const h = (0.25 + 0.75 * Math.abs(Math.sin(now / 150 + i * 1.3 + Math.sin(now / 900) * 2))) * 46 * a + P * 34;
+        ctx.globalAlpha = 0.35 * a; ctx.fillStyle = showCol(i, now, A, B, 120); ctx.fillRect(i * bw + 1, H - h, bw - 2, h);
+      }
+    }
+  },
+  // DEEP BLUE: rolling neon waves, light shafts from above, glowing bubbles, ripples
+  waves(now, E, P, A, B) {
+    if (E > 0.06) {
+      const a = Math.min(1, (E - 0.06) * 1.5);
+      for (let i = 0; i < 7; i++) {
+        const y0 = H * 0.62 + i * (LY - H * 0.62) / 7;
+        ctx.strokeStyle = showCol(i, now, A, B); ctx.lineWidth = 1.2; ctx.globalAlpha = (0.12 + 0.05 * i) * a + 0.2 * P; ctx.beginPath();
+        for (let x = 0; x <= W; x += 8) ctx.lineTo(x, y0 + Math.sin(x * 0.02 + now / (700 - 350 * E) + i * 0.8) * (3 + 7 * E + 6 * P));
+        ctx.stroke();
+      }
+    }
+    const nb = E > 0.28 ? Math.round(2 + (E - 0.28) * 5) : 0;
+    for (let i = 0; i < nb; i++) beamWedge((i + 0.5) / nb * W + Math.sin(now / 1500 + i) * 30, -10, Math.PI / 2 + Math.sin(now / 2100 + i * 1.3) * 0.18, H * 1.05, 0.09, showCol(i, now, A, B), Math.min(1, (E - 0.28) * 1.6) * (0.5 + 0.5 * P));
+    for (let i = 0, nk = Math.round(E * 34); i < nk; i++) {
+      const y = H - wrapN(i * 71 + now * (0.03 + 0.04 * E) * (1 + i % 3), H), x = wrapN(i * 53, W) + Math.sin(now / 600 + i) * 7, r = 2 + i % 5;
+      ctx.globalAlpha = 0.45 + 0.4 * E; ctx.strokeStyle = i % 2 ? A : B; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.6; ctx.fillStyle = '#ffffff'; ctx.fillRect(x - r * 0.4, y - r * 0.5, 1.4, 1.4);
+    }
+    if (E > 0.5) {
+      const a = Math.min(1, (E - 0.5) * 2);
+      for (let i = 0; i < 5; i++) {
+        const t = (now / 1400 + i * 0.27) % 1, cyc = Math.floor(now / 1400 + i * 0.27), x = wrapN(i * 131 + cyc * 97, W), y = H * 0.45 + wrapN(i * 71 + cyc * 53, H * 0.4);
+        ctx.globalAlpha = (1 - t) * 0.5 * a; ctx.strokeStyle = showCol(i, now, A, B); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(x, y, t * 120, t * 40, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+  },
+  // INFERNO: heat glow from below, flame tongues, rising embers, flame bars
+  embers(now, E, P, A, B) {
+    if (E > 0.05) {
+      const a = Math.min(1, (E - 0.05) * 1.4), gr = ctx.createLinearGradient(0, H, 0, H * 0.5);
+      gr.addColorStop(0, hexOf(S.fever ? RAINBOW[Math.floor(now / 200) % 8] : A) + '88'); gr.addColorStop(1, '#00000000');
+      ctx.globalAlpha = 0.35 * a + 0.25 * P; ctx.fillStyle = gr; ctx.fillRect(0, H * 0.5, W, H * 0.5);
+      ctx.strokeStyle = B; ctx.lineWidth = 1; ctx.globalAlpha = 0.15 * a;
+      for (let i = 0; i < 6; i++) { const y = H * 0.66 + i * 18; ctx.beginPath(); for (let x = 0; x <= W; x += 6) ctx.lineTo(x, y + Math.sin(x * 0.05 + now / 120 + i) * 1.5 * (1 + E)); ctx.stroke(); }
+    }
+    const nb = E > 0.3 ? Math.round(3 + (E - 0.3) * 7) : 0;
+    for (let i = 0; i < nb; i++) {
+      const x = (i + 0.5) / nb * W, h = H * (0.22 + 0.33 * E) * (0.7 + 0.3 * Math.sin(now / 180 + i * 2.1)), sway = Math.sin(now / 260 + i) * 18;
+      const gr = ctx.createLinearGradient(0, H, 0, H - h); gr.addColorStop(0, hexOf(showCol(i, now, A, B)) + 'aa'); gr.addColorStop(1, '#00000000');
+      ctx.globalAlpha = Math.min(1, (E - 0.3) * 1.6) * (0.55 + 0.45 * P); ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.moveTo(x - 26, H); ctx.quadraticCurveTo(x - 20 + sway, H - h * 0.55, x + sway * 1.4, H - h); ctx.quadraticCurveTo(x + 20 + sway, H - h * 0.55, x + 26, H); ctx.fill();
+    }
+    for (let i = 0, nk = Math.round(E * 50); i < nk; i++) {
+      const y = H - wrapN(i * 71 + now * (0.05 + 0.06 * E) * (1 + i % 3), H), x = wrapN(i * 53 + Math.sin(now / 400 + i) * 14, W);
+      ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(now / 90 + i)); ctx.fillStyle = i % 3 ? A : '#ffd000'; ctx.fillRect(x, y, 2, 2);
+    }
+  },
+  // AURORA: crystal lattice floor, aurora curtains above, twinkling ice sparkles
+  crystal(now, E, P, A, B) {
+    if (E > 0.07) {
+      const a = Math.min(1, (E - 0.07) * 1.4), top = H * 0.62, off = (now / 90) % 34;
+      ctx.strokeStyle = A; ctx.lineWidth = 1; ctx.globalAlpha = 0.12 * a + 0.22 * P; ctx.beginPath();
+      for (let x = -H; x < W + H; x += 34) { ctx.moveTo(x + off, top); ctx.lineTo(x + off + (LY - top) * 0.58, LY); ctx.moveTo(x - off, top); ctx.lineTo(x - off - (LY - top) * 0.58, LY); }
+      ctx.stroke();
+    }
+    if (E > 0.25) {
+      const a = Math.min(1, (E - 0.25) * 1.5);
+      [A, B, '#39ff88'].forEach((c, k) => {
+        const col = S.fever ? RAINBOW[(k * 2 + Math.floor(now / 260)) % 8] : c;
+        const gr = ctx.createLinearGradient(0, 0, 0, 170); gr.addColorStop(0, hexOf(col) + 'aa'); gr.addColorStop(1, '#00000000'); ctx.fillStyle = gr;
+        for (let x = 0; x < W; x += 6) {
+          const y = H * 0.1 + Math.sin(x * 0.012 + now / 1500 + k * 1.7) * 32 + k * 22;
+          ctx.globalAlpha = (0.12 + 0.1 * Math.sin(x * 0.04 + now / 700 + k)) * a * (1 + P); ctx.translate(x, y); ctx.fillRect(0, 0, 6, 170); ctx.translate(-x, -y);
+        }
+      });
+    }
+    for (let i = 0, nk = Math.round(E * 40); i < nk; i++) {
+      const x = wrapN(i * 89 + Math.sin(now / 2000 + i) * 20, W), y = wrapN(i * 67 + now * 0.012 * (1 + i % 3), H), tw = Math.abs(Math.sin(now / 300 + i * 1.9)), sz = 2 + (i % 3);
+      ctx.globalAlpha = 0.3 + 0.7 * tw; ctx.fillStyle = i % 3 ? '#e6fbff' : A;
+      ctx.beginPath(); ctx.moveTo(x, y - sz * 2); ctx.lineTo(x + sz, y); ctx.lineTo(x, y + sz * 2); ctx.lineTo(x - sz, y); ctx.fill();
+    }
+  },
+  // COSMOS: stars warping out from the centre, nebula glow, orbit rings, twinkles
+  warp(now, E, P, A, B) {
+    const cx = W / 2, cy = H * 0.42, maxR = Math.hypot(W, H) * 0.6;
+    [[A, -0.2, 0.3], [B, 0.25, 0.6], ['#9b4dff', 0, 0.85]].forEach(([c, dx, dy], k) => {
+      const r = 220 + 40 * Math.sin(now / 3000 + k);
+      ctx.globalAlpha = 0.06 + 0.22 * E + 0.12 * P; ctx.drawImage(glow(S.fever ? RAINBOW[(k * 3 + Math.floor(now / 300)) % 8] : c), W * (0.5 + dx) - r, H * dy - r, r * 2, r * 2);
+    });
+    const ns = Math.round(40 + 70 * E), speed = 0.02 + 0.35 * E;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.3;
+    for (let i = 0; i < ns; i++) {
+      const an = i * 2.399, r = wrapN(i * 37 + now * speed * (0.6 + (i % 5) * 0.2), maxR), len = 2 + r * (0.03 + 0.22 * E);
+      ctx.globalAlpha = Math.min(1, r / 120) * (0.35 + 0.5 * E); ctx.strokeStyle = i % 4 === 0 ? A : i % 4 === 1 ? B : '#ffffff';
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(an) * r, cy + Math.sin(an) * r); ctx.lineTo(cx + Math.cos(an) * (r + len), cy + Math.sin(an) * (r + len)); ctx.stroke();
+    }
+    if (E > 0.3) {
+      const a = Math.min(1, (E - 0.3) * 1.5);
+      for (let k = 0; k < 3; k++) {
+        const rot = now / (4000 + k * 1500) + k, rx = 120 + k * 60, ry = 34 + k * 14;
+        ctx.globalAlpha = (0.25 + 0.2 * P) * a; ctx.strokeStyle = showCol(k, now, A, B); ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, rot * 0.2, 0, Math.PI * 2); ctx.stroke();
+        const t = now / (900 + k * 400);
+        ctx.globalAlpha = a; ctx.drawImage(glow(showCol(k + 1, now, A, B)), cx + Math.cos(t) * rx * Math.cos(rot * 0.2) - Math.sin(t) * ry * Math.sin(rot * 0.2) - 8, cy + Math.cos(t) * rx * Math.sin(rot * 0.2) + Math.sin(t) * ry * Math.cos(rot * 0.2) - 8, 16, 16);
+      }
+    }
+  },
+};
 function drawBreakLight() {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const p of pillars) { // a column of light shooting up from a broken brick

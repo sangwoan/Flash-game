@@ -60,10 +60,6 @@ function endTurn() {
   rebuildGrid();
   S.turn++;
   addGold(BAL.goldPerTurn);
-  if (S.turn % BAL.bossEvery === 1 && !STG.endless) {
-    const ch = chapterOf(S.turn);
-    showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
-  }
   if (S.worldPending) switchWorld();
   spawnRow(S.turn, true);
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
@@ -245,7 +241,7 @@ function refreshTitle() {
   applyTheme(nx.land);
   $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
-  $('nextInfo').textContent = `${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
+  $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
   $('endless').disabled = !open;
   $('endless').textContent = open ? '무한 모드' : '무한 모드 (스테이지 1 클리어 시 열림)';
@@ -267,6 +263,12 @@ function renderMap() {
   const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
+    if (st % STAGES_PER_ZONE === 0) {
+      const Z = zoneOf(st), hd = document.createElement('div');
+      hd.className = 'zoneHead'; hd.style.cssText = `--wa:${Z.pals[0][0]};--wb:${Z.pals[0][1]}`;
+      hd.innerHTML = `<b>ZONE ${Z.n + 1}</b><span>${Z.title}</span><em>${Z.ko}</em>`;
+      list.appendChild(hd);
+    }
     const sec = document.createElement('section');
     sec.className = 'world' + (open ? '' : ' locked');
     sec.style.cssText = `--wa:${R.accent};--thumb:url(${landThumb(st)})`;
@@ -307,7 +309,8 @@ function startLevel(g) {
   STG = levelInfo(Math.max(0, g));
   applyTheme(STG.land);
   beginRun();
-  showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
+  if (STG.l === 0 && STG.s % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
+  else showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = ENDLESS;
@@ -315,14 +318,21 @@ function startEndless() {
   beginRun();
   showBanner('ENDLESS', '보스를 잡을 때마다 레벨과 풍경이 바뀝니다', TH.accent);
 }
+// Entering a new zone (every 5 stages): a longer banner and a light sweep.
+function zoneBanner(Z) {
+  showBanner(`ZONE ${Z.n + 1} · ${Z.title}`, `${Z.ko} · ${TH.name}`, TH.accent);
+  S.banner.life = S.banner.max = 3.2;
+  S.wipe = 1; S.pulse = 1; S.flash = 0.3; S.flashCol = '255,255,255';
+  for (let i = 0; i < 5; i++) burst(W * (0.1 + 0.2 * i), H * 0.42, i % 2 ? TH.accent : TH.accent2, 26, 380);
+}
 // Endless: each boss raises the level and moves to the next landscape.
 function switchWorld() {
   S.worldPending = false;
   S.world++;
   applyTheme(S.world);
   S.wipe = 1; shake(10); sfx.clear(); buzz(120);
-  showBanner(`LEVEL ${S.world + 1}`, TH.name, TH.accent);
-  S.banner.life = S.banner.max = 2.6;
+  if (S.world % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
+  else { showBanner(`LEVEL ${S.world + 1}`, TH.name, TH.accent); S.banner.life = S.banner.max = 2.6; }
   for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
 }
 

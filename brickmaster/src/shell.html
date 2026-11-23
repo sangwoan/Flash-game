@@ -157,6 +157,10 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 
 
 #rank{justify-content:flex-start;gap:calc(var(--s)*8px)}
+.zoneHead{display:flex;align-items:baseline;gap:calc(var(--s)*10px);padding:calc(var(--s)*6px) calc(var(--s)*4px) 0;border-bottom:calc(var(--s)*2px) solid var(--wa);box-shadow:0 calc(var(--s)*6px) calc(var(--s)*14px) calc(var(--s)*-10px) var(--wa)}
+.zoneHead b{font-family:var(--disp);font-size:calc(var(--s)*11px);color:var(--wa);letter-spacing:.14em}
+.zoneHead span{font-family:var(--disp);font-size:calc(var(--s)*20px);font-weight:700;color:#fff;text-shadow:0 0 calc(var(--s)*10px) var(--wa),0 0 calc(var(--s)*22px) var(--wb);letter-spacing:.06em}
+.zoneHead em{font-style:normal;font-size:calc(var(--s)*13px);color:var(--wb);margin-left:auto}
 .prize{width:100%;display:grid;grid-template-columns:1.6fr 1fr;gap:calc(var(--s)*8px)}
 .prize div{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*14px);padding:calc(var(--s)*8px);display:grid;gap:calc(var(--s)*2px)}
 .prize div:first-child{background:linear-gradient(135deg,#ffe9a8,#ffc46b);color:#5a3a00;border:0}
@@ -207,7 +211,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 
   <div id="shieldOffer" hidden>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/></svg>
-    <div><b>위기! 방어막 1회</b><span>벽돌 하나를 막아줍니다 · 이번 판 한 번뿐</span></div>
+    <div><b>위기! 방어막 1회</b><span>빨간 선에 닿는 벽돌 하나를 막아 줍니다 · 한 판에 한 번</span></div>
     <button id="shieldTake" class="btn ko ad" type="button">받기</button>
     <button id="shieldSkip" class="btn" type="button" aria-label="닫기">✕</button>
     <i class="bar"></i>

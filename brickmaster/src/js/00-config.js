@@ -16,19 +16,21 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 3 ? 0.025 : 0,
+  chest: t => t > 2 ? 0.035 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   bossEvery: 10, bossHp: 6,
   levelHp: g => 1 + 0.06 * g, // brick HP multiplier for classic level g (0-based)
-  xpNeed: lvl => Math.round(3 + lvl * 2 + 0.25 * Math.pow(lvl, 2.2)), // fast early levels, slow after ~15
+  xpNeed: lvl => Math.round(3 + lvl * 2.5 + 0.28 * Math.pow(lvl, 2.2)),
+  // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
+  // Tuned to about one level-up every 5 turns early on (it was about 2 in 5).
+  xpBrick: 0.55, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
 const chapterOf = t => Math.ceil(t / BAL.bossEvery);
-const chapterName = () => TH.name;
 
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');

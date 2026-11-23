@@ -50,6 +50,19 @@ function brickColor(br) {
 function ballColor() { return S.lv.fire ? '#ffb36b' : S.lv.chain ? '#bfefff' : TH.ball.core; }
 
 // ---------- bricks ----------
+// Brick outline for the current zone: round (dawn), pill (deep blue), chamfered (inferno),
+// faceted gem (aurora), soft orb (cosmos).
+function brickPath(x, y, w, h) {
+  const sh = TH.zone ? TH.zone.shape : 'round';
+  if (sh === 'pill') { rr(x, y, w, h, Math.min(h / 2 - 1, 14)); return; }
+  if (sh === 'orb') { rr(x, y, w, h, 10); return; }
+  if (sh === 'chamfer' || sh === 'facet') {
+    const c = sh === 'chamfer' ? 7 : 10, a = sh === 'facet' ? 0 : c; // facet: cut top-left and bottom-right only
+    ctx.beginPath(); ctx.moveTo(x + c, y); ctx.lineTo(x + w - a, y); ctx.lineTo(x + w, y + a); ctx.lineTo(x + w, y + h - c);
+    ctx.lineTo(x + w - c, y + h); ctx.lineTo(x + a, y + h); ctx.lineTo(x, y + h - a); ctx.lineTo(x, y + c); ctx.closePath(); return;
+  }
+  rr(x, y, w, h, 6);
+}
 function brickBody(br, w, h, col, now) {
   const st = TH.brick;
   if (st === 'jelly') {
@@ -84,7 +97,7 @@ function brickBody(br, w, h, col, now) {
     ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.strokeRect(0, 0, w, h);
   } else if (st === 'neonx') {
     // sleek neon: dark glass core, a crisp lit edge and a soft bloom around it
-    rr(0, 0, w, h, 6);
+    brickPath(0, 0, w, h);
     ctx.fillStyle = 'rgba(7,9,18,.86)'; ctx.fill();
     ctx.fillStyle = col; ctx.globalAlpha = 0.14; ctx.fill(); ctx.globalAlpha = 1;
     const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -93,6 +106,12 @@ function brickBody(br, w, h, col, now) {
     ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = col;
     ctx.globalAlpha = 0.3; ctx.lineWidth = 6; ctx.stroke();
     ctx.globalAlpha = 1; ctx.lineWidth = 1.8; ctx.stroke();
+    const sh = TH.zone ? TH.zone.shape : 'round';
+    if (sh === 'facet') { ctx.globalAlpha = 0.45; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(w * 0.42, h); ctx.stroke(); }
+    else if (sh === 'pill') { ctx.globalAlpha = 0.35; ctx.lineWidth = 1; brickPath(3, 3, w - 6, h - 6); ctx.stroke(); }
+    else if (sh === 'chamfer') { ctx.globalAlpha = 0.55; ctx.fillStyle = col; ctx.fillRect(9, h - 3, w - 18, 1.5); }
+    else if (sh === 'orb') { ctx.globalAlpha = 0.9; ctx.drawImage(glow(typeof col === 'string' ? col : TH.accent), 3, h / 2 - 7, 14, 14); }
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   } else if (st === 'frost') {
     // soft glass: tinted translucent slab, frosted highlight, soft shadow
@@ -173,8 +192,8 @@ function drawBrick(br, now) {
   drawCracks(br, w, h);
   if (TH.brick === 'neonx' && f > 0.25) { // hit: the edge splits into red/cyan for a moment
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1.6; ctx.globalAlpha = f * 0.9;
-    ctx.strokeStyle = '#ff2b6a'; rr(2.5 * f, 0, w, h, 6); ctx.stroke();
-    ctx.strokeStyle = '#00e5ff'; rr(-2.5 * f, 0, w, h, 6); ctx.stroke();
+    ctx.strokeStyle = '#ff2b6a'; brickPath(2.5 * f, 0, w, h); ctx.stroke();
+    ctx.strokeStyle = '#00e5ff'; brickPath(-2.5 * f, 0, w, h); ctx.stroke();
     ctx.restore();
   }
   if (br.acid) { // acid stacks as green drops
@@ -192,7 +211,7 @@ function drawBrick(br, now) {
   if (TH.numInk === 'auto' && ink === '#ffffff') { ctx.fillStyle = 'rgba(30,20,60,.25)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   if (TH.numStroke) { ctx.strokeStyle = TH.numStroke; ctx.lineWidth = 3; ctx.strokeText(label, w / 2, h / 2 + 1); }
   ctx.fillStyle = ink; ctx.fillText(label, w / 2, h / 2 + 1);
-  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if ({ jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5, neonx: 6 }[TH.brick]) { rr(0, 0, w, h, { jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5, neonx: 6 }[TH.brick]); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
+  if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'neonx') { brickPath(0, 0, w, h); ctx.fill(); } else if ({ jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]) { rr(0, 0, w, h, { jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
 }
 
@@ -351,55 +370,152 @@ function drawBigWord(bw, now) {
 // energy (0..1) follows the combo; pulse spikes on every break. Layers come in as it rises:
 // ambient glow and the scene's line art, then floor grid, sweeping beams, sparkles, EQ bars.
 function drawBackdrop(now) {
-  const E = S.energy || 0, P = S.pulse || 0, A = TH.accent, B = TH.accent2, fever = S.fever;
+  const E = S.energy || 0, P = S.pulse || 0, A = TH.accent, B = TH.accent2;
   ctx.fillStyle = '#04050a'; ctx.fillRect(-30, -30, W + 60, H + 60);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = 0.04 + 0.2 * E + 0.16 * P; ctx.drawImage(glow(A), -W * 0.4, H * 0.15, W * 1.8, H * 1.0);
   ctx.globalAlpha = 0.14 + 0.42 * E + 0.18 * P;
   ctx.drawImage(cachedLayer(TH.landKey, c => neonStatic(c, TH.R, TH.pal)), 0, 0, W, H);
   ctx.globalAlpha = 1; neonAnim(ctx, TH.R, TH.pal, now, E);
-  // floor grid rushing toward the player
-  if (E > 0.08) {
-    const hz = H * 0.6, vx = W / 2, a = Math.min(1, (E - 0.08) * 1.4);
-    ctx.strokeStyle = fever ? RAINBOW[Math.floor(now / 180) % RAINBOW.length] : A; ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.12 * a + 0.25 * P; ctx.beginPath();
-    for (let i = -10; i <= 10; i++) { ctx.moveTo(vx + i * 10, hz); ctx.lineTo(vx + i * 70, LY); }
-    const ph = (now / (700 - 400 * E)) % 1;
-    for (let i = 0; i < 9; i++) { const k = (i + ph) / 9, y = hz + (LY - hz) * k * k; ctx.moveTo(0, y); ctx.lineTo(W, y); }
-    ctx.stroke();
-  }
-  // sweeping spotlight beams
-  const nb = E > 0.3 ? Math.round(2 + (E - 0.3) * 6) : 0;
-  for (let i = 0; i < nb; i++) {
-    const ox = (i + 0.5) / nb * W, an = -Math.PI / 2 + Math.sin(now / (1300 - i * 90) + i * 1.9) * 0.55, len = H * 1.1;
-    const col = fever ? RAINBOW[(i + Math.floor(now / 220)) % RAINBOW.length] : i % 2 ? A : B;
-    const gr = ctx.createLinearGradient(ox, LY, ox + Math.cos(an) * len, LY + Math.sin(an) * len);
-    gr.addColorStop(0, hexOf(col) + '66'); gr.addColorStop(1, hexOf(col) + '00');
-    ctx.globalAlpha = Math.min(1, (E - 0.3) * 1.6) * (0.55 + 0.45 * P); ctx.fillStyle = gr;
-    const sp = 0.07;
-    ctx.beginPath(); ctx.moveTo(ox, LY + 10);
-    ctx.lineTo(ox + Math.cos(an - sp) * len, LY + Math.sin(an - sp) * len); ctx.lineTo(ox + Math.cos(an + sp) * len, LY + Math.sin(an + sp) * len); ctx.fill();
-  }
-  // sparkles drifting up
-  const nk = Math.round(E * 42);
-  for (let i = 0; i < nk; i++) {
-    const x = wrapN(i * 97 + Math.sin(now / 1700 + i) * 30, W), y = wrapN(i * 61 - now * 0.03 * (1 + i % 3), H);
-    const tw = Math.abs(Math.sin(now / 260 + i * 2.3)), sz = 5 + (i % 4) * 4;
-    ctx.globalAlpha = 0.25 + 0.75 * tw; ctx.drawImage(glow(i % 3 === 0 ? '#ffffff' : i % 2 ? A : B), x - sz, y - sz, sz * 2, sz * 2);
-  }
-  // equalizer along the bottom
-  if (E > 0.5) {
-    const n = 28, bw = W / n, a = Math.min(1, (E - 0.5) * 2);
-    for (let i = 0; i < n; i++) {
-      const h = (0.25 + 0.75 * Math.abs(Math.sin(now / 150 + i * 1.3 + Math.sin(now / 900) * 2))) * 46 * a + P * 34;
-      ctx.globalAlpha = 0.35 * a; ctx.fillStyle = fever ? RAINBOW[(i + Math.floor(now / 120)) % RAINBOW.length] : i % 2 ? A : B;
-      ctx.fillRect(i * bw + 1, H - h, bw - 2, h);
-    }
-  }
+  const zs = TH.zone ? TH.zone.style : 'grid';
+  (ZONE_SHOWS[zs] || ZONE_SHOWS.grid)(now, E, P, A, B);
   // every break throws light onto the black behind it
   for (const f of bgFlashes) { const k = f.life / f.max, r = 120 * (1.3 - 0.3 * k); ctx.globalAlpha = k * 0.3; ctx.drawImage(glow(f.col), f.x - r, f.y - r, r * 2, r * 2); }
   ctx.restore();
 }
+// colour i of a light show: the zone's pair, or the rainbow during FEVER
+const showCol = (i, now, A, B, speed = 220) => S.fever ? RAINBOW[(i + Math.floor(now / speed)) % RAINBOW.length] : i % 2 ? A : B;
+function beamWedge(ox, oy, an, len, spread, col, alpha) {
+  const gr = ctx.createLinearGradient(ox, oy, ox + Math.cos(an) * len, oy + Math.sin(an) * len);
+  gr.addColorStop(0, hexOf(col) + '66'); gr.addColorStop(1, hexOf(col) + '00');
+  ctx.globalAlpha = alpha; ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(ox, oy);
+  ctx.lineTo(ox + Math.cos(an - spread) * len, oy + Math.sin(an - spread) * len); ctx.lineTo(ox + Math.cos(an + spread) * len, oy + Math.sin(an + spread) * len); ctx.fill();
+}
+// Each zone's light show, layered in as energy E (0..1) rises; P is the break pulse.
+const ZONE_SHOWS = {
+  // NEON DAWN: floor grid rushing in, spotlight beams from below, sparkles, equalizer
+  grid(now, E, P, A, B) {
+    if (E > 0.08) {
+      const hz = H * 0.6, vx = W / 2, a = Math.min(1, (E - 0.08) * 1.4);
+      ctx.strokeStyle = showCol(0, now, A, A, 180); ctx.lineWidth = 1; ctx.globalAlpha = 0.12 * a + 0.25 * P; ctx.beginPath();
+      for (let i = -10; i <= 10; i++) { ctx.moveTo(vx + i * 10, hz); ctx.lineTo(vx + i * 70, LY); }
+      const ph = (now / (700 - 400 * E)) % 1;
+      for (let i = 0; i < 9; i++) { const k = (i + ph) / 9, y = hz + (LY - hz) * k * k; ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
+    }
+    const nb = E > 0.3 ? Math.round(2 + (E - 0.3) * 6) : 0;
+    for (let i = 0; i < nb; i++) beamWedge((i + 0.5) / nb * W, LY + 10, -Math.PI / 2 + Math.sin(now / (1300 - i * 90) + i * 1.9) * 0.55, H * 1.1, 0.07, showCol(i, now, A, B), Math.min(1, (E - 0.3) * 1.6) * (0.55 + 0.45 * P));
+    for (let i = 0, nk = Math.round(E * 42); i < nk; i++) {
+      const x = wrapN(i * 97 + Math.sin(now / 1700 + i) * 30, W), y = wrapN(i * 61 - now * 0.03 * (1 + i % 3), H), tw = Math.abs(Math.sin(now / 260 + i * 2.3)), sz = 5 + (i % 4) * 4;
+      ctx.globalAlpha = 0.25 + 0.75 * tw; ctx.drawImage(glow(i % 3 === 0 ? '#ffffff' : i % 2 ? A : B), x - sz, y - sz, sz * 2, sz * 2);
+    }
+    if (E > 0.5) {
+      const n = 28, bw = W / n, a = Math.min(1, (E - 0.5) * 2);
+      for (let i = 0; i < n; i++) {
+        const h = (0.25 + 0.75 * Math.abs(Math.sin(now / 150 + i * 1.3 + Math.sin(now / 900) * 2))) * 46 * a + P * 34;
+        ctx.globalAlpha = 0.35 * a; ctx.fillStyle = showCol(i, now, A, B, 120); ctx.fillRect(i * bw + 1, H - h, bw - 2, h);
+      }
+    }
+  },
+  // DEEP BLUE: rolling neon waves, light shafts from above, glowing bubbles, ripples
+  waves(now, E, P, A, B) {
+    if (E > 0.06) {
+      const a = Math.min(1, (E - 0.06) * 1.5);
+      for (let i = 0; i < 7; i++) {
+        const y0 = H * 0.62 + i * (LY - H * 0.62) / 7;
+        ctx.strokeStyle = showCol(i, now, A, B); ctx.lineWidth = 1.2; ctx.globalAlpha = (0.12 + 0.05 * i) * a + 0.2 * P; ctx.beginPath();
+        for (let x = 0; x <= W; x += 8) ctx.lineTo(x, y0 + Math.sin(x * 0.02 + now / (700 - 350 * E) + i * 0.8) * (3 + 7 * E + 6 * P));
+        ctx.stroke();
+      }
+    }
+    const nb = E > 0.28 ? Math.round(2 + (E - 0.28) * 5) : 0;
+    for (let i = 0; i < nb; i++) beamWedge((i + 0.5) / nb * W + Math.sin(now / 1500 + i) * 30, -10, Math.PI / 2 + Math.sin(now / 2100 + i * 1.3) * 0.18, H * 1.05, 0.09, showCol(i, now, A, B), Math.min(1, (E - 0.28) * 1.6) * (0.5 + 0.5 * P));
+    for (let i = 0, nk = Math.round(E * 34); i < nk; i++) {
+      const y = H - wrapN(i * 71 + now * (0.03 + 0.04 * E) * (1 + i % 3), H), x = wrapN(i * 53, W) + Math.sin(now / 600 + i) * 7, r = 2 + i % 5;
+      ctx.globalAlpha = 0.45 + 0.4 * E; ctx.strokeStyle = i % 2 ? A : B; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 0.6; ctx.fillStyle = '#ffffff'; ctx.fillRect(x - r * 0.4, y - r * 0.5, 1.4, 1.4);
+    }
+    if (E > 0.5) {
+      const a = Math.min(1, (E - 0.5) * 2);
+      for (let i = 0; i < 5; i++) {
+        const t = (now / 1400 + i * 0.27) % 1, cyc = Math.floor(now / 1400 + i * 0.27), x = wrapN(i * 131 + cyc * 97, W), y = H * 0.45 + wrapN(i * 71 + cyc * 53, H * 0.4);
+        ctx.globalAlpha = (1 - t) * 0.5 * a; ctx.strokeStyle = showCol(i, now, A, B); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(x, y, t * 120, t * 40, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+  },
+  // INFERNO: heat glow from below, flame tongues, rising embers, flame bars
+  embers(now, E, P, A, B) {
+    if (E > 0.05) {
+      const a = Math.min(1, (E - 0.05) * 1.4), gr = ctx.createLinearGradient(0, H, 0, H * 0.5);
+      gr.addColorStop(0, hexOf(S.fever ? RAINBOW[Math.floor(now / 200) % 8] : A) + '88'); gr.addColorStop(1, '#00000000');
+      ctx.globalAlpha = 0.35 * a + 0.25 * P; ctx.fillStyle = gr; ctx.fillRect(0, H * 0.5, W, H * 0.5);
+      ctx.strokeStyle = B; ctx.lineWidth = 1; ctx.globalAlpha = 0.15 * a;
+      for (let i = 0; i < 6; i++) { const y = H * 0.66 + i * 18; ctx.beginPath(); for (let x = 0; x <= W; x += 6) ctx.lineTo(x, y + Math.sin(x * 0.05 + now / 120 + i) * 1.5 * (1 + E)); ctx.stroke(); }
+    }
+    const nb = E > 0.3 ? Math.round(3 + (E - 0.3) * 7) : 0;
+    for (let i = 0; i < nb; i++) {
+      const x = (i + 0.5) / nb * W, h = H * (0.22 + 0.33 * E) * (0.7 + 0.3 * Math.sin(now / 180 + i * 2.1)), sway = Math.sin(now / 260 + i) * 18;
+      const gr = ctx.createLinearGradient(0, H, 0, H - h); gr.addColorStop(0, hexOf(showCol(i, now, A, B)) + 'aa'); gr.addColorStop(1, '#00000000');
+      ctx.globalAlpha = Math.min(1, (E - 0.3) * 1.6) * (0.55 + 0.45 * P); ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.moveTo(x - 26, H); ctx.quadraticCurveTo(x - 20 + sway, H - h * 0.55, x + sway * 1.4, H - h); ctx.quadraticCurveTo(x + 20 + sway, H - h * 0.55, x + 26, H); ctx.fill();
+    }
+    for (let i = 0, nk = Math.round(E * 50); i < nk; i++) {
+      const y = H - wrapN(i * 71 + now * (0.05 + 0.06 * E) * (1 + i % 3), H), x = wrapN(i * 53 + Math.sin(now / 400 + i) * 14, W);
+      ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(now / 90 + i)); ctx.fillStyle = i % 3 ? A : '#ffd000'; ctx.fillRect(x, y, 2, 2);
+    }
+  },
+  // AURORA: crystal lattice floor, aurora curtains above, twinkling ice sparkles
+  crystal(now, E, P, A, B) {
+    if (E > 0.07) {
+      const a = Math.min(1, (E - 0.07) * 1.4), top = H * 0.62, off = (now / 90) % 34;
+      ctx.strokeStyle = A; ctx.lineWidth = 1; ctx.globalAlpha = 0.12 * a + 0.22 * P; ctx.beginPath();
+      for (let x = -H; x < W + H; x += 34) { ctx.moveTo(x + off, top); ctx.lineTo(x + off + (LY - top) * 0.58, LY); ctx.moveTo(x - off, top); ctx.lineTo(x - off - (LY - top) * 0.58, LY); }
+      ctx.stroke();
+    }
+    if (E > 0.25) {
+      const a = Math.min(1, (E - 0.25) * 1.5);
+      [A, B, '#39ff88'].forEach((c, k) => {
+        const col = S.fever ? RAINBOW[(k * 2 + Math.floor(now / 260)) % 8] : c;
+        const gr = ctx.createLinearGradient(0, 0, 0, 170); gr.addColorStop(0, hexOf(col) + 'aa'); gr.addColorStop(1, '#00000000'); ctx.fillStyle = gr;
+        for (let x = 0; x < W; x += 6) {
+          const y = H * 0.1 + Math.sin(x * 0.012 + now / 1500 + k * 1.7) * 32 + k * 22;
+          ctx.globalAlpha = (0.12 + 0.1 * Math.sin(x * 0.04 + now / 700 + k)) * a * (1 + P); ctx.translate(x, y); ctx.fillRect(0, 0, 6, 170); ctx.translate(-x, -y);
+        }
+      });
+    }
+    for (let i = 0, nk = Math.round(E * 40); i < nk; i++) {
+      const x = wrapN(i * 89 + Math.sin(now / 2000 + i) * 20, W), y = wrapN(i * 67 + now * 0.012 * (1 + i % 3), H), tw = Math.abs(Math.sin(now / 300 + i * 1.9)), sz = 2 + (i % 3);
+      ctx.globalAlpha = 0.3 + 0.7 * tw; ctx.fillStyle = i % 3 ? '#e6fbff' : A;
+      ctx.beginPath(); ctx.moveTo(x, y - sz * 2); ctx.lineTo(x + sz, y); ctx.lineTo(x, y + sz * 2); ctx.lineTo(x - sz, y); ctx.fill();
+    }
+  },
+  // COSMOS: stars warping out from the centre, nebula glow, orbit rings, twinkles
+  warp(now, E, P, A, B) {
+    const cx = W / 2, cy = H * 0.42, maxR = Math.hypot(W, H) * 0.6;
+    [[A, -0.2, 0.3], [B, 0.25, 0.6], ['#9b4dff', 0, 0.85]].forEach(([c, dx, dy], k) => {
+      const r = 220 + 40 * Math.sin(now / 3000 + k);
+      ctx.globalAlpha = 0.06 + 0.22 * E + 0.12 * P; ctx.drawImage(glow(S.fever ? RAINBOW[(k * 3 + Math.floor(now / 300)) % 8] : c), W * (0.5 + dx) - r, H * dy - r, r * 2, r * 2);
+    });
+    const ns = Math.round(40 + 70 * E), speed = 0.02 + 0.35 * E;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.3;
+    for (let i = 0; i < ns; i++) {
+      const an = i * 2.399, r = wrapN(i * 37 + now * speed * (0.6 + (i % 5) * 0.2), maxR), len = 2 + r * (0.03 + 0.22 * E);
+      ctx.globalAlpha = Math.min(1, r / 120) * (0.35 + 0.5 * E); ctx.strokeStyle = i % 4 === 0 ? A : i % 4 === 1 ? B : '#ffffff';
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(an) * r, cy + Math.sin(an) * r); ctx.lineTo(cx + Math.cos(an) * (r + len), cy + Math.sin(an) * (r + len)); ctx.stroke();
+    }
+    if (E > 0.3) {
+      const a = Math.min(1, (E - 0.3) * 1.5);
+      for (let k = 0; k < 3; k++) {
+        const rot = now / (4000 + k * 1500) + k, rx = 120 + k * 60, ry = 34 + k * 14;
+        ctx.globalAlpha = (0.25 + 0.2 * P) * a; ctx.strokeStyle = showCol(k, now, A, B); ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, rot * 0.2, 0, Math.PI * 2); ctx.stroke();
+        const t = now / (900 + k * 400);
+        ctx.globalAlpha = a; ctx.drawImage(glow(showCol(k + 1, now, A, B)), cx + Math.cos(t) * rx * Math.cos(rot * 0.2) - Math.sin(t) * ry * Math.sin(rot * 0.2) - 8, cy + Math.cos(t) * rx * Math.sin(rot * 0.2) + Math.sin(t) * ry * Math.cos(rot * 0.2) - 8, 16, 16);
+      }
+    }
+  },
+};
 function drawBreakLight() {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const p of pillars) { // a column of light shooting up from a broken brick

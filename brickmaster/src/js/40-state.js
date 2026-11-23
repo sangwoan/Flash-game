@@ -59,7 +59,7 @@ function spawnRow(t, slide = true) {
     const c = Math.floor(rnd() * (COLS - 2));
     addBrick({ c, r: 0, span: 3, type: 'boss', hp: h * BAL.bossHp, chapter: chapterOf(t) }, slide);
     used[c] = used[c + 1] = used[c + 2] = true;
-    showBanner('BOSS', STG.endless ? `챕터 ${chapterOf(t)} 보스가 나타났다` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
+    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
     sfx.boss();
   }
   let placed = 0;

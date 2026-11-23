@@ -131,18 +131,18 @@ function kill(br) {
   if (!boss && rnd() < (S.fever ? 0.5 : 0.25)) flyCoin(cx, cy);
   shake(boss ? 14 : 1.2);
   sfx.brk(S.combo); buzz(boss ? 80 : 8);
-  const bonus = Math.floor(S.turn / 10);
+  const bonus = BAL.xpTurnBonus ? Math.floor(S.turn / BAL.xpTurnBonus) : 0;
   if (boss) {
-    gainXp(25);
+    gainXp(BAL.xpBoss);
     S.bosses++; S.hitstop = 0.16;
     if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
-    if (S.cleared) showBanner('STAGE CLEAR', `스테이지 ${STG.id} 돌파!`, TH.css.gold);
+    if (S.cleared) showBanner('LEVEL CLEAR', `레벨 ${STG.id} 돌파!`, TH.css.gold);
     else showBanner(STG.endless ? `LEVEL ${S.world + 1} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
     sfx.clear();
-  } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
-  else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }
+  } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
+  else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);

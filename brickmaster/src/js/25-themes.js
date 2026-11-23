@@ -32,7 +32,7 @@ const NEON_RAMP = ['#00e5ff', '#3d7bff', '#9b4dff', '#ff2bd6', '#ff6a3d', '#ffd0
 function makeLandTheme(s) {
   const L = landOf(s), [A, B] = L.pal;
   return {
-    id: 'land-' + s, land: s, name: L.name, tag: L.R.place, light: false, landKey: L.key, R: L.R, pal: L.pal,
+    id: 'land-' + s, land: s, name: L.name, tag: L.R.place, light: false, landKey: L.key, R: L.R, pal: L.pal, zone: L.Z,
     num: FONT.display, numSize: 15, numWeight: '700', disp: FONT.display, dw: '700', dsz: 1.35, ko: FONT.plex,
     css: {
       bg: '#04050a', panel: 'rgba(12,14,26,.9)', line: 'rgba(255,255,255,.12)', ink: '#f2f4ff', dim: '#8f96b8',
