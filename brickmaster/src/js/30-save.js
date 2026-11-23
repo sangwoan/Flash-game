@@ -1,7 +1,7 @@
 // Progress lives in this browser only (localStorage). Every access is guarded:
 // private windows and blocked storage must still give a playable game.
 const SAVE_KEY = 'brickmaster.save.v1';
-let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, runs: 0, meta: {}, worlds: 1, theme: 'neon', stars: {}, unlocked: 0 };
+let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, bestScore: 0, runs: 0, meta: {}, stars: {}, unlocked: 0, layout: 0, champion: false, champSeasons: {} };
 function loadSave() {
   try {
     // inside the Expo app the native copy (window.__BM_SAVE) wins; it survives WebView storage resets
@@ -11,10 +11,12 @@ function loadSave() {
     if (s && typeof s === 'object') SAVE = Object.assign(SAVE, s, { meta: Object.assign({}, s.meta) });
     if (!SAVE.bestTurn) SAVE.bestTurn = +localStorage.getItem('brickrogue.best') || 0; // prototype record
   } catch (e) {}
-  SAVE.worlds = clamp(Math.floor(+SAVE.worlds) || 1, 1, WORLD_ORDER.length);
+  if (!SAVE.champSeasons || typeof SAVE.champSeasons !== 'object') SAVE.champSeasons = {};
   SAVE.unlocked = clamp(Math.floor(+SAVE.unlocked) || 0, 0, 999);
   if (!SAVE.stars || typeof SAVE.stars !== 'object') SAVE.stars = {};
   // v0.7 removed the armour upgrade (one life only): refund what was spent on it
+  // v0.9: stages became 5-level stages; earlier progress maps onto the new levels by count
+  if (SAVE.layout !== 2) { SAVE.layout = 2; SAVE.unlocked = Math.min(SAVE.unlocked, 4); SAVE.stars = {}; }
   if (SAVE.meta.hp > 0) {
     for (let l = 0; l < SAVE.meta.hp; l++) SAVE.gold += Math.round(120 * Math.pow(1.45, l) / 5) * 5;
     SAVE.refunded = true;

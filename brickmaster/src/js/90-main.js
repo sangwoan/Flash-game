@@ -34,13 +34,16 @@ cv.addEventListener('pointercancel', () => { S.aiming = false; });
 
 sndEl.onclick = () => { muted = !muted; sndEl.textContent = muted ? 'SND OFF' : 'SND ON'; ensureAudio(); };
 recallEl.onclick = recall;
-$('start').onclick = () => startStage(nextStageIndex());
+$('start').onclick = () => startLevel(nextLevelIndex());
 $('again').onclick = againOrNext;
 $('endless').onclick = startEndless;
 $('titleMap').onclick = () => openMap(titleEl);
 $('overMap').onclick = () => openMap(overEl);
 $('mapClose').onclick = closeMap;
-$('mapPlay').onclick = () => startStage(mapSel);
+$('mapPlay').onclick = () => startLevel(mapSel);
+$('titleRank').onclick = () => openRank(titleEl);
+$('overRank').onclick = () => openRank(overEl);
+$('rankClose').onclick = closeRank;
 $('titleShop').onclick = () => openShop(titleEl);
 $('overShop').onclick = () => openShop(overEl);
 $('shopClose').onclick = closeShop;
@@ -51,19 +54,13 @@ $('claim2x').onclick = () => claim(2); // ad placeholder
 
 // ---------- boot ----------
 loadSave();
-STG = STAGES[nextStageIndex()];
-applyTheme(STG.world);
+STG = levelInfo(nextLevelIndex());
+applyTheme(STG.land);
 newRun(); S.phase = 'title';
 refreshTitle();
-// Design-draft links: #glass, #clay, #flat restyle the whole game; #clay-blossom previews one world.
-function previewFromHash() {
-  const id = location.hash.slice(1);
-  if (DIRECTIONS[id]) PREVIEW_DIR = id;
-  else if (themeFor(id) && id.includes('-')) PREVIEW_DIR = id.split('-')[0];
-  else if (!id) PREVIEW_DIR = null;
-  if (S.phase === 'title') { refreshTitle(); if (themeFor(id) && id.includes('-')) applyTheme(id); }
-  else applyTheme(STG.world);
-}
+rankInit();
+// #land-7 previews landscape 7 on the title screen (for browsing the places)
+function previewFromHash() { const m = location.hash.match(/^#land-(\d+)$/); if (m && S.phase === 'title') applyTheme(+m[1]); }
 addEventListener('hashchange', previewFromHash);
 previewFromHash();
 let last = performance.now();
@@ -82,9 +79,16 @@ window.__bm = {
   tick(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) update(dt); },
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
-  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : STAGES[stage]; newRun(); if (S.pendingLevels > 0) showLevel(); },
+  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : levelInfo(stage); newRun(); if (S.pendingLevels > 0) showLevel(); },
   theme(id) { applyTheme(id); },
-  STAGES,
+  levelInfo, landOf, LANDS,
+  // render landscape s (with its animated parts) to an image, for galleries
+  landShot(s, w = 210, now = 4000) {
+    const c = document.createElement('canvas'); c.width = w * 2; c.height = Math.round(w * H / W) * 2;
+    const g = c.getContext('2d'); g.scale(c.width / W, c.height / H);
+    const L = landOf(s); paintStatic(g, L.R, L.V); paintAnim(g, L.R, now);
+    return c.toDataURL('image/jpeg', 0.85);
+  },
   word(i) { bigWords.push({ s: TH.words[i], life: 0.85, max: 1.1, y: H * 0.3, size: 16 + i * 2 }); },
   draw(now = performance.now()) { draw(now); },
 };

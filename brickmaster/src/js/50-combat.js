@@ -78,6 +78,7 @@ function countBurst() {
   const lv = MULTI.findIndex(m => m.n === S.burstN);
   if (lv < 0) return;
   const m = MULTI[lv];
+  S.score += 100 * (lv + 1) * S.burstN;
   shake(m.shake); S.camZ = Math.max(S.camZ, m.zoom); S.camR = (rnd() < 0.5 ? -1 : 1) * m.zoom * 0.5;
   S.chroma = Math.max(S.chroma, m.chroma);
   if (m.slow) { S.slowmo = Math.max(S.slowmo, m.slow); sfx.whoosh(); }
@@ -86,6 +87,7 @@ function countBurst() {
   if (lv >= 1) { S.flash = 0.25 + lv * 0.08; S.flashCol = '255,255,255'; }
 }
 function lineClear(br) {
+  S.score += 200;
   const y = br.Y + br.Ht / 2;
   beams.push({ x: 0, y: y - 8, w: W, h: 16, life: 0.3, max: 0.3 });
   for (let x = 20; x < W; x += 40) burst(x, y, TH.accent, 3, 200);
@@ -93,6 +95,7 @@ function lineClear(br) {
   addGold(3, W / 2, y); shake(5); S.camZ = Math.max(S.camZ, 0.02); sfx.laser(); buzz(40);
 }
 function perfectClear() {
+  S.score += 1000;
   S.perfectDone = true;
   bigWords.push({ s: 'PERFECT!', life: 1.8, max: 1.8, y: H * 0.38, size: 30, style: 'slam' });
   S.slowmo = Math.max(S.slowmo, 0.8); S.flash = 0.7; S.flashCol = '255,255,255'; S.chroma = 1; S.camZ = 0.08; shake(14);
@@ -108,6 +111,8 @@ function kill(br) {
   pops.push({ x: br.X, y: br.Y, w: br.Wd, h: br.Ht, life: 0.22, max: 0.22 });
   shockwave(cx, cy, CW * (boss ? 4 : 1.7), boss ? 14 : 5);
   countBurst();
+  // endless score: combo and how deep into the run you are both multiply it
+  S.score += Math.round(10 * (1 + S.combo * 0.1) * (1 + S.turn / 20));
   sfx.crunch(S.burstN);
   if (!boss && br.rowSize >= 4 && !S.bricks.some(o => !o.dead && !isItem(o) && o.r === br.r)) lineClear(br);
   if (!S.perfectDone && S.phase === 'fire' && !S.bricks.some(o => !o.dead && !isItem(o))) perfectClear();
@@ -124,11 +129,11 @@ function kill(br) {
   if (boss) {
     gainXp(25);
     S.bosses++; S.hitstop = 0.16;
-    if (STG.endless) { if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; }
+    if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
     if (S.cleared) showBanner('STAGE CLEAR', `스테이지 ${STG.id} 돌파!`, TH.css.gold);
-    else showBanner(STG.endless ? `CHAPTER ${br.chapter} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
+    else showBanner(STG.endless ? `LEVEL ${S.world + 1} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
   else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }

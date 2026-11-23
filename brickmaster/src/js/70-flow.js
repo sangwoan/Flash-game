@@ -60,7 +60,7 @@ function endTurn() {
   rebuildGrid();
   S.turn++;
   addGold(BAL.goldPerTurn);
-  if (S.turn % BAL.bossEvery === 1) {
+  if (S.turn % BAL.bossEvery === 1 && !STG.endless) {
     const ch = chapterOf(S.turn);
     showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
@@ -159,41 +159,39 @@ function showResults(cleared = false) {
   hideShieldOffer();
   S.phase = 'over';
   runCleared = cleared;
-  const reached = S.turn - 1, ch = chapterOf(Math.max(1, reached));
+  const reached = S.turn - 1;
   let stars = 0, bonus = 0, first = false, note = '';
   if (STG.endless) {
-    const newBest = reached > SAVE.bestTurn;
     SAVE.bestTurn = Math.max(SAVE.bestTurn, reached);
-    SAVE.bestChapter = Math.max(SAVE.bestChapter, ch);
-    if (newBest) note = '무한 모드 최고 기록!';
+    if (S.score > SAVE.bestScore) { SAVE.bestScore = S.score; note = '내 최고 점수!'; }
+    submitScore(S.score, S.world + 1, reached);
   } else if (cleared) {
     // stars: how close the bricks got to the red line (shield use caps it at 2)
     stars = S.deepest <= ROWS - 5 && !S.shieldUsed ? 3 : S.deepest <= ROWS - 3 ? 2 : 1;
-    const prev = SAVE.stars[STG.n] || 0;
+    const prev = SAVE.stars[STG.g] || 0;
     first = prev === 0;
-    SAVE.stars[STG.n] = Math.max(prev, stars);
+    SAVE.stars[STG.g] = Math.max(prev, stars);
     const before = SAVE.unlocked;
-    SAVE.unlocked = Math.max(SAVE.unlocked, STG.n + 1);
+    SAVE.unlocked = Math.max(SAVE.unlocked, STG.g + 1);
     bonus = clearBonus(STG, first);
-    if (SAVE.unlocked > before && STG.n + 1 < STAGES.length && STAGES[STG.n + 1].w !== STG.w) note = `새 월드 해금: ${themeFor(STAGES[STG.n + 1].world).name}`;
-    else if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = '무한 모드 해금!';
-    SAVE.worlds = Math.max(SAVE.worlds, Math.min(WORLD_ORDER.length, Math.floor(SAVE.unlocked / STAGES_PER_WORLD) + 1));
+    if (SAVE.unlocked > before && STG.l === LEVELS_PER_STAGE - 1) note = `새 스테이지: ${landOf(STG.s + 1).name}`;
+    if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = (note ? note + ' · ' : '') + '무한 모드 해금!';
   }
   SAVE.runs++; writeSave();
   runGold = Math.floor((S.gold * (1 + 0.15 * SAVE.meta.gold) + bonus) * STG.gold);
-  $('overTitle').textContent = cleared ? 'STAGE CLEAR' : 'GAME OVER';
+  $('overTitle').textContent = cleared ? 'LEVEL CLEAR' : STG.endless ? `SCORE ${S.score.toLocaleString()}` : 'GAME OVER';
   overEl.classList.toggle('win', cleared);
   $('stars').hidden = !cleared;
   $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
   const rows = STG.endless
-    ? [['모드', '무한'], ['버틴 턴', reached], ['도달 챕터', ch], ['최고 기록', SAVE.bestTurn + '턴'], ['레벨', S.level], ['최대 콤보', S.maxCombo]]
-    : [['스테이지', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['레벨', S.level], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]];
+    ? [['점수', S.score.toLocaleString()], ['도달 레벨', S.world + 1], ['내 최고 점수', SAVE.bestScore.toLocaleString()], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]]
+    : [['레벨', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
   $('earned').textContent = `골드 +${runGold}` + (bonus ? ` (클리어 보너스 ${Math.round(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
   $('overNote').textContent = note; $('overNote').hidden = !note;
-  const hasNext = cleared && !STG.endless && STG.n + 1 < STAGES.length;
-  $('again').textContent = hasNext ? `NEXT ${STAGES[STG.n + 1].id}` : 'RETRY';
+  $('again').textContent = cleared && !STG.endless ? `NEXT ${levelInfo(STG.g + 1).id}` : 'RETRY';
+  $('overRank').hidden = !STG.endless;
   $('claimRow').hidden = false; $('afterRow').hidden = true;
   overEl.hidden = false;
   if (cleared) { sfx.clear(); buzz(80); }
@@ -206,7 +204,7 @@ function claim(mult) {
 }
 function againOrNext() {
   if (STG.endless) startEndless();
-  else startStage(runCleared && STG.n + 1 < STAGES.length ? STG.n + 1 : STG.n);
+  else startLevel(runCleared ? STG.g + 1 : STG.g);
 }
 
 // ---------- workshop ----------
@@ -241,93 +239,93 @@ function closeShop() {
   if (shopReturn) shopReturn.hidden = false;
   refreshTitle();
 }
+function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b, 0); }
 function refreshTitle() {
-  const nx = STAGES[nextStageIndex()];
-  applyTheme(nx.world);
-  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
-  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${allStars}/${STAGES.length * 3}`;
+  const nx = levelInfo(nextLevelIndex());
+  applyTheme(nx.land);
+  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
-  $('nextInfo').textContent = `${TH.name} · 보스 ${nx.bosses}마리`;
+  $('nextInfo').textContent = `${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
   $('endless').disabled = !open;
-  $('endless').textContent = open ? '무한 모드' : `무한 모드 (1-${STAGES_PER_WORLD} 클리어 시 열림)`;
-  $('best').textContent = SAVE.bestTurn ? `ENDLESS BEST ${SAVE.bestTurn} TURNS` : '';
+  $('endless').textContent = open ? '무한 모드' : '무한 모드 (스테이지 1 클리어 시 열림)';
+  $('best').textContent = SAVE.bestScore ? `ENDLESS BEST ${SAVE.bestScore.toLocaleString()}` + (SAVE.champion ? ' · CHAMPION' : '') : '';
 }
 
-// ---------- stage map ----------
+// ---------- stage map: one card per stage (its landscape), five level nodes each ----------
 let mapSel = 0, mapReturn = null;
 function openMap(from) {
   mapReturn = from; if (from) from.hidden = true;
-  mapSel = nextStageIndex();
+  mapSel = nextLevelIndex();
   renderMap(); $('map').hidden = false;
   const sel = document.querySelector('#mapList .node.sel');
   if (sel) sel.closest('.world').scrollIntoView({ block: 'center' });
 }
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
-  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
-  $('mapInfo').textContent = `★ ${allStars}/${STAGES.length * 3} · 보유 골드 ${SAVE.gold}G`;
-  WORLD_ORDER.forEach((wid, w) => {
-    const th = themeFor(wid), open = w * STAGES_PER_WORLD <= SAVE.unlocked;
+  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${SAVE.gold}G`;
+  const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
+  for (let st = 0; st <= lastStage; st++) {
+    const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
     const sec = document.createElement('section');
     sec.className = 'world' + (open ? '' : ' locked');
-    sec.style.cssText = `--wb:${th.css.bg};--wp:${th.css.panel};--wa:${th.accent};--wi:${th.css.ink};--wd:${th.css.dim};--wf:${th.disp}`;
-    sec.innerHTML = `<header><b>WORLD ${w + 1}</b><span>${th.name}</span></header><p>${WORLD_MODS[w].text}</p>`;
+    sec.style.cssText = `--wa:${R.accent};--thumb:url(${landThumb(st)})`;
+    sec.innerHTML = `<header><b>STAGE ${st + 1}</b><span>${L.name}</span></header><p>${R.place} · ${G.text}</p>`;
     const path = document.createElement('div'); path.className = 'path';
-    for (let i = 0; i < STAGES_PER_WORLD; i++) {
-      const st = STAGES[w * STAGES_PER_WORLD + i], lock = st.n > SAVE.unlocked, stars = SAVE.stars[st.n] || 0;
+    for (let l = 0; l < LEVELS_PER_STAGE; l++) {
+      const lv = levelInfo(st * LEVELS_PER_STAGE + l), lock = lv.g > SAVE.unlocked, stars = SAVE.stars[lv.g] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'node' + (lock ? ' lock' : '') + (st.n === SAVE.unlocked && !lock ? ' cur' : '') + (st.n === mapSel ? ' sel' : '');
-      b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : st.id}</span>`
+      b.className = 'node' + (lock ? ' lock' : '') + (lv.g === SAVE.unlocked && !lock ? ' cur' : '') + (lv.g === mapSel ? ' sel' : '') + (lv.bosses > 1 ? ' boss' : '');
+      b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : lv.id}</span>`
         + `<span class="st">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}">★</i>`).join('')}</span>`;
-      b.onclick = () => { mapSel = st.n; sfx.pick(); renderMap(); };
+      b.onclick = () => { mapSel = lv.g; sfx.pick(); renderMap(); };
       path.appendChild(b);
     }
     sec.appendChild(path); list.appendChild(sec);
-  });
-  const st = STAGES[mapSel], lock = st.n > SAVE.unlocked, first = !(SAVE.stars[st.n] > 0);
-  applyTheme(st.world);
-  $('mapSelInfo').innerHTML = `<b>STAGE ${st.id}</b> · 보스 ${st.bosses}마리 · 벽돌 체력 ×${st.hpMul.toFixed(1)}<br>`
-    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(st, first) * st.gold)}G`;
+  }
+  const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
+  applyTheme(lv.land);
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 보스 ${lv.bosses}마리 · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
+    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(lv, first) * lv.gold)}G`;
   $('mapPlay').disabled = lock;
-  $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${st.id}`;
+  $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
 }
 function closeMap() {
   $('map').hidden = true;
   if (mapReturn) mapReturn.hidden = false;
   refreshTitle();
 }
-function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map')]) el.hidden = true; hideShieldOffer(); }
+function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map'), $('rank')]) el.hidden = true; hideShieldOffer(); }
 function beginRun() {
   ensureAudio();
   hideMenus();
   newRun();
   if (S.pendingLevels > 0) showLevel();
 }
-function startStage(n) {
-  STG = STAGES[clamp(n, 0, STAGES.length - 1)];
-  applyTheme(STG.world);
+function startLevel(g) {
+  STG = levelInfo(Math.max(0, g));
+  applyTheme(STG.land);
   beginRun();
-  showBanner(`STAGE ${STG.id}`, `보스 ${STG.bosses}마리를 처치하라`, TH.accent);
+  showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = ENDLESS;
-  applyTheme('neon');
+  applyTheme(0);
   beginRun();
-  showBanner('ENDLESS', '보스 3마리마다 다음 월드로', TH.accent);
+  showBanner('ENDLESS', '보스를 잡을 때마다 레벨과 풍경이 바뀝니다', TH.accent);
 }
-
-// Every BOSSES_PER_WORLD bosses the run moves to the next world (full visual theme).
+// Endless: each boss raises the level and moves to the next landscape.
 function switchWorld() {
   S.worldPending = false;
-  S.world = (S.world + 1) % WORLD_ORDER.length;
-  applyTheme(WORLD_ORDER[S.world]);
+  S.world++;
+  applyTheme(S.world);
   S.wipe = 1; shake(10); sfx.clear(); buzz(120);
-  showBanner(`WORLD ${S.world + 1}`, TH.name, TH.accent);
+  showBanner(`LEVEL ${S.world + 1}`, TH.name, TH.accent);
   S.banner.life = S.banner.max = 2.6;
   for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
 }
+
 // ---------- per-frame update ----------
 function update(dt) {
   if (S.hitstop > 0) { S.hitstop -= dt; updateFx(dt * 0.2); return; }

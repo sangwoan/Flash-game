@@ -1,7 +1,7 @@
 <title>Brickmaster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&family=Bungee&family=Chakra+Petch:wght@600;700&family=Do+Hyeon&family=Fredoka:wght@600;700&family=IBM+Plex+Sans+KR:wght@500;700&family=Outfit:wght@600;800&family=Sora:wght@600;800&family=Jua&family=Lilita+One&family=Orbitron:wght@900&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;700&family=Outfit:wght@600;800&display=swap">
 <style>
 /* Layout: one portrait arcade screen (420x780 logical), letterboxed and scaled to fit the phone.
    Each visual theme sets these tokens from JS (applyTheme); the values here are the neon theme. */
@@ -18,9 +18,6 @@ body{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-selec
 #wrap{position:fixed;top:env(safe-area-inset-top,0px);bottom:env(safe-area-inset-bottom,0px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);display:flex;align-items:center;justify-content:center}
 #stage{position:relative;--s:1;touch-action:none;overflow:hidden;color:var(--ink);font-family:var(--ko);background:var(--bg)}
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-.crt{position:absolute;inset:0;pointer-events:none;background:
-  repeating-linear-gradient(to bottom,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
-  radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,.5) 100%)}
 .btn{font-family:var(--disp);font-size:calc(var(--s)*9px*var(--dsz));line-height:1;color:var(--ink);background:var(--panel);
   border:calc(var(--s)*2px) solid var(--line);padding:calc(var(--s)*9px) calc(var(--s)*11px);cursor:pointer;border-radius:calc(var(--s)*4px)}
 .btn.ko{font-family:var(--ko);font-size:calc(var(--s)*17px);padding:calc(var(--s)*10px) calc(var(--s)*16px)}
@@ -97,36 +94,23 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stats span:nth-child(even){font-family:var(--disp);font-size:calc(var(--s)*12px*var(--dsz));color:var(--gold);text-align:right;font-variant-numeric:tabular-nums}
 #build{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--s)*6px)}
 #build span{font-family:var(--disp);font-size:calc(var(--s)*8px*var(--dsz));padding:calc(var(--s)*6px);background:var(--c);color:#0a0c1c;border-radius:calc(var(--s)*3px)}
-/* Neon Glass (default world): soft glass panels, pill buttons, gradient type instead of hard pixel shadows */
-#stage[data-th="neon"] .ov{backdrop-filter:blur(calc(var(--s)*8px));-webkit-backdrop-filter:blur(calc(var(--s)*8px))}
-#stage[data-th="neon"] .logo{background:linear-gradient(100deg,#5ef2e0 0%,#ffffff 45%,#9d8cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 calc(var(--s)*14px) rgba(94,242,224,.45));letter-spacing:.04em}
-#stage[data-th="neon"] .sub{color:var(--dim);letter-spacing:.12em;font-size:calc(var(--s)*15px)}
-#stage[data-th="neon"] .btn{border-radius:calc(var(--s)*12px);border:1px solid var(--line);background:rgba(255,255,255,.04)}
-#stage[data-th="neon"] .btn.big{background:linear-gradient(120deg,#5ef2e0,#9d8cff);border:0;border-radius:999px;color:#070912;box-shadow:0 0 calc(var(--s)*28px) rgba(94,242,224,.45),inset 0 1px 0 rgba(255,255,255,.6);letter-spacing:.08em}
-#stage[data-th="neon"] .btn.big:active{transform:scale(.97);box-shadow:0 0 calc(var(--s)*14px) rgba(94,242,224,.45)}
-#stage[data-th="neon"] .btn.ad{border-color:rgba(94,242,224,.6)}
-#stage[data-th="neon"] .picker,#stage[data-th="neon"] .meta{border:1px solid var(--line);border-radius:calc(var(--s)*16px);background:rgba(17,21,42,.72)}
-#stage[data-th="neon"] .card{border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:calc(var(--s)*18px);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 16%,#141933),#0c0f20 70%)}
-#stage[data-th="neon"] h2{text-shadow:0 0 calc(var(--s)*16px) rgba(255,198,107,.55);letter-spacing:.06em}
-#stage[data-th="neon"] .buy{border-radius:999px}
-#stage[data-th="neon"] .pips i{border-radius:50%}
-#stage[data-th="neon"] #build span{border-radius:999px}
 /* Stage map: one panel per world in that world's colours, four stage nodes on a zigzag path */
 #map{justify-content:flex-start;gap:calc(var(--s)*8px)}
 #mapList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;gap:calc(var(--s)*10px);padding:calc(var(--s)*2px);box-sizing:border-box}
-.world{background:linear-gradient(160deg,var(--wp),var(--wb));border:calc(var(--s)*2px) solid color-mix(in srgb,var(--wa) 55%,transparent);border-radius:calc(var(--s)*16px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--wi)}
+.world{background:linear-gradient(100deg,var(--panel) 35%,color-mix(in srgb,var(--panel) 35%,transparent)),var(--thumb) center/cover;border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--ink);box-shadow:0 calc(var(--s)*8px) calc(var(--s)*22px) rgba(60,40,120,.15)}
 .world header{display:flex;align-items:baseline;gap:calc(var(--s)*8px)}
-.world header b{font-family:var(--wf);font-size:calc(var(--s)*11px);color:var(--wa)}
+.world header b{font-family:var(--disp);font-size:calc(var(--s)*12px);color:var(--wa)}
 .world header span{font-size:calc(var(--s)*18px)}
-.world p{margin:calc(var(--s)*2px) 0 calc(var(--s)*6px);font-size:calc(var(--s)*13px);color:var(--wd)}
-.world.locked{filter:grayscale(.85) brightness(.7)}
-.path{display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--s)*6px);position:relative}
+.world p{margin:calc(var(--s)*2px) 0 calc(var(--s)*6px);font-size:calc(var(--s)*13px);color:var(--dim)}
+.world.locked{filter:grayscale(.6);opacity:.6}
+.path{display:grid;grid-template-columns:repeat(5,1fr);gap:calc(var(--s)*6px);position:relative}
 .path::before{content:"";position:absolute;left:12%;right:12%;top:calc(var(--s)*30px);border-top:calc(var(--s)*3px) dashed color-mix(in srgb,var(--wa) 45%,transparent)}
-.node{position:relative;display:grid;justify-items:center;gap:calc(var(--s)*3px);background:none;border:0;padding:0;cursor:pointer;color:var(--wi)}
+.node{position:relative;display:grid;justify-items:center;gap:calc(var(--s)*3px);background:none;border:0;padding:0;cursor:pointer;color:var(--ink)}
 .node:nth-child(even){margin-top:calc(var(--s)*14px)}
-.node .dot{display:grid;place-items:center;width:calc(var(--s)*52px);height:calc(var(--s)*52px);border-radius:50%;background:var(--wa);color:#0a0c1c;font-family:var(--wf);font-size:calc(var(--s)*13px);font-weight:700;box-shadow:0 calc(var(--s)*4px) 0 color-mix(in srgb,var(--wa) 45%,#000)}
+.node .dot{display:grid;place-items:center;width:calc(var(--s)*46px);height:calc(var(--s)*46px);border-radius:50%;background:linear-gradient(160deg,color-mix(in srgb,var(--wa) 70%,#fff),var(--wa));color:#fff;font-family:var(--disp);font-size:calc(var(--s)*13px);font-weight:800;border:calc(var(--s)*2px) solid rgba(255,255,255,.85);box-shadow:0 calc(var(--s)*4px) calc(var(--s)*10px) color-mix(in srgb,var(--wa) 45%,transparent)}
+.node.boss .dot{width:calc(var(--s)*54px);height:calc(var(--s)*54px);box-shadow:0 0 0 calc(var(--s)*3px) color-mix(in srgb,#f2a541 70%,transparent),0 calc(var(--s)*4px) calc(var(--s)*12px) rgba(242,165,65,.5)}
 .node .dot svg{width:45%;height:45%;fill:none;stroke:currentColor;stroke-width:2.4}
-.node.lock .dot{background:#3a3f55;color:#9aa0b8;box-shadow:none}
+.node.lock .dot{background:rgba(120,120,150,.35);color:#fff;box-shadow:none}
 .node.cur .dot{animation:pulse 1.1s ease-in-out infinite;box-shadow:0 0 0 calc(var(--s)*4px) color-mix(in srgb,var(--wa) 40%,transparent),0 0 calc(var(--s)*18px) var(--wa)}
 .node.sel .dot{outline:calc(var(--s)*3px) solid #fff;outline-offset:calc(var(--s)*3px)}
 .node .st{font-size:calc(var(--s)*12px);letter-spacing:.05em}
@@ -154,7 +138,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #shieldOffer.go .bar{animation:drain 6s linear both}
 @keyframes offerIn{from{transform:translateY(calc(var(--s)*60px));opacity:0}to{transform:none;opacity:1}}
 @keyframes drain{to{transform:scaleX(0)}}
-/* ---- Design drafts (v0.8): soft glass / clay / flat over the painted worlds ---- */
+/* ---- Soft Glass: frosted panels and pill buttons over the painted landscapes ---- */
 #stage[data-dir="glass"] .ov{backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15);-webkit-backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15)}
 #stage[data-dir="glass"] .btn{border-radius:calc(var(--s)*14px);border:1px solid rgba(255,255,255,.7);background:color-mix(in srgb,var(--panel) 70%,transparent);color:var(--ink)}
 #stage[data-dir="glass"] .btn.big{background:linear-gradient(120deg,var(--cool),var(--logo2));color:#fff;border:0;border-radius:999px;box-shadow:0 calc(var(--s)*8px) calc(var(--s)*24px) color-mix(in srgb,var(--cool) 45%,transparent);text-shadow:0 1px 2px rgba(0,0,0,.2);letter-spacing:.06em}
@@ -165,23 +149,21 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stage[data-dir="glass"] .card,#stage[data-dir="glass"] .meta,#stage[data-dir="glass"] .mapSel{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);box-shadow:0 calc(var(--s)*10px) calc(var(--s)*28px) rgba(60,40,120,.18)}
 #stage[data-dir="glass"] .card .ic{color:#fff}
 
-#stage[data-dir="clay"] .btn{border:0;border-radius:calc(var(--s)*18px);background:var(--panel);color:var(--ink);box-shadow:0 calc(var(--s)*4px) 0 rgba(60,30,90,.2)}
-#stage[data-dir="clay"] .btn.big{background:var(--cool);color:#fff;border-radius:calc(var(--s)*24px);box-shadow:0 calc(var(--s)*6px) 0 color-mix(in srgb,var(--cool) 55%,#2c2a4a)}
-#stage[data-dir="clay"] .btn.big:active{transform:translateY(calc(var(--s)*4px));box-shadow:0 calc(var(--s)*2px) 0 color-mix(in srgb,var(--cool) 55%,#2c2a4a)}
-#stage[data-dir="clay"] .logo{color:#fff;text-shadow:0 calc(var(--s)*4px) 0 var(--cool),0 calc(var(--s)*8px) 0 var(--logo2)}
-#stage[data-dir="clay"] h2{color:#fff;text-shadow:0 calc(var(--s)*3px) 0 var(--cool)}
-#stage[data-dir="clay"] .card{border:0;border-radius:calc(var(--s)*24px);box-shadow:0 calc(var(--s)*6px) 0 color-mix(in srgb,var(--c) 60%,#2c2a4a)}
-#stage[data-dir="clay"] .meta,#stage[data-dir="clay"] .mapSel{border:0;border-radius:calc(var(--s)*22px);box-shadow:0 calc(var(--s)*5px) 0 rgba(60,30,90,.16)}
-#stage[data-dir="clay"] .card .ic{color:#fff;box-shadow:none}
 
-#stage[data-dir="flat"] .ov{background:color-mix(in srgb,var(--bg) 82%,transparent)}
-#stage[data-dir="flat"] .btn{border-radius:calc(var(--s)*8px);border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-#stage[data-dir="flat"] .btn.big{background:var(--ink);color:var(--bg);border:0;border-radius:calc(var(--s)*10px);box-shadow:none;letter-spacing:.14em;animation:none}
-#stage[data-dir="flat"] .logo{color:var(--ink);text-shadow:none;letter-spacing:-.02em;animation:none;border-bottom:calc(var(--s)*6px) solid var(--cool);padding-bottom:calc(var(--s)*6px)}
-#stage[data-dir="flat"] h2{color:var(--ink);text-shadow:none;letter-spacing:.1em}
-#stage[data-dir="flat"] .card{border:1px solid var(--line);border-top:calc(var(--s)*5px) solid var(--c);border-radius:calc(var(--s)*10px);box-shadow:none}
-#stage[data-dir="flat"] .meta,#stage[data-dir="flat"] .mapSel{border-radius:calc(var(--s)*10px)}
-#stage[data-dir="flat"] .card .ic{box-shadow:none;color:#fff}
+#rank{justify-content:flex-start;gap:calc(var(--s)*8px)}
+.prize{width:100%;display:grid;grid-template-columns:1.6fr 1fr;gap:calc(var(--s)*8px)}
+.prize div{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*14px);padding:calc(var(--s)*8px);display:grid;gap:calc(var(--s)*2px)}
+.prize div:first-child{background:linear-gradient(135deg,#ffe9a8,#ffc46b);color:#5a3a00;border:0}
+.prize b{font-family:var(--disp);font-size:calc(var(--s)*14px)}
+.prize span{font-size:calc(var(--s)*12px)}
+#rankList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;align-content:start;gap:calc(var(--s)*6px)}
+.rrow{display:grid;grid-template-columns:calc(var(--s)*30px) 1fr auto auto;align-items:center;gap:calc(var(--s)*10px);background:var(--panel);border:1px solid rgba(255,255,255,.7);border-radius:calc(var(--s)*12px);padding:calc(var(--s)*8px) calc(var(--s)*12px);font-size:calc(var(--s)*15px);text-align:left}
+.rrow b{font-family:var(--disp);font-size:calc(var(--s)*16px);color:var(--cool)}
+.rrow:nth-child(1) b{color:#f2a541}
+.rrow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow em{font-style:normal;font-size:calc(var(--s)*11px);color:var(--dim)}
+.rrow i{font-style:normal;font-family:var(--disp);font-weight:800;font-variant-numeric:tabular-nums}
+.rrow.me{border:calc(var(--s)*2px) solid var(--cool)}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
@@ -190,7 +172,6 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 
 <div id="wrap"><div id="stage">
   <canvas id="cv" aria-label="게임 화면"></canvas>
-  <div class="crt"></div>
   <button id="snd" class="btn" type="button">SND ON</button>
   <button id="recall" class="btn" type="button" hidden>회수 ▼</button>
 
@@ -205,7 +186,9 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
       <button id="titleShop" class="btn ko" type="button">작업실</button>
     </div>
     <button id="endless" class="btn ko" type="button">무한 모드</button>
+    <button id="titleRank" class="btn ko" type="button">주간 랭킹</button>
     <p class="small" id="best"></p>
+    <p class="newNote" id="titleNote" hidden></p>
   </div>
 
   <div id="lvl" class="ov" hidden>
@@ -238,8 +221,21 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
     <div class="row" id="afterRow" hidden>
       <button id="again" class="btn big" type="button">RETRY</button>
       <button id="overMap" class="btn ko" type="button">맵</button>
+      <button id="overRank" class="btn ko" type="button" hidden>랭킹</button>
       <button id="overShop" class="btn ko" type="button">작업실</button>
     </div>
+  </div>
+
+  <div id="rank" class="ov" hidden>
+    <h2>WEEKLY RANKING</h2>
+    <p class="note" id="rankSeason"></p>
+    <div class="prize">
+      <div><b>1위</b><span>챔피언 왕관 · 황금 공 · 1000G</span></div>
+      <div><b>2~3위</b><span>300G</span></div>
+    </div>
+    <div id="rankList"></div>
+    <p class="gold" id="rankMine"></p>
+    <button id="rankClose" class="btn ko" type="button">닫기</button>
   </div>
 
   <div id="map" class="ov" hidden>
@@ -290,13 +286,13 @@ const BAL = {
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   bossEvery: 10, bossHp: 6,
-  stageHp: n => 1 + 0.22 * n, // brick HP multiplier for stage n (0-based)
+  levelHp: g => 1 + 0.06 * g, // brick HP multiplier for classic level g (0-based)
   xpNeed: lvl => Math.round(3 + lvl * 2 + 0.25 * Math.pow(lvl, 2.2)), // fast early levels, slow after ~15
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
 const chapterOf = t => Math.ceil(t / BAL.bossEvery);
-const chapterName = ch => TH.chapters[(ch - 1) % TH.chapters.length];
+const chapterName = () => TH.name;
 
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -430,223 +426,24 @@ const META = {
 };
 const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.45, l) / 5) * 5;
 
-// ---- 25-themes.js ----
-// Visual themes (design drafts). Each theme owns its palette, fonts, brick style,
-// particles, combo words and field background. Game logic never reads a theme.
-const FONT = {
-  pixel: '"Press Start 2P", ui-monospace, monospace',
-  lilita: '"Lilita One", "Jua", system-ui, sans-serif',
-  orbitron: '"Orbitron", "Black Han Sans", system-ui, sans-serif',
-  bungee: '"Bungee", "Black Han Sans", system-ui, sans-serif',
-  bangers: '"Bangers", "Black Han Sans", system-ui, sans-serif',
-  chakra: '"Chakra Petch", "IBM Plex Sans KR", system-ui, sans-serif',
-  plex: '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
-  doHyeon: '"Do Hyeon", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
-  jua: '"Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
-  blackHan: '"Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
-};
-const lerpHex = (a, b, k) => {
-  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-  const ch = s => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k);
-  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
-};
-const rampOf = stops => k => {
-  const x = clamp(k, 0, 0.9999) * (stops.length - 1), i = Math.floor(x);
-  return lerpHex(stops[i], stops[i + 1], x - i);
-};
+// ---- 24-landscapes.js ----
+// Landscapes: calm scenes after famous real places, painted from a small set of parts.
+// A recipe lists sky, light, ridges, water, trees, extras and drifting particles; the painter
+// builds the static part once (cached) and animates the rest. Past the last recipe the list
+// repeats in new times of day, so stages never run out. Add places by adding recipes.
 
-// Static field layers are cached per theme and chapter.
-const fieldCache = {};
-function cachedLayer(key, paint) {
-  if (fieldCache[key]) return fieldCache[key];
-  const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
-  const g = c.getContext('2d'); g.scale(2, 2); paint(g);
-  return fieldCache[key] = c;
-}
-
-const THEMES = {
-  neon: {
-    chapters: ['미드나잇 시티', '딥 블루', '앰버 팩토리', '오로라 필드', '오비탈 스테이션'],
-    name: '네온 글래스', tag: 'NEON GLASS', line: '유리처럼 맑은 벽돌과 은은한 오로라, 깔끔한 기본 월드',
-    num: FONT.chakra, numSize: 15, numWeight: '700', disp: FONT.chakra, dw: '700', dsz: 1.45, ko: FONT.plex, crt: false,
-    css: { bg: '#070912', panel: '#11152a', line: '#262d4d', ink: '#f2f4ff', dim: '#8a93b8', gold: '#ffc66b', hot: '#ff5d8f', cool: '#5ef2e0', ov: 'rgba(7,9,18,.78)', btnInk: '#070912', logo2: '#9d8cff' },
-    hud: { bg: '#0a0d1b', line: '#1f2642', ink: '#f2f4ff', dim: '#7d86ab', accent: '#ffc66b', xpBg: '#1a1f36', xp: '#5ef2e0', heart: '#ff5d8f', heartOff: '#272c47', ch: '#5ef2e0' },
-    outline: '#070912', brick: 'glass', numInk: '#ffffff', heartStyle: 'vector',
-    ramp: rampOf(['#2fcfc0', '#3a8cff', '#6a62ff', '#a95cff', '#ff5d8f', '#ffa95c']),
-    special: { bomb: '#ff4d6a', chest: '#ffb84d', steel: '#7f8aa8', slime: '#3fd98a', boss: ['#8a5cff', '#ff5d8f'] },
-    ball: { core: '#ffffff', glow: '#5ef2e0', temp: '#ff8fc7' }, particle: 'dust',
-    words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'], wordStyle: 'clean',
-    accent: '#5ef2e0', fever: '#ffc66b', line2: '#ff5d8f',
-    field(g, now, ch) {
-      const au = [['#2fcfc0', '#6a62ff'], ['#3a8cff', '#2fcfc0'], ['#ffa95c', '#ff5d8f'], ['#3fd98a', '#3a8cff'], ['#a95cff', '#ff5d8f']][(ch - 1) % 5];
-      g.drawImage(cachedLayer('neon' + ch, c => {
-        const gr = c.createLinearGradient(0, TOP, 0, LY); gr.addColorStop(0, '#0c1024'); gr.addColorStop(1, '#06070f');
-        c.fillStyle = gr; c.fillRect(0, TOP, W, LY - TOP);
-        c.fillStyle = 'rgba(160,175,230,.07)';
-        for (let y = TOP + RH; y < FB; y += RH) for (let x = CW; x < W; x += CW) c.fillRect(x - 1, y - 1, 2, 2);
-      }), 0, 0, W, H);
-      // two slow aurora blobs
-      g.save(); g.beginPath(); g.rect(0, TOP, W, LY - TOP); g.clip();
-      g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.16;
-      const t = now / 4000;
-      g.drawImage(glow(au[0]), W * (0.25 + 0.2 * Math.sin(t)) - 260, TOP + 160 + 80 * Math.cos(t * 0.7) - 260, 520, 520);
-      g.drawImage(glow(au[1]), W * (0.75 + 0.2 * Math.cos(t * 0.8)) - 240, TOP + 420 + 90 * Math.sin(t * 0.6) - 240, 480, 480);
-      g.restore();
-    },
-  },
-
-  candy: {
-    chapters: ['딸기 언덕', '소다 바다', '캐러멜 공장', '민트 동굴', '솜사탕 구름'],
-    name: '캔디 팝', tag: 'CANDY POP', line: '말랑한 젤리 벽돌, 파스텔 하늘, 터질 때마다 색종이',
-    num: FONT.lilita, numSize: 17, disp: FONT.lilita, dsz: 1.7, ko: FONT.jua, crt: false, light: true,
-    css: { bg: '#ffe6f2', panel: '#ffffff', line: '#f3c2dc', ink: '#5a2a5e', dim: '#a07aa6', gold: '#ff7eb6', hot: '#ff5c8a', cool: '#7a5cff', ov: 'rgba(255,236,246,.92)', btnInk: '#ffffff', logo2: '#ffc94d' },
-    hud: { bg: '#ffffff', line: '#f6cfe4', ink: '#5a2a5e', dim: '#b58bb9', accent: '#ff5c8a', xpBg: '#f9dcec', xp: '#ff7eb6', heart: '#ff5c8a', heartOff: '#f3d6e6', ch: '#7a5cff' },
-    outline: '#ffffff', brick: 'jelly', numInk: '#ffffff', numStroke: 'rgba(90,42,94,.55)',
-    ramp: rampOf(['#5fd9c4', '#5cb8ff', '#9b7bff', '#ff6fb5', '#ff8a4c']),
-    special: { bomb: '#ff4d6d', chest: '#ffc94d', steel: '#b8b4cc', slime: '#8ee86b', boss: ['#ff5ca8', '#ffb34d'] },
-    ball: { core: '#ffffff', glow: '#ff7eb6', temp: '#ffd36e' }, particle: 'confetti',
-    words: ['YUMMY!', 'JUICY!', 'SUGAR RUSH!', 'CANDY STORM!', 'SWEETQUAKE!'], wordStyle: 'bubble',
-    accent: '#ff5c8a', fever: '#ffc94d', line2: '#ff5c8a',
-    confetti: ['#ff5c8a', '#ffc94d', '#5fd9c4', '#7a5cff', '#5cb8ff', '#ff8a4c'],
-    field(g, now, ch) {
-      const pairs = [['#ffe6f2', '#e9e2ff'], ['#e2f7ff', '#ffe9f4'], ['#fff1dc', '#ffe0ec'], ['#e6fff4', '#e6ecff'], ['#f1e6ff', '#ffe6ea']][(ch - 1) % 5];
-      g.drawImage(cachedLayer('candy' + ch, c => {
-        const gr = c.createLinearGradient(0, TOP, 0, LY); gr.addColorStop(0, pairs[0]); gr.addColorStop(1, pairs[1]);
-        c.fillStyle = gr; c.fillRect(0, TOP, W, LY - TOP);
-      }), 0, 0, W, H);
-      g.fillStyle = 'rgba(255,255,255,.55)';
-      const off = (now / 60) % 40;
-      for (let y = TOP - 40 + off; y < LY; y += 40) for (let x = (Math.floor(y / 40) % 2) * 20; x < W + 20; x += 40) {
-        if (y < TOP) continue; g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill();
-      }
-    },
-  },
-
-  synth: {
-    chapters: ['선셋 대로', '사이버 항구', '레이저 사막', '크롬 시티', '하이퍼 궤도'],
-    name: '신스웨이브', tag: 'SYNTHWAVE', line: '노을 진 80년대 레트로 퓨처, 네온 윤곽선과 지평선 그리드',
-    num: FONT.orbitron, numSize: 13, disp: FONT.orbitron, dsz: 1.6, ko: FONT.blackHan, crt: true,
-    css: { bg: '#12021f', panel: '#24073d', line: '#7a1f8f', ink: '#fff0ff', dim: '#c58fd6', gold: '#ffe14d', hot: '#ff3ea5', cool: '#39f3ff', ov: 'rgba(18,2,31,.86)', btnInk: '#12021f', logo2: '#39f3ff' },
-    hud: { bg: '#1c0430', line: '#ff3ea5', ink: '#fff0ff', dim: '#c58fd6', accent: '#ffe14d', xpBg: '#3a0d55', xp: '#39f3ff', heart: '#ff3ea5', heartOff: '#3a0d55', ch: '#39f3ff' },
-    outline: '#12021f', brick: 'neon', numInk: '#ffffff',
-    ramp: rampOf(['#39f3ff', '#4d7bff', '#b44dff', '#ff3ea5', '#ffb03a']),
-    special: { bomb: '#ff2d55', chest: '#ffe14d', steel: '#c9c9e6', slime: '#5dff9e', boss: ['#ff3ea5', '#ffb03a'] },
-    ball: { core: '#ffffff', glow: '#ff3ea5', temp: '#39f3ff' }, particle: 'spark',
-    words: ['RAD!', 'TUBULAR!', 'OUTRUN!', 'MAXIMUM!', 'HYPERDRIVE!'], wordStyle: 'chrome',
-    accent: '#39f3ff', fever: '#ffe14d', line2: '#ff3ea5',
-    field(g, now, ch) {
-      const hz = 470, sky = [['#12021f', '#4a0c5e', '#ff4f8b'], ['#060b2b', '#1d2a7a', '#ff6f6f'], ['#1a0410', '#6b0f3a', '#ffa03a'], ['#04121f', '#0f4a6b', '#ff5fd2'], ['#150024', '#3d0f7a', '#ff9a3a']][(ch - 1) % 5];
-      g.drawImage(cachedLayer('synth' + ch, c => {
-        const gr = c.createLinearGradient(0, TOP, 0, hz); gr.addColorStop(0, sky[0]); gr.addColorStop(0.65, sky[1]); gr.addColorStop(1, sky[2]);
-        c.fillStyle = gr; c.fillRect(0, TOP, W, hz - TOP);
-        const sg = c.createLinearGradient(0, hz - 130, 0, hz); sg.addColorStop(0, '#ffe14d'); sg.addColorStop(1, '#ff3ea5');
-        c.save(); c.beginPath(); c.arc(W / 2, hz, 120, Math.PI, 0); c.clip();
-        c.fillStyle = sg; c.globalAlpha = 0.55; c.fillRect(0, hz - 130, W, 130); c.globalAlpha = 1;
-        c.fillStyle = sky[1]; for (let i = 0; i < 7; i++) c.fillRect(0, hz - 60 + i * 9, W, 2 + i * 0.8);
-        c.restore();
-        c.fillStyle = '#12021f'; c.fillRect(0, hz, W, LY - hz);
-      }), 0, 0, W, H);
-      g.strokeStyle = 'rgba(255,62,165,.55)'; g.lineWidth = 1.2; g.beginPath();
-      for (let i = -12; i <= 12; i++) { g.moveTo(W / 2 + i * 14, hz); g.lineTo(W / 2 + i * 70, LY); }
-      const ph = (now / 900) % 1;
-      for (let i = 0; i < 9; i++) { const k = (i + ph) / 9, y = hz + (LY - hz) * k * k; g.moveTo(0, y); g.lineTo(W, y); }
-      g.stroke();
-      g.fillStyle = '#ff3ea5'; g.fillRect(0, hz - 1, W, 2);
-    },
-  },
-
-  jackpot: {
-    chapters: ['에메랄드 홀', '루비 라운지', '사파이어 타워', '자수정 금고', '황금 펜트하우스'],
-    name: '잭팟 골드', tag: 'JACKPOT', line: '금괴와 보석 벽돌, 쏟아지는 코인, 전광판 조명',
-    num: FONT.bungee, numSize: 13, disp: FONT.bungee, dsz: 1.45, ko: FONT.blackHan, crt: false,
-    css: { bg: '#04140e', panel: '#0b2a1d', line: '#c9a227', ink: '#fff6dc', dim: '#b9a774', gold: '#ffd54a', hot: '#ff3b3b', cool: '#4dffb0', ov: 'rgba(3,16,11,.88)', btnInk: '#2a1a00', logo2: '#ff3b3b' },
-    hud: { bg: '#0a2418', line: '#c9a227', ink: '#fff6dc', dim: '#b9a774', accent: '#ffd54a', xpBg: '#163d2b', xp: '#ffd54a', heart: '#ff3b3b', heartOff: '#163d2b', ch: '#4dffb0' },
-    outline: '#1a0f00', brick: 'gem', numInk: '#ffffff', numStroke: 'rgba(0,0,0,.6)',
-    ramp: rampOf(['#20c97a', '#2a8cff', '#a64dff', '#ff2e63', '#ffc21a']),
-    special: { bomb: '#ff2e2e', chest: '#ffd54a', steel: '#d9dde6', slime: '#7cff4d', boss: ['#ffd54a', '#ff8c1a'] },
-    ball: { core: '#fff3b0', glow: '#ffd54a', temp: '#4dffb0' }, particle: 'coin',
-    words: ['WIN!', 'BIG WIN!', 'MEGA WIN!', 'SUPER WIN!', 'JACKPOT!'], wordStyle: 'rays',
-    accent: '#ffd54a', fever: '#ff3b3b', line2: '#ffd54a',
-    field(g, now, ch) {
-      const felt = [['#0f4a33', '#04140e'], ['#4a0f1c', '#14040a'], ['#0f2a4a', '#040a14'], ['#3a0f4a', '#0e0414'], ['#0f4a4a', '#041414']][(ch - 1) % 5];
-      g.drawImage(cachedLayer('jackpot' + ch, c => {
-        const gr = c.createRadialGradient(W / 2, (TOP + LY) / 2, 40, W / 2, (TOP + LY) / 2, 460);
-        gr.addColorStop(0, felt[0]); gr.addColorStop(1, felt[1]);
-        c.fillStyle = gr; c.fillRect(0, TOP, W, LY - TOP);
-        c.strokeStyle = 'rgba(255,213,74,.07)'; c.lineWidth = 1; c.beginPath();
-        for (let i = -20; i < 30; i++) { c.moveTo(i * 30, TOP); c.lineTo(i * 30 + (LY - TOP), LY); c.moveTo(i * 30, TOP); c.lineTo(i * 30 - (LY - TOP), LY); }
-        c.stroke();
-      }), 0, 0, W, H);
-      // marquee bulbs along the field edges
-      const on = Math.floor(now / 160) % 2;
-      for (let y = TOP + 10, i = 0; y < FB; y += 22, i++) {
-        g.fillStyle = (i + on) % 2 ? '#ffd54a' : 'rgba(255,213,74,.25)';
-        g.fillRect(1, y, 3, 3); g.fillRect(W - 4, y, 3, 3);
-      }
-    },
-  },
-
-  comic: {
-    chapters: ['1화 도시의 위기', '2화 지하 연구소', '3화 불타는 공장', '4화 얼음 요새', '5화 최후의 결전'],
-    name: '코믹 팝아트', tag: 'COMIC POP', line: '굵은 먹선과 망점, 터질 때마다 POW! BAM! 효과음 글자',
-    num: FONT.bangers, numSize: 19, disp: FONT.bangers, dsz: 1.9, ko: FONT.blackHan, crt: false, light: true,
-    css: { bg: '#fff4cc', panel: '#ffffff', line: '#111111', ink: '#111111', dim: '#5b5140', gold: '#ffd400', hot: '#ff2a3d', cool: '#00a8e8', ov: 'rgba(255,244,204,.93)', btnInk: '#111111', logo2: '#00a8e8' },
-    hud: { bg: '#ffd400', line: '#111111', ink: '#111111', dim: '#3d3420', accent: '#ff2a3d', xpBg: '#ffffff', xp: '#ff2a3d', heart: '#ff2a3d', heartOff: '#e8d9a0', ch: '#00a8e8' },
-    outline: '#111111', brick: 'comic', numInk: '#111111',
-    ramp: rampOf(['#5ee0ff', '#4d7cff', '#c04dff', '#ff2a3d', '#ff8c00']),
-    special: { bomb: '#ff2a3d', chest: '#ffd400', steel: '#c8c8c8', slime: '#5ee05e', boss: ['#ff2a3d', '#ffd400'] },
-    ball: { core: '#ffffff', glow: '#ffd400', temp: '#ff7ad9' }, particle: 'shard',
-    words: ['POW!', 'BAM!', 'WHAM!', 'KAPOW!', 'KABOOM!'], wordStyle: 'burst',
-    accent: '#ff2a3d', fever: '#00a8e8', line2: '#ff2a3d',
-    field(g, now, ch) {
-      const dot = ['255,42,61', '0,168,232', '255,140,0', '192,77,255', '0,180,90'][(ch - 1) % 5];
-      g.drawImage(cachedLayer('comic' + ch, c => {
-        c.fillStyle = '#fff4cc'; c.fillRect(0, TOP, W, LY - TOP);
-        for (let y = TOP; y < LY; y += 10) for (let x = (Math.floor(y / 10) % 2) * 5; x < W; x += 10) {
-          const k = (y - TOP) / (LY - TOP); c.fillStyle = `rgba(${dot},.16)`;
-          c.beginPath(); c.arc(x, y, 0.8 + k * 2.2, 0, Math.PI * 2); c.fill();
-        }
-        c.strokeStyle = '#111'; c.lineWidth = 4; c.strokeRect(2, TOP + 2, W - 4, LY - TOP - 2);
-      }), 0, 0, W, H);
-    },
-  },
-};
-// Worlds in play order: a run starts in its chosen world and moves on every 3 bosses.
-const WORLD_ORDER = ['neon', 'synth', 'candy', 'comic', 'jackpot'];
-const BOSSES_PER_WORLD = 3;
-for (const k in THEMES) THEMES[k].id = k;
-let TH = THEMES.neon;
-function applyTheme(id) {
-  TH = themeFor(id) || THEMES.neon;
-  stage.dataset.th = TH.id;
-  stage.dataset.dir = TH.dir || 'classic';
-  const st = stage.style;
-  for (const [k, v] of Object.entries(TH.css)) st.setProperty('--' + k, v);
-  st.setProperty('--disp', TH.disp); st.setProperty('--ko', TH.ko); st.setProperty('--dsz', TH.dsz);
-  document.body.style.background = TH.css.bg;
-  document.querySelector('.crt').hidden = !TH.crt;
-  for (const k in glowCache) delete glowCache[k];
-}
-
-// ---- 26-heal.js ----
-// Design drafts (v0.8): three refined art directions x five calm, painted worlds.
-// A direction sets bricks, type, particles and UI; a world sets the backdrop and palette.
-// Preview with #glass / #clay / #flat (whole game) or #clay-blossom (one world on the title).
-
-const HEAL_FONT = {
-  outfit: '"Outfit", "IBM Plex Sans KR", system-ui, sans-serif',
-  fredoka: '"Fredoka", "Jua", system-ui, sans-serif',
-  sora: '"Sora", "IBM Plex Sans KR", system-ui, sans-serif',
-  plex: '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
-  jua: '"Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+const PAL = {
+  cool: ['#7fcfe0', '#8fa8ee', '#b59af0', '#f29ac2', '#f7b98a'],
+  bloom: ['#8ad9b8', '#7fc4ea', '#a99cf0', '#f28fb0', '#f7a982'],
+  sea: ['#6fe0cf', '#5cbdf0', '#7d9cf5', '#f48fb8', '#ffad7a'],
+  night: ['#6ff2c6', '#62cdf5', '#8a9cff', '#c38cff', '#ff8fcf'],
+  warm: ['#ffcf7a', '#ffa98a', '#ff8fa6', '#e08fd0', '#9d8cf5'],
+  earth: ['#9fd8a0', '#f7d083', '#f6a57e', '#e98aa0', '#a58ee8'],
+  green: ['#8fe0b0', '#6fcfd8', '#8ab0f0', '#c69cf0', '#f59ab8'],
 };
 
 // ---------- painting helpers ----------
-function hill(g, base, amp, freq, phase, col) {
-  g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
-  for (let x = 0; x <= W; x += 6) g.lineTo(x, base + Math.sin(x * freq + phase) * amp + Math.sin(x * freq * 2.3 + phase * 1.7) * amp * 0.35);
-  g.lineTo(W, H); g.closePath(); g.fill();
-}
+function seeded(seed) { let s = seed * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
 function vgrad(g, y0, y1, stops) {
   const gr = g.createLinearGradient(0, y0, 0, y1);
   stops.forEach((c, i) => gr.addColorStop(i / (stops.length - 1), c));
@@ -658,179 +455,431 @@ function softBlob(g, x, y, rx, ry, col, a) {
   gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = gr; g.beginPath(); g.arc(0, 0, ry, 0, Math.PI * 2); g.fill(); g.restore();
 }
-function cloudBank(g, y, r, col, seed) {
+function bumps(g, y, r, col, seed) {
+  const rnd2 = seeded(seed);
   g.fillStyle = col; g.beginPath();
-  for (let x = -r; x < W + r; x += r * 0.9) { const rr = r * (0.75 + ((x * 13 + seed) % 7) / 14); g.moveTo(x + rr, y); g.arc(x, y, rr, 0, Math.PI * 2); }
+  for (let x = -r; x < W + r; x += r * 0.9) { const rr = r * (0.75 + rnd2() * 0.5); g.moveTo(x + rr, y); g.arc(x, y, rr, 0, Math.PI * 2); }
   g.rect(0, y, W, H - y); g.fill();
 }
 const wrapN = (v, m) => ((v % m) + m) % m;
 
-// ---------- the five worlds ----------
-const HEAL_WORLDS = {
-  dawn: {
-    name: '새벽 호수', tag: 'DAWN LAKE', light: true,
-    chapters: ['물안개 호숫가', '고요한 섬', '은빛 갈대밭', '첫 햇살', '잔잔한 물결'],
-    ramp: ['#7fcfe0', '#8fa8ee', '#b59af0', '#f29ac2', '#f7b98a'], accent: '#7a8cf0', accent2: '#f29ac2',
-    paint(g, now) {
-      g.drawImage(cachedLayer('heal-dawn', c => {
-        c.fillStyle = vgrad(c, 0, H * 0.58, ['#a9b9f3', '#e5c8ee', '#ffe1c4']); c.fillRect(0, 0, W, H * 0.58);
-        softBlob(c, W * 0.66, H * 0.56, 120, 120, '#fff4dc', 0.9);
-        c.fillStyle = '#fffaf0'; c.beginPath(); c.arc(W * 0.66, H * 0.56, 26, 0, Math.PI * 2); c.fill();
-        softBlob(c, W * 0.2, H * 0.18, 120, 26, '#ffffff', 0.5); softBlob(c, W * 0.75, H * 0.27, 100, 20, '#ffffff', 0.4);
-        hill(c, H * 0.5, 26, 0.013, 1, '#c9bde9'); hill(c, H * 0.55, 16, 0.02, 3, '#ab9fdc');
-        c.fillStyle = vgrad(c, H * 0.58, H, ['#dcd9f5', '#b8c5ee', '#97ade2']); c.fillRect(0, H * 0.58, W, H * 0.42);
-        c.save(); c.globalAlpha = 0.25; c.translate(0, H * 1.16); c.scale(1, -1); hill(c, H * 0.55, 16, 0.02, 3, '#ab9fdc'); c.restore();
-      }), 0, 0, W, H);
-      g.fillStyle = 'rgba(255,255,255,.5)';
-      for (let i = 0; i < 9; i++) { const w = 60 - i * 5 + Math.sin(now / 500 + i) * 14; g.fillRect(W * 0.66 - w / 2, H * 0.6 + i * 11, w, 2); }
-      for (let i = 0; i < 22; i++) {
-        const x = wrapN(i * 97 + Math.sin(now / 2600 + i) * 18, W), y = wrapN(H * 0.1 + i * 53 - now * 0.008 * (1 + i % 3), H * 0.8);
-        g.globalAlpha = 0.35 + 0.35 * Math.sin(now / 700 + i); softBlob(g, x, y, 5, 5, '#fff6d8', 1);
+function ridge(g, L) {
+  const base = L.b * H, amp = (L.a || 0) * H, r = seeded(L.p * 97 + 13);
+  g.fillStyle = L.c;
+  if (L.k === 'smooth' || L.k === 'dunes') {
+    g.beginPath(); g.moveTo(0, H);
+    for (let x = 0; x <= W; x += 5) {
+      const s = L.k === 'dunes' ? -Math.pow(Math.abs(Math.sin(x * L.f + L.p)), 0.7) : Math.sin(x * L.f + L.p) + 0.35 * Math.sin(x * L.f * 2.3 + L.p * 1.7);
+      g.lineTo(x, base + s * amp);
+    }
+    g.lineTo(W, H); g.closePath(); g.fill();
+  } else if (L.k === 'peaks') {
+    const n = L.f, pts = [[0, base - amp * 0.2]];
+    for (let i = 0; i < n; i++) {
+      const x0 = (i + 0.2 + r() * 0.3) / n * W, x1 = (i + 0.7 + r() * 0.3) / n * W;
+      pts.push([x0, base - amp * (0.55 + r() * 0.45)], [x1, base - amp * (0.05 + r() * 0.25)]);
+    }
+    pts.push([W, base - amp * 0.2]);
+    g.beginPath(); g.moveTo(0, H); pts.forEach(([x, y]) => g.lineTo(x, y)); g.lineTo(W, H); g.closePath(); g.fill();
+    if (L.snow) {
+      g.fillStyle = L.snow;
+      for (let i = 1; i < pts.length - 1; i += 2) {
+        const [px, py] = pts[i], [ax, ay] = pts[i - 1], [bx, by] = pts[i + 1], k = 0.28;
+        g.beginPath(); g.moveTo(px, py); g.lineTo(px + (bx - px) * k, py + (by - py) * k);
+        g.lineTo(px + (bx - px) * k * 0.5, py + (by - py) * k * 0.7); g.lineTo(px + (ax - px) * k * 0.5, py + (ay - py) * k * 0.7);
+        g.lineTo(px + (ax - px) * k, py + (ay - py) * k); g.closePath(); g.fill();
       }
-      g.globalAlpha = 1;
-    },
-  },
-  blossom: {
-    name: '벚꽃 언덕', tag: 'BLOSSOM HILL', light: true,
-    chapters: ['꽃길 산책', '분홍 언덕', '햇살 정원', '바람의 들판', '꽃비 내리는 밤'],
-    ramp: ['#8ad9b8', '#7fc4ea', '#a99cf0', '#f28fb0', '#f7a982'], accent: '#ef7fa6', accent2: '#7fc4ea',
-    paint(g, now) {
-      g.drawImage(cachedLayer('heal-blossom', c => {
-        c.fillStyle = vgrad(c, 0, H, ['#ffe0ea', '#fff0e4', '#fff7ee']); c.fillRect(0, 0, W, H);
-        softBlob(c, W * 0.3, H * 0.16, 160, 40, '#ffffff', 0.7); softBlob(c, W * 0.8, H * 0.3, 120, 30, '#ffffff', 0.6);
-        hill(c, H * 0.58, 22, 0.012, 0.5, '#d6eed8'); hill(c, H * 0.67, 18, 0.016, 2, '#bfe5c6'); hill(c, H * 0.79, 14, 0.02, 4, '#a7dab3');
-        const tree = (x, y, s) => {
-          c.strokeStyle = '#a07a6a'; c.lineWidth = 3 * s; c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - 34 * s); c.stroke();
-          for (let k = 0; k < 7; k++) { c.fillStyle = k % 2 ? '#ffc4d6' : '#ffadc8'; c.beginPath(); c.arc(x + Math.cos(k * 0.9) * 16 * s, y - 40 * s + Math.sin(k * 1.7) * 9 * s, 13 * s, 0, Math.PI * 2); c.fill(); }
-        };
-        tree(W * 0.12, H * 0.66, 1); tree(W * 0.3, H * 0.7, 0.8); tree(W * 0.82, H * 0.64, 1.1); tree(W * 0.62, H * 0.76, 0.9);
-        for (let i = 0; i < 60; i++) { c.fillStyle = i % 3 ? '#ffffff' : '#ffd1e0'; c.beginPath(); c.arc(wrapN(i * 71, W), H * 0.8 + (i * 37) % (H * 0.2), 1.8, 0, Math.PI * 2); c.fill(); }
-      }), 0, 0, W, H);
-      for (let i = 0; i < 34; i++) {
-        const x = wrapN(i * 137 + now * 0.018 * (1 + i % 3) + Math.sin(now / 900 + i) * 14, W + 40) - 20;
-        const y = wrapN(i * 91 + now * 0.035 * (1 + i % 4), H + 40) - 20;
-        g.save(); g.translate(x, y); g.rotate(now / 600 + i); g.scale(1, 0.55 + 0.45 * Math.sin(now / 300 + i));
-        g.fillStyle = i % 2 ? '#ffb7cf' : '#ffd3e1'; g.beginPath(); g.ellipse(0, 0, 4.5, 3, 0, 0, Math.PI * 2); g.fill(); g.restore();
-      }
-    },
-  },
-  coral: {
-    name: '산호 바다', tag: 'CORAL SEA', light: true,
-    chapters: ['얕은 물빛', '산호 정원', '해파리 길', '깊은 푸름', '진주 동굴'],
-    ramp: ['#6fe0cf', '#5cbdf0', '#7d9cf5', '#f48fb8', '#ffad7a'], accent: '#2fb5c8', accent2: '#f48fb8',
-    paint(g, now) {
-      g.drawImage(cachedLayer('heal-coral', c => {
-        c.fillStyle = vgrad(c, 0, H, ['#c8f4ef', '#86d8dc', '#4fa9c4', '#2f7aa8']); c.fillRect(0, 0, W, H);
-        hill(c, H * 0.86, 10, 0.018, 1, '#f1ddb4'); hill(c, H * 0.9, 7, 0.025, 3, '#e8cf9f');
-        const coral = (x, y, col, s) => { c.fillStyle = col; for (let k = 0; k < 6; k++) { c.beginPath(); c.arc(x + (k - 2.5) * 7 * s, y - Math.abs(Math.sin(k * 1.3)) * 30 * s - 6 * s, 7 * s, 0, Math.PI * 2); c.fill(); c.fillRect(x + (k - 2.5) * 7 * s - 2 * s, y - Math.abs(Math.sin(k * 1.3)) * 30 * s - 6 * s, 4 * s, 34 * s); } };
-        coral(W * 0.12, H * 0.9, '#ff9fb8', 1); coral(W * 0.36, H * 0.92, '#ffb48a', 0.8); coral(W * 0.7, H * 0.9, '#c7a0ff', 1); coral(W * 0.9, H * 0.92, '#ff9fb8', 0.7);
-      }), 0, 0, W, H);
-      g.save(); g.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 5; i++) {
-        const x = W * (0.1 + i * 0.22) + Math.sin(now / 3000 + i) * 24;
-        const gr = g.createLinearGradient(0, 0, 0, H * 0.8); gr.addColorStop(0, 'rgba(255,255,255,.22)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-        g.fillStyle = gr; g.beginPath(); g.moveTo(x - 14, 0); g.lineTo(x + 14, 0); g.lineTo(x + 70, H * 0.8); g.lineTo(x + 10, H * 0.8); g.fill();
-      }
-      g.restore();
-      g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1.2;
-      for (let i = 0; i < 22; i++) {
-        const y = H - wrapN(i * 71 + now * 0.04 * (1 + i % 3), H), x = wrapN(i * 53, W) + Math.sin(now / 600 + i) * 6;
-        g.beginPath(); g.arc(x, y, 2 + i % 4, 0, Math.PI * 2); g.stroke();
-      }
-      for (let i = 0; i < 4; i++) { // seaweed
-        const bx = W * (0.05 + i * 0.3);
-        g.strokeStyle = '#3fae8c'; g.lineWidth = 4; g.beginPath(); g.moveTo(bx, H);
-        for (let k = 1; k <= 6; k++) g.lineTo(bx + Math.sin(now / 800 + k + i) * 6 * k / 3, H - k * 18);
-        g.stroke();
-      }
-    },
-  },
-  aurora: {
-    name: '오로라 설원', tag: 'AURORA FIELD', light: false,
-    chapters: ['별빛 설원', '침엽수 숲', '얼음 호수', '북쪽 하늘', '오로라의 끝'],
-    ramp: ['#6ff2c6', '#62cdf5', '#8a9cff', '#c38cff', '#ff8fcf'], accent: '#6ff2c6', accent2: '#c38cff',
-    paint(g, now) {
-      g.drawImage(cachedLayer('heal-aurora', c => {
-        c.fillStyle = vgrad(c, 0, H, ['#0a1430', '#172c58', '#2b4a7c']); c.fillRect(0, 0, W, H);
-        for (let i = 0; i < 90; i++) { c.fillStyle = `rgba(255,255,255,${0.3 + (i % 5) / 8})`; c.fillRect(wrapN(i * 89, W), (i * 47) % (H * 0.6), 1.4, 1.4); }
-        hill(c, H * 0.8, 14, 0.014, 2, '#cfdcf2'); hill(c, H * 0.86, 10, 0.02, 5, '#e6eefa');
-        c.fillStyle = '#132a48';
-        for (let i = 0; i < 11; i++) { const x = W * (i / 10) + (i % 2) * 12, y = H * 0.82, s = 0.7 + (i % 3) * 0.25; c.beginPath(); c.moveTo(x, y - 54 * s); c.lineTo(x + 16 * s, y); c.lineTo(x - 16 * s, y); c.fill(); }
-      }), 0, 0, W, H);
-      g.save(); g.globalCompositeOperation = 'lighter';
-      [['#6ff2c6', 0], ['#62cdf5', 1.3], ['#c38cff', 2.6]].forEach(([col, k]) => {
-        const gr = g.createLinearGradient(0, 0, 0, 130); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
-        g.fillStyle = gr;
-        for (let x = 0; x < W; x += 5) {
-          const y = H * 0.18 + Math.sin(x * 0.011 + now / 2400 + k) * 34 + k * 20;
-          g.globalAlpha = 0.07 + 0.05 * Math.sin(x * 0.03 + now / 900 + k);
-          g.translate(x, y); g.fillRect(0, 0, 5, 130); g.translate(-x, -y);
-        }
-      });
-      g.restore(); g.globalAlpha = 1;
-      g.fillStyle = 'rgba(255,255,255,.85)';
-      for (let i = 0; i < 40; i++) { const x = wrapN(i * 61 + Math.sin(now / 1200 + i) * 16, W), y = wrapN(i * 97 + now * 0.03 * (1 + i % 3), H); g.beginPath(); g.arc(x, y, 1 + i % 3 * 0.6, 0, Math.PI * 2); g.fill(); }
-    },
-  },
-  sunset: {
-    name: '노을 구름', tag: 'SUNSET CLOUDS', light: true,
-    chapters: ['구름 위 산책', '분홍 노을', '바람의 섬', '금빛 하늘', '별이 뜨는 시간'],
-    ramp: ['#ffcf7a', '#ffa98a', '#ff8fa6', '#e08fd0', '#9d8cf5'], accent: '#f2789a', accent2: '#9d8cf5',
-    paint(g, now) {
-      g.drawImage(cachedLayer('heal-sunset', c => {
-        c.fillStyle = vgrad(c, 0, H * 0.75, ['#7b73ea', '#c98bd9', '#ff9fb0', '#ffd49c']); c.fillRect(0, 0, W, H);
-        softBlob(c, W * 0.5, H * 0.62, 150, 150, '#fff0c8', 0.85);
-        c.fillStyle = '#fff4d8'; c.beginPath(); c.arc(W * 0.5, H * 0.62, 34, 0, Math.PI * 2); c.fill();
-        softBlob(c, W * 0.25, H * 0.2, 140, 22, '#ffd6e6', 0.6); softBlob(c, W * 0.78, H * 0.34, 120, 18, '#ffe2d0', 0.6);
-        cloudBank(c, H * 0.68, 26, '#ffd8cc', 3); cloudBank(c, H * 0.76, 30, '#ffc2cf', 7); cloudBank(c, H * 0.86, 34, '#f4aacb', 11);
-      }), 0, 0, W, H);
-      g.strokeStyle = 'rgba(90,60,120,.55)'; g.lineWidth = 1.6;
-      for (let i = 0; i < 5; i++) {
-        const x = wrapN(i * 90 + now * 0.012, W + 60) - 30, y = H * (0.3 + i * 0.05) + Math.sin(now / 900 + i) * 6, f = 4 + Math.sin(now / 200 + i) * 2;
-        g.beginPath(); g.moveTo(x - 7, y - f); g.quadraticCurveTo(x - 3, y - 1, x, y); g.quadraticCurveTo(x + 3, y - 1, x + 7, y - f); g.stroke();
-      }
-    },
-  },
-};
-const HEAL_ORDER = ['dawn', 'blossom', 'coral', 'aurora', 'sunset'];
+    }
+  } else if (L.k === 'mesa') {
+    g.beginPath(); g.moveTo(0, H);
+    let x = 0;
+    while (x < W) {
+      const w = 40 + r() * 70, top = base - amp * (0.3 + r() * 0.7);
+      g.lineTo(x, base); g.lineTo(x + 8, top); g.lineTo(x + w - 8, top); g.lineTo(x + w, base); x += w;
+    }
+    g.lineTo(W, H); g.closePath(); g.fill();
+    g.save(); g.clip(); g.fillStyle = 'rgba(0,0,0,.07)';
+    for (let y = base - amp; y < H; y += 7) g.fillRect(0, y, W, 2);
+    g.restore();
+  } else if (L.k === 'pillars') {
+    const n = L.f;
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5 + (r() - 0.5) * 0.6) / n * W, w = (14 + r() * 22) * (L.w || 1), h = amp * (0.55 + r() * 0.45);
+      g.fillStyle = L.c; g.beginPath(); g.moveTo(x - w / 2, base + 30); g.lineTo(x - w / 2 + 3, base - h + w / 2);
+      g.quadraticCurveTo(x, base - h - w * 0.3, x + w / 2 - 3, base - h + w / 2); g.lineTo(x + w / 2, base + 30); g.fill();
+      if (L.cap) { g.fillStyle = L.cap; for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(x + (k - 1.5) * w / 4, base - h + 2 + (k % 2) * 3, w / 3.2, 0, Math.PI * 2); g.fill(); } }
+    }
+  } else if (L.k === 'cliffs') {
+    const top = L.top * H;
+    g.beginPath(); g.moveTo(0, top); g.lineTo(W * L.w * 0.7, top + 20); g.lineTo(W * L.w, base); g.lineTo(W * L.w, H); g.lineTo(0, H); g.fill();
+    g.beginPath(); g.moveTo(W, top + 30); g.lineTo(W * (1 - L.w * 0.7), top + 45); g.lineTo(W * (1 - L.w), base); g.lineTo(W * (1 - L.w), H); g.lineTo(W, H); g.fill();
+  } else if (L.k === 'terraces') {
+    const n = L.n, step = (H - base) / n;
+    for (let i = 0; i < n; i++) {
+      const y = base + i * step;
+      g.fillStyle = L.cols[i % L.cols.length]; g.beginPath(); g.moveTo(0, H);
+      for (let x = 0; x <= W; x += 6) g.lineTo(x, y + Math.sin(x * 0.012 + i * 0.9) * step * 0.6);
+      g.lineTo(W, H); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.2; g.beginPath();
+      for (let x = 0; x <= W; x += 6) g.lineTo(x, y + Math.sin(x * 0.012 + i * 0.9) * step * 0.6);
+      g.stroke();
+    }
+  } else if (L.k === 'rows') {
+    g.fillStyle = L.c2; g.fillRect(0, base, W, H - base);
+    g.fillStyle = L.c; const vx = W * 0.5, vy = base - 10;
+    for (let i = -L.n; i <= L.n; i++) {
+      const x0 = vx + i * 70, x1 = vx + (i + 0.45) * 70;
+      g.beginPath(); g.moveTo(vx + i * 3, vy + 12); g.lineTo(vx + (i + 0.45) * 3, vy + 12); g.lineTo(x1, H); g.lineTo(x0, H); g.fill();
+    }
+  } else if (L.k === 'field') {
+    g.fillStyle = L.c; g.fillRect(0, base, W, H - base);
+    g.fillStyle = L.dot;
+    for (let i = 0; i < 260; i++) { const y = base + Math.pow(r(), 0.7) * (H - base); g.beginPath(); g.arc(r() * W, y, 0.8 + (y - base) / (H - base) * 2.4, 0, Math.PI * 2); g.fill(); }
+  } else if (L.k === 'canopy') {
+    bumps(g, base, L.r || 24, L.c, L.p * 31);
+  }
+}
 
-// ---------- the three directions ----------
-const DIRECTIONS = {
-  glass: { name: '소프트 글래스', brick: 'frost', disp: HEAL_FONT.outfit, dw: '800', dsz: 1.35, num: HEAL_FONT.outfit, numSize: 15, numWeight: '700', ko: HEAL_FONT.plex, particle: 'dust', wordStyle: 'clean', words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'] },
-  clay: { name: '말랑 클레이', brick: 'clay', disp: HEAL_FONT.fredoka, dw: '700', dsz: 1.45, num: HEAL_FONT.fredoka, numSize: 16, numWeight: '700', ko: HEAL_FONT.jua, particle: 'confetti', wordStyle: 'bubble', words: ['NICE!', 'YAY!', 'AWESOME!', 'AMAZING!', 'MAGICAL!'] },
-  flat: { name: '미니멀 플랫', brick: 'flat', disp: HEAL_FONT.sora, dw: '800', dsz: 1.3, num: HEAL_FONT.sora, numSize: 14, numWeight: '700', ko: HEAL_FONT.plex, particle: 'spark', wordStyle: 'plain', words: ['NICE', 'GREAT', 'SUPERB', 'BRILLIANT', 'PERFECT'] },
+function tree(g, kind, x, y, s, col) {
+  if (kind === 'pine') {
+    g.fillStyle = col;
+    for (let k = 0; k < 3; k++) { const w = (16 - k * 3.5) * s, ty = y - (k * 14 + 22) * s; g.beginPath(); g.moveTo(x, ty - 12 * s); g.lineTo(x + w, ty + 14 * s); g.lineTo(x - w, ty + 14 * s); g.fill(); }
+    g.fillRect(x - 1.5 * s, y - 8 * s, 3 * s, 8 * s);
+  } else if (kind === 'cypress') {
+    g.fillStyle = col; g.beginPath(); g.ellipse(x, y - 30 * s, 7 * s, 30 * s, 0, 0, Math.PI * 2); g.fill();
+  } else if (kind === 'palm') {
+    g.strokeStyle = '#8a6a55'; g.lineWidth = 3 * s; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 10 * s, y - 30 * s, x + 4 * s, y - 56 * s); g.stroke();
+    g.fillStyle = col;
+    for (let k = 0; k < 6; k++) { g.save(); g.translate(x + 4 * s, y - 56 * s); g.rotate(-2.6 + k * 0.9); g.beginPath(); g.ellipse(14 * s, 0, 15 * s, 4 * s, 0.25, 0, Math.PI * 2); g.fill(); g.restore(); }
+  } else if (kind === 'baobab') {
+    g.fillStyle = col; g.beginPath(); g.moveTo(x - 7 * s, y); g.lineTo(x - 5 * s, y - 50 * s); g.lineTo(x + 5 * s, y - 50 * s); g.lineTo(x + 7 * s, y); g.fill();
+    for (let k = -2; k <= 2; k++) { g.beginPath(); g.ellipse(x + k * 6 * s, y - 56 * s - Math.abs(k) * -2 * s, 6 * s, 3.5 * s, 0, 0, Math.PI * 2); g.fill(); }
+  } else {
+    const crowns = { blossom: ['#ffc4d6', '#ffadc8'], maple: ['#f59a5a', '#e7704f', '#f6c35d'], birch: ['#bfe3a8', '#a6d690'] }[kind] || [col];
+    g.strokeStyle = kind === 'birch' ? '#f3f1ea' : '#a07a6a'; g.lineWidth = 3 * s; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 34 * s); g.stroke();
+    for (let k = 0; k < 7; k++) { g.fillStyle = crowns[k % crowns.length]; g.beginPath(); g.arc(x + Math.cos(k * 0.9) * 16 * s, y - 40 * s + Math.sin(k * 1.7) * 9 * s, 13 * s, 0, Math.PI * 2); g.fill(); }
+  }
+}
+
+function extraStatic(g, e) {
+  if (e.k === 'waterfall') {
+    const x = e.x * W, y0 = e.y0 * H, y1 = e.y1 * H, w = e.w;
+    g.fillStyle = vgrad(g, y0, y1, ['rgba(255,255,255,.95)', 'rgba(220,240,255,.85)']); g.fillRect(x - w / 2, y0, w, y1 - y0);
+    softBlob(g, x, y1, w * 1.6, 22, '#ffffff', 0.9);
+  } else if (e.k === 'rainbow') {
+    ['#ff9aa2', '#ffd29a', '#fff3a0', '#b5ead7', '#a0c4ff', '#c7a0ff'].forEach((c, i) => {
+      g.strokeStyle = c; g.globalAlpha = 0.22; g.lineWidth = 6; g.beginPath(); g.arc(e.x * W, e.y * H, e.r - i * 6, Math.PI, 0); g.stroke();
+    });
+    g.globalAlpha = 1;
+  } else if (e.k === 'icebergs') {
+    for (const [x, y, s] of e.items) {
+      const X = x * W, Y = y * H;
+      g.fillStyle = 'rgba(70,120,170,.25)'; g.beginPath(); g.ellipse(X, Y + 3, 40 * s, 5 * s, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(X - 38 * s, Y); g.lineTo(X - 24 * s, Y - 30 * s); g.lineTo(X - 8 * s, Y - 36 * s); g.lineTo(X + 6 * s, Y - 48 * s); g.lineTo(X + 22 * s, Y - 26 * s); g.lineTo(X + 38 * s, Y); g.closePath(); g.fill();
+      g.fillStyle = '#b9d6f0'; g.beginPath(); g.moveTo(X + 6 * s, Y - 48 * s); g.lineTo(X + 22 * s, Y - 26 * s); g.lineTo(X + 38 * s, Y); g.lineTo(X + 4 * s, Y); g.lineTo(X + 10 * s, Y - 24 * s); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(90,140,190,.5)'; g.lineWidth = 1; g.beginPath(); g.moveTo(X - 38 * s, Y); g.lineTo(X + 38 * s, Y); g.stroke();
+    }
+  } else if (e.k === 'yurt') {
+    const x = e.x * W, y = e.y * H;
+    g.fillStyle = '#eef0f8'; g.beginPath(); g.moveTo(x - 18, y); g.lineTo(x - 18, y - 12); g.quadraticCurveTo(x, y - 30, x + 18, y - 12); g.lineTo(x + 18, y); g.fill();
+    g.fillStyle = '#ffd27a'; g.fillRect(x - 4, y - 10, 8, 10); softBlob(g, x, y - 5, 26, 18, '#ffd27a', 0.5);
+  } else if (e.k === 'boat') {
+    const x = e.x * W, y = e.y * H;
+    g.fillStyle = e.c || '#7a6a8a'; g.beginPath(); g.moveTo(x - 16, y - 4); g.lineTo(x + 16, y - 4); g.lineTo(x + 10, y + 2); g.lineTo(x - 10, y + 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.moveTo(x, y - 30); g.lineTo(x + 12, y - 6); g.lineTo(x, y - 6); g.fill();
+  } else if (e.k === 'sheep') {
+    const r = seeded(7);
+    g.fillStyle = '#ffffff';
+    for (let i = 0; i < 16; i++) { const x = r() * W, y = (e.y0 + r() * (e.y1 - e.y0)) * H; g.beginPath(); g.ellipse(x, y, 3.5, 2.5, 0, 0, Math.PI * 2); g.fill(); }
+  } else if (e.k === 'coral') {
+    for (const [x, y, s, col] of e.items) {
+      g.fillStyle = col;
+      for (let k = 0; k < 6; k++) { const h = Math.abs(Math.sin(k * 1.3)) * 30 * s + 6 * s; g.beginPath(); g.arc(x * W + (k - 2.5) * 7 * s, y * H - h, 7 * s, 0, Math.PI * 2); g.fill(); g.fillRect(x * W + (k - 2.5) * 7 * s - 2 * s, y * H - h, 4 * s, h + 4); }
+    }
+  }
+}
+
+function paintStatic(g, R, variant) {
+  g.fillStyle = vgrad(g, 0, (R.skyEnd || 1) * H, R.sky); g.fillRect(0, 0, W, H);
+  if (R.stars) { const r = seeded(3); for (let i = 0; i < R.stars; i++) { g.fillStyle = `rgba(255,255,255,${0.25 + r() * 0.6})`; g.fillRect(r() * W, r() * H * 0.6, 1.4, 1.4); } }
+  if (R.milky) { for (let i = 0; i < 9; i++) softBlob(g, W * (0.05 + i * 0.12), H * (0.42 - i * 0.04), 70, 26, '#cdd6ff', 0.16); }
+  if (R.sun) { const s = R.sun; softBlob(g, s.x * W, s.y * H, s.glow || 120, s.glow || 120, s.halo || '#fff2d6', 0.85); g.fillStyle = s.c || '#fffaf0'; g.beginPath(); g.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2); g.fill(); }
+  if (R.moon) {
+    const m = R.moon, k = 4, c = document.createElement('canvas'); c.width = c.height = m.r * 2 * k + 4;
+    const mg = c.getContext('2d'); mg.scale(k, k);
+    mg.fillStyle = '#f6f3e6'; mg.beginPath(); mg.arc(m.r, m.r, m.r, 0, Math.PI * 2); mg.fill();
+    mg.globalCompositeOperation = 'destination-out'; mg.beginPath(); mg.arc(m.r * 1.45, m.r * 0.8, m.r, 0, Math.PI * 2); mg.fill();
+    softBlob(g, m.x * W, m.y * H, 46, 46, '#dfe6ff', 0.35);
+    g.drawImage(c, m.x * W - m.r, m.y * H - m.r, c.width / k, c.height / k);
+  }
+  (R.clouds || []).forEach(([x, y, rx, ry, a]) => softBlob(g, x * W, y * H, rx, ry, '#ffffff', a));
+  const wy = R.water ? R.water.y * H : H + 1;
+  for (const L of R.layers || []) { if (!L.front) ridge(g, L); }
+  for (const T of R.trees || []) if (!T.front) for (const [x, y, s] of T.items) tree(g, T.k, x * W, y * H, s, T.c);
+  for (const e of R.extras || []) if (!e.front) extraStatic(g, e);
+  if (R.water) {
+    // reflect everything above the waterline, then tint it as water
+    g.save(); g.beginPath(); g.rect(0, wy, W, H - wy); g.clip();
+    g.translate(0, wy * 2); g.scale(1, -1); g.globalAlpha = R.water.mirror ? 0.9 : 0.4;
+    g.drawImage(g.canvas, 0, 0, W, H); g.restore();
+    g.globalAlpha = R.water.mirror ? 0.25 : 0.62; g.fillStyle = vgrad(g, wy, H, R.water.c); g.fillRect(0, wy, W, H - wy); g.globalAlpha = 1;
+    g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(0, wy, W, 1.5);
+  }
+  for (const L of R.layers || []) { if (L.front) ridge(g, L); }
+  for (const T of R.trees || []) if (T.front) for (const [x, y, s] of T.items) tree(g, T.k, x * W, y * H, s, T.c);
+  for (const e of R.extras || []) if (e.front) extraStatic(g, e);
+  if (variant && variant.tint) { g.fillStyle = variant.tint; g.fillRect(0, 0, W, H); }
+}
+
+function paintAnim(g, R, now) {
+  const P = R.particles || {}, n = P.n || 0, light = !R.dark;
+  if (R.aurora) {
+    g.save(); g.globalCompositeOperation = 'lighter';
+    R.aurora.forEach((col, k) => {
+      const gr = g.createLinearGradient(0, 0, 0, 130); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr;
+      for (let x = 0; x < W; x += 5) {
+        const y = H * 0.16 + Math.sin(x * 0.011 + now / 2400 + k * 1.3) * 34 + k * 20;
+        g.globalAlpha = 0.07 + 0.05 * Math.sin(x * 0.03 + now / 900 + k); g.translate(x, y); g.fillRect(0, 0, 5, 130); g.translate(-x, -y);
+      }
+    });
+    g.restore();
+  }
+  if (R.water && R.water.shimmer && R.sun) {
+    g.fillStyle = 'rgba(255,255,255,.45)';
+    for (let i = 0; i < 9; i++) { const w = 60 - i * 5 + Math.sin(now / 500 + i) * 14; g.fillRect(R.sun.x * W - w / 2, R.water.y * H + 4 + i * 11, w, 2); }
+  }
+  for (const e of R.extras || []) {
+    if (e.k === 'waterfall') { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.5; for (let i = 0; i < 6; i++) { const x = e.x * W - e.w / 2 + (i + 0.5) * e.w / 6, y = e.y0 * H + wrapN(now * 0.25 + i * 37, (e.y1 - e.y0) * H); g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 14); g.stroke(); } }
+    if (e.k === 'rays') { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 5; i++) { const x = W * (0.1 + i * 0.22) + Math.sin(now / 3000 + i) * 24; const gr = g.createLinearGradient(0, 0, 0, H * 0.8); gr.addColorStop(0, 'rgba(255,255,255,.2)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x - 14, 0); g.lineTo(x + 14, 0); g.lineTo(x + 70, H * 0.8); g.lineTo(x + 10, H * 0.8); g.fill(); } g.restore(); }
+    if (e.k === 'seaweed') { g.strokeStyle = '#3fae8c'; g.lineWidth = 4; for (const bx of e.xs) { g.beginPath(); g.moveTo(bx * W, H); for (let k = 1; k <= 6; k++) g.lineTo(bx * W + Math.sin(now / 800 + k + bx * 9) * 6 * k / 3, H - k * 18); g.stroke(); } }
+    if (e.k === 'waves') { g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 2; for (let i = 0; i < 3; i++) { const y = e.y * H + i * 8 + Math.sin(now / 700 + i) * 3; g.beginPath(); for (let x = 0; x <= W; x += 10) g.lineTo(x, y + Math.sin(x * 0.05 + now / 500 + i) * 2); g.stroke(); } }
+    if (e.k === 'mistband') { for (let i = 0; i < 4; i++) softBlob(g, wrapN(i * 130 + now * 0.01 * (1 + i % 2), W + 200) - 100, e.y * H + i * 12, 150, 22, '#ffffff', 0.35); }
+  }
+  for (let i = 0; i < n; i++) {
+    const k = P.k;
+    if (k === 'petals' || k === 'leaves') {
+      const x = wrapN(i * 137 + now * 0.018 * (1 + i % 3) + Math.sin(now / 900 + i) * 14, W + 40) - 20, y = wrapN(i * 91 + now * 0.035 * (1 + i % 4), H + 40) - 20;
+      g.save(); g.translate(x, y); g.rotate(now / 600 + i); g.scale(1, 0.55 + 0.45 * Math.sin(now / 300 + i));
+      g.fillStyle = k === 'petals' ? (i % 2 ? '#ffb7cf' : '#ffd3e1') : ['#f59a5a', '#e7704f', '#f6c35d'][i % 3];
+      g.beginPath(); g.ellipse(0, 0, k === 'petals' ? 4.5 : 5.5, 3, 0, 0, Math.PI * 2); g.fill(); g.restore();
+    } else if (k === 'snow') {
+      const x = wrapN(i * 61 + Math.sin(now / 1200 + i) * 16, W), y = wrapN(i * 97 + now * 0.03 * (1 + i % 3), H);
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(x, y, 1 + (i % 3) * 0.6, 0, Math.PI * 2); g.fill();
+    } else if (k === 'motes' || k === 'sparkles') {
+      const x = wrapN(i * 97 + Math.sin(now / 2600 + i) * 18, W), y = k === 'motes' ? wrapN(H * 0.1 + i * 53 - now * 0.008 * (1 + i % 3), H * 0.8) : wrapN(i * 71, H * 0.6);
+      g.globalAlpha = Math.max(0, 0.3 + 0.4 * Math.sin(now / (k === 'motes' ? 700 : 400) + i * 1.7));
+      softBlob(g, x, y, k === 'motes' ? 5 : 3, k === 'motes' ? 5 : 3, P.c || '#fff6d8', 1); g.globalAlpha = 1;
+    } else if (k === 'bubbles') {
+      const y = H - wrapN(i * 71 + now * 0.04 * (1 + i % 3), H), x = wrapN(i * 53, W) + Math.sin(now / 600 + i) * 6;
+      g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, 2 + i % 4, 0, Math.PI * 2); g.stroke();
+    } else if (k === 'mist') {
+      softBlob(g, wrapN(i * 150 + now * 0.012 * (1 + i % 2), W + 240) - 120, H * (0.35 + (i % 4) * 0.12), 160, 30, '#ffffff', 0.28);
+    } else if (k === 'birds') {
+      const x = wrapN(i * 90 + now * 0.012, W + 60) - 30, y = H * (0.2 + (i % 5) * 0.05) + Math.sin(now / 900 + i) * 6, f = 4 + Math.sin(now / 200 + i) * 2;
+      g.strokeStyle = light ? 'rgba(80,60,110,.55)' : 'rgba(230,230,255,.6)'; g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(x - 7, y - f); g.quadraticCurveTo(x - 3, y - 1, x, y); g.quadraticCurveTo(x + 3, y - 1, x + 7, y - f); g.stroke();
+    } else if (k === 'butterflies') {
+      const x = wrapN(i * 113 + now * 0.02 + Math.sin(now / 700 + i) * 30, W), y = H * (0.45 + (i % 5) * 0.08) + Math.sin(now / 500 + i * 2) * 14, f = Math.abs(Math.sin(now / 90 + i));
+      g.fillStyle = ['#ffd166', '#ff9ec7', '#a0c4ff', '#ffffff'][i % 4];
+      g.beginPath(); g.ellipse(x - 3 * f, y, 3 * f + 0.5, 4, 0, 0, Math.PI * 2); g.ellipse(x + 3 * f, y, 3 * f + 0.5, 4, 0, 0, Math.PI * 2); g.fill();
+    }
+  }
+}
+
+// ---------- 25 places (name, sky, light, layers, details) ----------
+const LANDS = [
+  { key: 'moraine', name: '모레인 호수의 새벽', place: 'CANADA', pal: 'cool', accent: '#7a8cf0', accent2: '#f29ac2',
+    sky: ['#9fb7f0', '#d9c6ee', '#ffe0c8'], skyEnd: 0.6, sun: { x: 0.68, y: 0.56, r: 22 }, clouds: [[0.2, 0.17, 120, 24, 0.5], [0.75, 0.26, 100, 20, 0.4]],
+    layers: [{ k: 'peaks', b: 0.5, a: 0.18, f: 5, p: 1, c: '#b9b4e4', snow: '#f4f1ff' }, { k: 'peaks', b: 0.57, a: 0.08, f: 8, p: 4, c: '#9a95d2' }],
+    water: { y: 0.58, c: ['#cfe0f5', '#8fb6e0'], shimmer: true }, trees: [{ k: 'pine', c: '#5d6aa8', front: true, items: [[0.04, 0.62, 1], [0.1, 0.64, 0.8], [0.88, 0.62, 1.1], [0.95, 0.63, 0.8]] }],
+    particles: { k: 'motes', n: 20 } },
+  { key: 'kyoto', name: '교토 벚꽃 언덕', place: 'JAPAN', pal: 'bloom', accent: '#ef7fa6', accent2: '#7fc4ea',
+    sky: ['#ffdbe7', '#fff0e4', '#fff7ee'], clouds: [[0.3, 0.16, 160, 40, 0.7], [0.8, 0.3, 120, 30, 0.6]],
+    layers: [{ k: 'smooth', b: 0.58, a: 0.03, f: 0.012, p: 0.5, c: '#d6eed8' }, { k: 'smooth', b: 0.67, a: 0.025, f: 0.016, p: 2, c: '#bfe5c6' }, { k: 'smooth', b: 0.79, a: 0.02, f: 0.02, p: 4, c: '#a7dab3' }],
+    trees: [{ k: 'blossom', items: [[0.12, 0.66, 1], [0.3, 0.7, 0.8], [0.82, 0.64, 1.1], [0.62, 0.76, 0.9]] }], particles: { k: 'petals', n: 34 } },
+  { key: 'maldives', name: '몰디브 산호 바다', place: 'MALDIVES', pal: 'sea', accent: '#2fb5c8', accent2: '#f48fb8',
+    sky: ['#c8f4ef', '#86d8dc', '#4fa9c4', '#2f7aa8'],
+    layers: [{ k: 'smooth', b: 0.88, a: 0.012, f: 0.018, p: 1, c: '#f1ddb4' }, { k: 'smooth', b: 0.92, a: 0.01, f: 0.025, p: 3, c: '#e8cf9f' }],
+    extras: [{ k: 'coral', items: [[0.12, 0.9, 1, '#ff9fb8'], [0.36, 0.92, 0.8, '#ffb48a'], [0.7, 0.9, 1, '#c7a0ff'], [0.9, 0.92, 0.7, '#ff9fb8']] }, { k: 'rays' }, { k: 'seaweed', xs: [0.05, 0.35, 0.65, 0.95] }],
+    particles: { k: 'bubbles', n: 22 } },
+  { key: 'iceland', name: '아이슬란드 오로라', place: 'ICELAND', pal: 'night', accent: '#6ff2c6', accent2: '#c38cff', dark: true,
+    sky: ['#0a1430', '#172c58', '#2b4a7c'], stars: 90, aurora: ['#6ff2c6', '#62cdf5', '#c38cff'],
+    layers: [{ k: 'smooth', b: 0.8, a: 0.018, f: 0.014, p: 2, c: '#cfdcf2' }, { k: 'smooth', b: 0.86, a: 0.013, f: 0.02, p: 5, c: '#e6eefa' }],
+    trees: [{ k: 'pine', c: '#132a48', items: [[0.03, 0.82, 0.9], [0.12, 0.82, 1.1], [0.22, 0.83, 0.8], [0.7, 0.82, 1], [0.8, 0.82, 1.2], [0.9, 0.83, 0.8], [0.97, 0.82, 1]] }],
+    particles: { k: 'snow', n: 40 } },
+  { key: 'haleakala', name: '할레아칼라 구름 위 노을', place: 'HAWAII', pal: 'warm', accent: '#f2789a', accent2: '#9d8cf5',
+    sky: ['#7b73ea', '#c98bd9', '#ff9fb0', '#ffd49c'], skyEnd: 0.75, sun: { x: 0.5, y: 0.62, r: 34, glow: 150, halo: '#fff0c8' },
+    clouds: [[0.25, 0.2, 140, 22, 0.6], [0.78, 0.34, 120, 18, 0.6]],
+    layers: [{ k: 'canopy', b: 0.68, r: 26, p: 3, c: '#ffd8cc' }, { k: 'canopy', b: 0.76, r: 30, p: 7, c: '#ffc2cf' }, { k: 'canopy', b: 0.86, r: 34, p: 11, c: '#f4aacb' }],
+    particles: { k: 'birds', n: 5 } },
+  { key: 'sahara', name: '사하라 사막의 별밤', place: 'MOROCCO', pal: 'night', accent: '#f6b26b', accent2: '#8a9cff', dark: true,
+    sky: ['#141a3d', '#3a2f6b', '#c47a8a'], stars: 130, milky: true, moon: { x: 0.76, y: 0.16, r: 15 },
+    layers: [{ k: 'dunes', b: 0.72, a: 0.05, f: 0.008, p: 1, c: '#c98a6a' }, { k: 'dunes', b: 0.8, a: 0.05, f: 0.011, p: 3, c: '#a96c56' }, { k: 'dunes', b: 0.9, a: 0.04, f: 0.015, p: 6, c: '#8a5446' }],
+    particles: { k: 'sparkles', n: 30 } },
+  { key: 'provence', name: '프로방스 라벤더 들판', place: 'FRANCE', pal: 'bloom', accent: '#9b7fd4', accent2: '#f7a982',
+    sky: ['#a8c6f5', '#ffe1c2', '#ffd29a'], skyEnd: 0.6, sun: { x: 0.3, y: 0.5, r: 20 },
+    layers: [{ k: 'smooth', b: 0.52, a: 0.02, f: 0.01, p: 2, c: '#c9b8d8' }, { k: 'rows', b: 0.57, n: 8, c: '#9b7fd4', c2: '#c7b2ec' }],
+    trees: [{ k: 'cypress', c: '#4f6b5a', items: [[0.18, 0.56, 0.9], [0.22, 0.56, 0.7], [0.84, 0.55, 1]] }], particles: { k: 'butterflies', n: 10 } },
+  { key: 'uyuni', name: '우유니 하늘 거울', place: 'BOLIVIA', pal: 'cool', accent: '#6fa8ff', accent2: '#f59ab8',
+    sky: ['#8fc3ff', '#c9dcff', '#ffe9f2'], skyEnd: 0.5,
+    clouds: [[0.2, 0.18, 90, 36, 0.9], [0.55, 0.12, 110, 40, 0.9], [0.85, 0.24, 80, 30, 0.85], [0.4, 0.33, 70, 22, 0.8]],
+    layers: [{ k: 'smooth', b: 0.495, a: 0.008, f: 0.02, p: 1, c: '#b9c3e8' }],
+    water: { y: 0.5, c: ['#d7e4ff', '#f5e4f0'], mirror: true }, particles: { k: 'sparkles', n: 18, c: '#ffffff' } },
+  { key: 'guilin', name: '계림 안개 산수', place: 'CHINA', pal: 'green', accent: '#5fae95', accent2: '#f59ab8',
+    sky: ['#d7e6e0', '#eef3ea', '#f6f1e6'],
+    layers: [{ k: 'pillars', b: 0.62, a: 0.3, f: 9, p: 2, c: '#b8cfc5' }, { k: 'pillars', b: 0.7, a: 0.26, f: 6, p: 5, c: '#8fb3a5', w: 1.6 }],
+    water: { y: 0.72, c: ['#cfe3dc', '#a7c9bf'] }, extras: [{ k: 'boat', x: 0.4, y: 0.78, front: true }, { k: 'mistband', y: 0.55 }], particles: { k: 'mist', n: 5 } },
+  { key: 'canyon', name: '그랜드 캐니언 노을', place: 'USA', pal: 'warm', accent: '#e9895f', accent2: '#8a8ee8',
+    sky: ['#6d7fd6', '#f2a07b', '#ffd8a0'], skyEnd: 0.6, sun: { x: 0.72, y: 0.46, r: 18 },
+    layers: [{ k: 'mesa', b: 0.6, a: 0.12, p: 1, c: '#e3a585' }, { k: 'mesa', b: 0.72, a: 0.14, p: 4, c: '#c97a5e' }, { k: 'mesa', b: 0.86, a: 0.12, p: 7, c: '#a85a48' }],
+    particles: { k: 'birds', n: 4 } },
+  { key: 'fjord', name: '노르웨이 피오르', place: 'NORWAY', pal: 'cool', accent: '#5f9fc0', accent2: '#f29ac2',
+    sky: ['#9cc4e8', '#d5e7f2', '#f3efe6'],
+    layers: [{ k: 'cliffs', b: 0.66, top: 0.22, w: 0.42, c: '#9ab3c6' }, { k: 'cliffs', b: 0.7, top: 0.34, w: 0.3, c: '#6f8fa6' }],
+    water: { y: 0.66, c: ['#9fc6d6', '#5f97ad'] }, extras: [{ k: 'waterfall', x: 0.2, y0: 0.38, y1: 0.66, w: 8 }, { k: 'boat', x: 0.58, y: 0.74, front: true }], particles: { k: 'mist', n: 4 } },
+  { key: 'halong', name: '하롱베이 에메랄드 바다', place: 'VIETNAM', pal: 'sea', accent: '#3fb8a8', accent2: '#ffad7a',
+    sky: ['#b9e2f0', '#e8f4ee', '#fff3df'],
+    layers: [{ k: 'pillars', b: 0.62, a: 0.14, f: 7, p: 3, c: '#9cc8b8', w: 2.2 }, { k: 'pillars', b: 0.64, a: 0.2, f: 4, p: 8, c: '#6fae9a', w: 2.6 }],
+    water: { y: 0.63, c: ['#9fe0d0', '#4fb3a8'] }, extras: [{ k: 'boat', x: 0.7, y: 0.72, c: '#b06a5a', front: true }], particles: { k: 'birds', n: 4 } },
+  { key: 'bali', name: '발리 계단식 논', place: 'INDONESIA', pal: 'earth', accent: '#6fb86a', accent2: '#f6a57e',
+    sky: ['#bde3f2', '#e9f6e6'],
+    layers: [{ k: 'canopy', b: 0.44, r: 20, p: 2, c: '#7cbf8a' }, { k: 'terraces', b: 0.5, n: 9, cols: ['#b8e08a', '#9fd47a', '#c9e89c'] }],
+    trees: [{ k: 'palm', c: '#3f7d55', items: [[0.08, 0.6, 1], [0.9, 0.56, 1.2], [0.75, 0.62, 0.8]] }], particles: { k: 'butterflies', n: 10 } },
+  { key: 'maple', name: '캐나다 단풍 숲', place: 'QUEBEC', pal: 'earth', accent: '#e7804f', accent2: '#8ab0f0',
+    sky: ['#c7d8f0', '#f5e2cf'],
+    layers: [{ k: 'smooth', b: 0.6, a: 0.03, f: 0.01, p: 1, c: '#e8b08a' }, { k: 'smooth', b: 0.75, a: 0.02, f: 0.015, p: 3, c: '#d98a5e' }],
+    trees: [{ k: 'maple', items: [[0.08, 0.66, 1], [0.24, 0.7, 0.9], [0.42, 0.66, 0.8], [0.6, 0.71, 1], [0.78, 0.66, 0.9], [0.94, 0.7, 1.1]] }], particles: { k: 'leaves', n: 26 } },
+  { key: 'iguazu', name: '이구아수 폭포와 무지개', place: 'BRAZIL', pal: 'green', accent: '#45b38c', accent2: '#ff9ec7',
+    sky: ['#bfe4ef', '#e6f5ee'],
+    layers: [{ k: 'canopy', b: 0.34, r: 18, p: 4, c: '#7fbf8f' }, { k: 'cliffs', b: 0.78, top: 0.36, w: 0.5, c: '#5f9b7a' }],
+    water: { y: 0.8, c: ['#bfe3e0', '#7fbfbd'] },
+    extras: [{ k: 'waterfall', x: 0.36, y0: 0.4, y1: 0.8, w: 22 }, { k: 'waterfall', x: 0.5, y0: 0.38, y1: 0.8, w: 30 }, { k: 'waterfall', x: 0.64, y0: 0.42, y1: 0.8, w: 18 }, { k: 'rainbow', x: 0.5, y: 0.82, r: 120 }],
+    particles: { k: 'mist', n: 5 } },
+  { key: 'newzealand', name: '뉴질랜드 초원 언덕', place: 'NEW ZEALAND', pal: 'green', accent: '#5fbf7a', accent2: '#8ab0f0',
+    sky: ['#a9d4f5', '#e6f3fb'], clouds: [[0.25, 0.15, 110, 34, 0.85], [0.7, 0.22, 90, 28, 0.8]],
+    layers: [{ k: 'peaks', b: 0.5, a: 0.1, f: 4, p: 2, c: '#b9cbe6', snow: '#f4f8ff' }, { k: 'smooth', b: 0.6, a: 0.04, f: 0.01, p: 1, c: '#b6e3a0' }, { k: 'smooth', b: 0.72, a: 0.035, f: 0.014, p: 3, c: '#93d18a' }, { k: 'smooth', b: 0.84, a: 0.03, f: 0.02, p: 5, c: '#78c07a' }],
+    extras: [{ k: 'sheep', y0: 0.66, y1: 0.8, front: true }], particles: { k: 'birds', n: 4 } },
+  { key: 'zhangjiajie', name: '장가계 구름 기둥', place: 'CHINA', pal: 'green', accent: '#6f9f96', accent2: '#c69cf0',
+    sky: ['#cfdcec', '#eef2f5'],
+    layers: [{ k: 'pillars', b: 0.7, a: 0.45, f: 10, p: 4, c: '#a9bcb8', cap: '#b9d4b0' }, { k: 'pillars', b: 0.8, a: 0.42, f: 6, p: 9, c: '#6f8f88', cap: '#8fbf86', w: 1.3 }],
+    extras: [{ k: 'mistband', y: 0.62 }, { k: 'mistband', y: 0.78 }], particles: { k: 'mist', n: 6 } },
+  { key: 'mongolia', name: '몽골 초원의 은하수', place: 'MONGOLIA', pal: 'night', accent: '#8a9cff', accent2: '#ffd27a', dark: true,
+    sky: ['#0b1030', '#1c2a5a', '#3b4f7a'], stars: 160, milky: true,
+    layers: [{ k: 'smooth', b: 0.8, a: 0.012, f: 0.01, p: 2, c: '#2f4d4a' }, { k: 'smooth', b: 0.88, a: 0.008, f: 0.015, p: 4, c: '#26403d' }],
+    extras: [{ k: 'yurt', x: 0.7, y: 0.81 }], particles: { k: 'sparkles', n: 30 } },
+  { key: 'patagonia', name: '파타고니아 분홍 봉우리', place: 'ARGENTINA', pal: 'cool', accent: '#e98aa0', accent2: '#7f9fd0',
+    sky: ['#9fb1ea', '#f3bfd0', '#ffd9b8'], skyEnd: 0.7,
+    layers: [{ k: 'peaks', b: 0.6, a: 0.34, f: 3, p: 7, c: '#e9a6b8', snow: '#fff0f4' }, { k: 'peaks', b: 0.68, a: 0.1, f: 6, p: 2, c: '#8b88b8' }],
+    water: { y: 0.7, c: ['#a6c3e6', '#7f9fd0'] }, particles: { k: 'motes', n: 16, c: '#ffe8f0' } },
+  { key: 'aegean', name: '에게해 노을 바다', place: 'GREECE', pal: 'warm', accent: '#e9789a', accent2: '#8a8ee8',
+    sky: ['#7f86e6', '#f39fb5', '#ffd29e'], skyEnd: 0.6, sun: { x: 0.5, y: 0.57, r: 28, glow: 140 },
+    layers: [{ k: 'smooth', b: 0.59, a: 0.015, f: 0.02, p: 2, c: '#8e7fb8' }],
+    water: { y: 0.6, c: ['#f6b9b0', '#9a8fd8'], shimmer: true }, extras: [{ k: 'boat', x: 0.25, y: 0.7, c: '#6a5a8a', front: true }], particles: { k: 'birds', n: 5 } },
+  { key: 'amazon', name: '아마존 열대우림 안개', place: 'PERU', pal: 'green', accent: '#4fae7a', accent2: '#ffd166',
+    sky: ['#cfe8d8', '#eef6ea'],
+    layers: [{ k: 'canopy', b: 0.5, r: 26, p: 1, c: '#9cc9a0' }, { k: 'canopy', b: 0.64, r: 30, p: 5, c: '#76b083' }, { k: 'canopy', b: 0.8, r: 34, p: 9, c: '#559a6b' }],
+    extras: [{ k: 'mistband', y: 0.56 }, { k: 'mistband', y: 0.72 }], particles: { k: 'butterflies', n: 12 } },
+  { key: 'baobab', name: '마다가스카르 바오밥 길', place: 'MADAGASCAR', pal: 'warm', accent: '#e9895f', accent2: '#8a8ee8',
+    sky: ['#7d8ae0', '#f5a98a', '#ffd9a3'], skyEnd: 0.8, sun: { x: 0.55, y: 0.7, r: 36, glow: 160, halo: '#ffe2b0' },
+    layers: [{ k: 'smooth', b: 0.79, a: 0.006, f: 0.01, p: 1, c: '#c98b6b' }],
+    trees: [{ k: 'baobab', c: '#6b4a5e', items: [[0.1, 0.8, 1.3], [0.28, 0.8, 1], [0.46, 0.8, 1.2], [0.72, 0.8, 1.1], [0.9, 0.8, 1.4]] }], particles: { k: 'birds', n: 5 } },
+  { key: 'boracay', name: '보라카이 하얀 해변', place: 'PHILIPPINES', pal: 'sea', accent: '#2fb8c8', accent2: '#ffad7a',
+    sky: ['#9fdcf5', '#dff4fb'], clouds: [[0.3, 0.2, 100, 26, 0.8], [0.75, 0.14, 90, 22, 0.7]],
+    water: { y: 0.6, c: ['#7fe0e0', '#3fb7c9'] },
+    layers: [{ k: 'smooth', b: 0.8, a: 0.015, f: 0.012, p: 2, c: '#fbe8c8', front: true }],
+    trees: [{ k: 'palm', c: '#3f8d65', front: true, items: [[0.1, 0.82, 1.2], [0.88, 0.8, 1.1]] }], extras: [{ k: 'waves', y: 0.77 }], particles: { k: 'sparkles', n: 16, c: '#ffffff' } },
+  { key: 'antarctica', name: '남극 빙산의 바다', place: 'ANTARCTICA', pal: 'cool', accent: '#5f9fd8', accent2: '#c69cf0',
+    sky: ['#9fc0ea', '#d8e7f8', '#f4f8ff'],
+    layers: [{ k: 'peaks', b: 0.61, a: 0.06, f: 6, p: 3, c: '#e9f2fc', snow: '#ffffff' }],
+    water: { y: 0.62, c: ['#8fc0e6', '#5a92c4'] }, extras: [{ k: 'icebergs', front: true, items: [[0.22, 0.7, 1.3], [0.62, 0.67, 0.8], [0.84, 0.78, 1.6]] }],
+    particles: { k: 'snow', n: 24 } },
+  { key: 'jeju', name: '제주 유채꽃과 한라산', place: 'KOREA', pal: 'earth', accent: '#f2b632', accent2: '#6fa8ff',
+    sky: ['#a7d0f5', '#e6f3fb'], clouds: [[0.3, 0.15, 120, 30, 0.8], [0.78, 0.25, 90, 24, 0.7]],
+    layers: [{ k: 'smooth', b: 0.5, a: 0.07, f: 0.006, p: 4.2, c: '#8fb5a6' }, { k: 'smooth', b: 0.62, a: 0.015, f: 0.012, p: 1, c: '#a9d39a' }, { k: 'field', b: 0.66, c: '#ffe680', dot: '#f2b400' }, { k: 'smooth', b: 0.78, a: 0.012, f: 0.02, p: 3, c: 'rgba(120,180,100,.55)' }, { k: 'field', b: 0.8, c: '#ffdf5a', dot: '#e9a800' }],
+    particles: { k: 'butterflies', n: 12 } },
+];
+// Times of day used once every place has been seen, so stages keep coming.
+const VARIANTS = [
+  null,
+  { suffix: '황혼', tint: 'rgba(255,140,90,.16)' },
+  { suffix: '달밤', tint: 'rgba(20,28,80,.5)', dark: true },
+  { suffix: '새벽 안개', tint: 'rgba(255,255,255,.22)' },
+];
+const landOf = s => {
+  const R = LANDS[wrapN(s, LANDS.length)], V = VARIANTS[Math.floor(s / LANDS.length) % VARIANTS.length];
+  return { R, V, name: V ? `${R.name} · ${V.suffix}` : R.name, dark: !!(R.dark || (V && V.dark)), key: `${R.key}${V ? '-' + V.suffix : ''}` };
+};
+// A small static thumbnail of a stage's landscape for the map.
+const thumbCache = {};
+function landThumb(s) {
+  const L = landOf(s);
+  if (thumbCache[L.key]) return thumbCache[L.key];
+  const c = document.createElement('canvas'); c.width = 168; c.height = 312;
+  const g = c.getContext('2d'); g.scale(168 / W, 312 / H); paintStatic(g, L.R, L.V);
+  return (thumbCache[L.key] = c.toDataURL('image/jpeg', 0.8));
+}
+
+// ---- 25-themes.js ----
+// Soft Glass: the game's single visual direction. Each stage (and each endless level) takes
+// its colours from its landscape; bricks are frosted glass tinted by that landscape's palette.
+const FONT = {
+  outfit: '"Outfit", "IBM Plex Sans KR", system-ui, sans-serif',
+  plex: '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+};
+const lerpHex = (a, b, k) => {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = s => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k);
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+};
+const rampOf = stops => k => {
+  const x = clamp(k, 0, 0.9999) * (stops.length - 1), i = Math.floor(x);
+  return lerpHex(stops[i], stops[i + 1], x - i);
 };
 
-function makeHealTheme(dirId, worldId) {
-  const d = DIRECTIONS[dirId], w = HEAL_WORLDS[worldId], L = w.light;
-  const ink = L ? '#2c2a4a' : '#f2f4ff', dim = L ? '#6b6890' : '#a8b3d6';
+// Static landscape layers are cached (2x resolution); only a few are kept at once.
+const fieldCache = new Map();
+function cachedLayer(key, paint) {
+  if (fieldCache.has(key)) return fieldCache.get(key);
+  const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
+  const g = c.getContext('2d'); g.scale(2, 2); paint(g);
+  fieldCache.set(key, c);
+  if (fieldCache.size > 3) fieldCache.delete(fieldCache.keys().next().value);
+  return c;
+}
+
+function makeLandTheme(s) {
+  const L = landOf(s), R = L.R, light = !L.dark;
+  const ink = light ? '#2c2a4a' : '#f2f4ff', dim = light ? '#6b6890' : '#a8b3d6';
+  const ramp = PAL[R.pal];
   return {
-    id: `${dirId}-${worldId}`, dir: dirId, healWorld: worldId,
-    name: w.name, tag: w.tag, line: `${d.name} · ${w.name}`, chapters: w.chapters,
-    num: d.num, numSize: d.numSize, numWeight: d.numWeight, disp: d.disp, dw: d.dw, dsz: d.dsz, ko: d.ko, crt: false, light: L,
+    id: 'land-' + s, land: s, name: L.name, tag: R.place, light,
+    num: FONT.outfit, numSize: 15, numWeight: '700', disp: FONT.outfit, dw: '800', dsz: 1.35, ko: FONT.plex,
     css: {
-      bg: L ? '#f6f1fb' : '#0b1430', panel: L ? 'rgba(255,255,255,.86)' : 'rgba(22,34,70,.88)', line: L ? 'rgba(80,70,140,.18)' : 'rgba(170,190,255,.22)',
-      ink, dim, gold: '#f2a541', hot: '#ff6b8b', cool: w.accent, ov: L ? 'rgba(248,244,255,.72)' : 'rgba(10,18,44,.72)', btnInk: '#ffffff', logo2: w.accent2,
+      bg: light ? '#f6f1fb' : '#0b1430', panel: light ? 'rgba(255,255,255,.86)' : 'rgba(22,34,70,.88)', line: light ? 'rgba(80,70,140,.18)' : 'rgba(170,190,255,.22)',
+      ink, dim, gold: '#f2a541', hot: '#ff6b8b', cool: R.accent, ov: light ? 'rgba(248,244,255,.72)' : 'rgba(10,18,44,.72)', btnInk: '#ffffff', logo2: R.accent2,
     },
-    hud: { bg: L ? 'rgba(255,255,255,.55)' : 'rgba(10,18,44,.5)', line: L ? 'rgba(80,70,140,.12)' : 'rgba(170,190,255,.15)', ink, dim, accent: '#f2a541', xpBg: L ? 'rgba(80,70,140,.12)' : 'rgba(170,190,255,.15)', xp: w.accent, heart: '#ff6b8b', heartOff: 'rgba(120,110,160,.3)', ch: w.accent },
-    outline: L ? '#ffffff' : '#0b1430', brick: d.brick, numInk: 'auto', heartStyle: 'vector',
-    ramp: rampOf(w.ramp),
-    special: { bomb: '#ff6b81', chest: '#ffc857', steel: '#9aa6bd', slime: '#7bd88f', boss: [w.accent, w.accent2] },
-    ball: { core: '#ffffff', glow: w.accent, temp: w.accent2 }, particle: d.particle, confetti: w.ramp.concat(['#ffffff']),
-    words: d.words, wordStyle: d.wordStyle, accent: w.accent, fever: '#f2a541', line2: '#ff6b8b',
-    field(g, now) { w.paint(g, now); },
+    hud: { bg: light ? 'rgba(255,255,255,.55)' : 'rgba(10,18,44,.5)', line: light ? 'rgba(80,70,140,.12)' : 'rgba(170,190,255,.15)', ink, dim, accent: '#f2a541', xpBg: light ? 'rgba(80,70,140,.12)' : 'rgba(170,190,255,.15)', xp: R.accent, heart: '#ff6b8b', heartOff: 'rgba(120,110,160,.3)', ch: R.accent },
+    outline: light ? '#ffffff' : '#0b1430', brick: 'frost', numInk: 'auto', heartStyle: 'vector',
+    ramp: rampOf(ramp),
+    special: { bomb: '#ff6b81', chest: '#ffc857', steel: '#9aa6bd', slime: '#7bd88f', boss: [R.accent, R.accent2] },
+    ball: { core: SAVE.champion ? '#ffd84d' : '#ffffff', glow: R.accent, temp: R.accent2 }, particle: 'dust',
+    words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'], wordStyle: 'clean', accent: R.accent, fever: '#f2a541', line2: '#ff6b8b',
+    field(g, now) {
+      g.drawImage(cachedLayer(L.key, c => paintStatic(c, R, L.V)), 0, 0, W, H);
+      paintAnim(g, R, now);
+    },
   };
 }
-// '#clay' restyles every world; old world ids map onto the calm worlds in order.
-let PREVIEW_DIR = null;
-function themeFor(id) {
-  if (THEMES[id]) {
-    if (PREVIEW_DIR && WORLD_ORDER.includes(id)) return themeFor(`${PREVIEW_DIR}-${HEAL_ORDER[WORLD_ORDER.indexOf(id)]}`);
-    return THEMES[id];
-  }
-  const [dir, world] = String(id).split('-');
-  if (DIRECTIONS[dir] && HEAL_WORLDS[world]) return (THEMES[id] = makeHealTheme(dir, world));
-  return null;
+let TH = null;
+// s: the landscape index (classic: the stage, endless: the level).
+function applyTheme(s) {
+  TH = makeLandTheme(s);
+  stage.dataset.th = TH.id; stage.dataset.dir = 'glass';
+  const st = stage.style;
+  for (const [k, v] of Object.entries(TH.css)) st.setProperty('--' + k, v);
+  st.setProperty('--disp', TH.disp); st.setProperty('--ko', TH.ko); st.setProperty('--dsz', TH.dsz);
+  document.body.style.background = TH.css.bg;
+  for (const k in glowCache) delete glowCache[k];
 }
 // Readable brick numbers on any fill: dark ink on light colours, white on dark ones.
 function inkFor(col) {
@@ -844,7 +893,7 @@ function inkFor(col) {
 // Progress lives in this browser only (localStorage). Every access is guarded:
 // private windows and blocked storage must still give a playable game.
 const SAVE_KEY = 'brickmaster.save.v1';
-let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, runs: 0, meta: {}, worlds: 1, theme: 'neon', stars: {}, unlocked: 0 };
+let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, bestScore: 0, runs: 0, meta: {}, stars: {}, unlocked: 0, layout: 0, champion: false, champSeasons: {} };
 function loadSave() {
   try {
     // inside the Expo app the native copy (window.__BM_SAVE) wins; it survives WebView storage resets
@@ -854,10 +903,12 @@ function loadSave() {
     if (s && typeof s === 'object') SAVE = Object.assign(SAVE, s, { meta: Object.assign({}, s.meta) });
     if (!SAVE.bestTurn) SAVE.bestTurn = +localStorage.getItem('brickrogue.best') || 0; // prototype record
   } catch (e) {}
-  SAVE.worlds = clamp(Math.floor(+SAVE.worlds) || 1, 1, WORLD_ORDER.length);
+  if (!SAVE.champSeasons || typeof SAVE.champSeasons !== 'object') SAVE.champSeasons = {};
   SAVE.unlocked = clamp(Math.floor(+SAVE.unlocked) || 0, 0, 999);
   if (!SAVE.stars || typeof SAVE.stars !== 'object') SAVE.stars = {};
   // v0.7 removed the armour upgrade (one life only): refund what was spent on it
+  // v0.9: stages became 5-level stages; earlier progress maps onto the new levels by count
+  if (SAVE.layout !== 2) { SAVE.layout = 2; SAVE.unlocked = Math.min(SAVE.unlocked, 4); SAVE.stars = {}; }
   if (SAVE.meta.hp > 0) {
     for (let l = 0; l < SAVE.meta.hp; l++) SAVE.gold += Math.round(120 * Math.pow(1.45, l) / 5) * 5;
     SAVE.refunded = true;
@@ -873,40 +924,34 @@ function writeSave() {
 }
 
 // ---- 35-stages.js ----
-// Stage map: 5 worlds x 4 stages. A stage is cleared by killing its bosses (one every 10 turns).
-// Later stages scale brick HP, so permanent upgrades from the workshop carry the player forward.
-// Each world adds its own brick mix on top of the base chances in BAL.
-const WORLD_MODS = [
+// Classic mode: stages of 5 levels, without end. Stage s uses landscape s (see 24-landscapes.js).
+// A level is cleared by beating its boss (turn 10); the 5th level of a stage has two bosses.
+// Brick HP grows with the overall level index g, so workshop upgrades carry the player forward.
+// Each stage also gets one of five brick mixes on top of the base chances in BAL.
+const LEVELS_PER_STAGE = 5;
+const GIMMICKS = [
   { text: '기본 규칙', mod: {} },
   { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
   { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
   { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
   { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.05, steel: 0.1 }, gold: 2 },
 ];
-const STAGES_PER_WORLD = 4;
-const STAGE_BOSSES = [1, 1, 2, 3];
-const STAGES = [];
-WORLD_ORDER.forEach((world, w) => {
-  for (let i = 0; i < STAGES_PER_WORLD; i++) {
-    const n = w * STAGES_PER_WORLD + i;
-    STAGES.push({
-      n, w, i, world, id: `${w + 1}-${i + 1}`, bosses: STAGE_BOSSES[i],
-      hpMul: BAL.stageHp(n), mod: WORLD_MODS[w].mod, gold: WORLD_MODS[w].gold || 1, text: WORLD_MODS[w].text,
-    });
-  }
-});
-// Endless: no goal, worlds rotate every BOSSES_PER_WORLD bosses. Opens after clearing world 1.
-const ENDLESS = { endless: true, id: 'ENDLESS', bosses: Infinity, hpMul: 1, mod: {}, gold: 1, w: 0, world: 'neon' };
-const ENDLESS_UNLOCK = STAGES_PER_WORLD; // stages cleared
-let STG = STAGES[0];
+function levelInfo(g) {
+  const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
+  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: l === LEVELS_PER_STAGE - 1 ? 2 : 1, hpMul: BAL.levelHp(g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+}
+// Endless: one long run; every boss raises the level and moves to the next landscape.
+const ENDLESS = { endless: true, id: 'ENDLESS', bosses: Infinity, hpMul: 1, mod: {}, gold: 1, land: 0 };
+const ENDLESS_UNLOCK = LEVELS_PER_STAGE; // levels cleared before endless opens
+let STG = levelInfo(0);
 
-// Spawn chance for a brick kind in the current stage.
+// Spawn chance for a brick kind in the current level.
 function chance(k, t) {
   const base = typeof BAL[k] === 'function' ? BAL[k](t) : BAL[k];
   return base + (STG.mod[k] || 0);
 }
-const clearBonus = (s, first) => Math.round((30 + 12 * s.n) * (first ? 2 : 1));
-const nextStageIndex = () => Math.min(SAVE.unlocked, STAGES.length - 1);
+const clearBonus = (L, first) => Math.round((20 + 6 * L.g) * (first ? 2 : 1));
+const nextLevelIndex = () => SAVE.unlocked;
 
 // ---- 40-state.js ----
 // Run state, the brick grid and row spawning.
@@ -933,7 +978,7 @@ function newRun() {
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
     camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
-    world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
+    world: STG.land, worldPending: false, wipe: 0, score: 0,
     shield: 0, ironLeft: 0, encoreChecked: false, acidDone: false, cleared: false,
   };
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = []; shards = [];
@@ -1093,6 +1138,7 @@ function countBurst() {
   const lv = MULTI.findIndex(m => m.n === S.burstN);
   if (lv < 0) return;
   const m = MULTI[lv];
+  S.score += 100 * (lv + 1) * S.burstN;
   shake(m.shake); S.camZ = Math.max(S.camZ, m.zoom); S.camR = (rnd() < 0.5 ? -1 : 1) * m.zoom * 0.5;
   S.chroma = Math.max(S.chroma, m.chroma);
   if (m.slow) { S.slowmo = Math.max(S.slowmo, m.slow); sfx.whoosh(); }
@@ -1101,6 +1147,7 @@ function countBurst() {
   if (lv >= 1) { S.flash = 0.25 + lv * 0.08; S.flashCol = '255,255,255'; }
 }
 function lineClear(br) {
+  S.score += 200;
   const y = br.Y + br.Ht / 2;
   beams.push({ x: 0, y: y - 8, w: W, h: 16, life: 0.3, max: 0.3 });
   for (let x = 20; x < W; x += 40) burst(x, y, TH.accent, 3, 200);
@@ -1108,6 +1155,7 @@ function lineClear(br) {
   addGold(3, W / 2, y); shake(5); S.camZ = Math.max(S.camZ, 0.02); sfx.laser(); buzz(40);
 }
 function perfectClear() {
+  S.score += 1000;
   S.perfectDone = true;
   bigWords.push({ s: 'PERFECT!', life: 1.8, max: 1.8, y: H * 0.38, size: 30, style: 'slam' });
   S.slowmo = Math.max(S.slowmo, 0.8); S.flash = 0.7; S.flashCol = '255,255,255'; S.chroma = 1; S.camZ = 0.08; shake(14);
@@ -1123,6 +1171,8 @@ function kill(br) {
   pops.push({ x: br.X, y: br.Y, w: br.Wd, h: br.Ht, life: 0.22, max: 0.22 });
   shockwave(cx, cy, CW * (boss ? 4 : 1.7), boss ? 14 : 5);
   countBurst();
+  // endless score: combo and how deep into the run you are both multiply it
+  S.score += Math.round(10 * (1 + S.combo * 0.1) * (1 + S.turn / 20));
   sfx.crunch(S.burstN);
   if (!boss && br.rowSize >= 4 && !S.bricks.some(o => !o.dead && !isItem(o) && o.r === br.r)) lineClear(br);
   if (!S.perfectDone && S.phase === 'fire' && !S.bricks.some(o => !o.dead && !isItem(o))) perfectClear();
@@ -1139,11 +1189,11 @@ function kill(br) {
   if (boss) {
     gainXp(25);
     S.bosses++; S.hitstop = 0.16;
-    if (STG.endless) { if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; }
+    if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
     if (S.cleared) showBanner('STAGE CLEAR', `스테이지 ${STG.id} 돌파!`, TH.css.gold);
-    else showBanner(STG.endless ? `CHAPTER ${br.chapter} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
+    else showBanner(STG.endless ? `LEVEL ${S.world + 1} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
   else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }
@@ -1290,7 +1340,17 @@ function touchItem(b, br, r, c) {
   }
 }
 
-function collide(b, axis) {
+// true when the ball overlaps any solid brick other than `skip`
+function overlapsOther(b, skip) {
+  const c0 = Math.max(0, Math.floor((b.x - b.r) / CW)), c1 = Math.min(COLS - 1, Math.floor((b.x + b.r) / CW));
+  const r0 = Math.max(0, Math.floor((b.y - b.r - TOP) / RH)), r1 = Math.min(ROWS - 1, Math.floor((b.y + b.r - TOP) / RH));
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    const o = grid[r * COLS + c];
+    if (o && o !== skip && !o.dead && !isItem(o) && !b.ghost.has(o) && overlaps(b, o)) return true;
+  }
+  return false;
+}
+function collide(b, axis, prev) {
   const c0 = Math.max(0, Math.floor((b.x - b.r) / CW)), c1 = Math.min(COLS - 1, Math.floor((b.x + b.r) / CW));
   const r0 = Math.max(0, Math.floor((b.y - b.r - TOP) / RH)), r1 = Math.min(ROWS - 1, Math.floor((b.y + b.r - TOP) / RH));
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
@@ -1314,6 +1374,8 @@ function collide(b, axis) {
       b.y = up ? br.Y - b.r - 0.01 : br.Y + br.Ht + b.r + 0.01;
       b.vy = up ? -Math.abs(b.vy) : Math.abs(b.vy);
     }
+    // wedged in a corner between two bricks: step back to where this move started
+    if (overlapsOther(b, br)) { if (axis === 0) b.x = prev; else b.y = prev; }
     hitBrick(br, b);
     return;
   }
@@ -1323,13 +1385,15 @@ function moveBall(b, dt) {
   const sp = Math.hypot(b.vx, b.vy);
   const n = Math.max(1, Math.ceil(sp * dt / (b.r * 0.9)));
   for (let i = 0; i < n && b.alive; i++) {
+    const px = b.x;
     b.x += b.vx * dt / n;
     if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); sfx.wall(); }
     else if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); sfx.wall(); }
-    collide(b, 0);
+    collide(b, 0, px);
+    const py = b.y;
     b.y += b.vy * dt / n;
     if (b.y < TOP + b.r) { b.y = TOP + b.r; b.vy = Math.abs(b.vy); sfx.wall(); }
-    collide(b, 1);
+    collide(b, 1, py);
     if (b.ghost.size) for (const g of b.ghost) if (g.dead || !overlaps(b, g)) b.ghost.delete(g);
     if (b.vy > 0 && b.y >= LY && b.fb < S.lv.bounce) {
       // bounce pad: send the ball back up
@@ -1439,7 +1503,7 @@ function endTurn() {
   rebuildGrid();
   S.turn++;
   addGold(BAL.goldPerTurn);
-  if (S.turn % BAL.bossEvery === 1) {
+  if (S.turn % BAL.bossEvery === 1 && !STG.endless) {
     const ch = chapterOf(S.turn);
     showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
@@ -1538,41 +1602,39 @@ function showResults(cleared = false) {
   hideShieldOffer();
   S.phase = 'over';
   runCleared = cleared;
-  const reached = S.turn - 1, ch = chapterOf(Math.max(1, reached));
+  const reached = S.turn - 1;
   let stars = 0, bonus = 0, first = false, note = '';
   if (STG.endless) {
-    const newBest = reached > SAVE.bestTurn;
     SAVE.bestTurn = Math.max(SAVE.bestTurn, reached);
-    SAVE.bestChapter = Math.max(SAVE.bestChapter, ch);
-    if (newBest) note = '무한 모드 최고 기록!';
+    if (S.score > SAVE.bestScore) { SAVE.bestScore = S.score; note = '내 최고 점수!'; }
+    submitScore(S.score, S.world + 1, reached);
   } else if (cleared) {
     // stars: how close the bricks got to the red line (shield use caps it at 2)
     stars = S.deepest <= ROWS - 5 && !S.shieldUsed ? 3 : S.deepest <= ROWS - 3 ? 2 : 1;
-    const prev = SAVE.stars[STG.n] || 0;
+    const prev = SAVE.stars[STG.g] || 0;
     first = prev === 0;
-    SAVE.stars[STG.n] = Math.max(prev, stars);
+    SAVE.stars[STG.g] = Math.max(prev, stars);
     const before = SAVE.unlocked;
-    SAVE.unlocked = Math.max(SAVE.unlocked, STG.n + 1);
+    SAVE.unlocked = Math.max(SAVE.unlocked, STG.g + 1);
     bonus = clearBonus(STG, first);
-    if (SAVE.unlocked > before && STG.n + 1 < STAGES.length && STAGES[STG.n + 1].w !== STG.w) note = `새 월드 해금: ${themeFor(STAGES[STG.n + 1].world).name}`;
-    else if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = '무한 모드 해금!';
-    SAVE.worlds = Math.max(SAVE.worlds, Math.min(WORLD_ORDER.length, Math.floor(SAVE.unlocked / STAGES_PER_WORLD) + 1));
+    if (SAVE.unlocked > before && STG.l === LEVELS_PER_STAGE - 1) note = `새 스테이지: ${landOf(STG.s + 1).name}`;
+    if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = (note ? note + ' · ' : '') + '무한 모드 해금!';
   }
   SAVE.runs++; writeSave();
   runGold = Math.floor((S.gold * (1 + 0.15 * SAVE.meta.gold) + bonus) * STG.gold);
-  $('overTitle').textContent = cleared ? 'STAGE CLEAR' : 'GAME OVER';
+  $('overTitle').textContent = cleared ? 'LEVEL CLEAR' : STG.endless ? `SCORE ${S.score.toLocaleString()}` : 'GAME OVER';
   overEl.classList.toggle('win', cleared);
   $('stars').hidden = !cleared;
   $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
   const rows = STG.endless
-    ? [['모드', '무한'], ['버틴 턴', reached], ['도달 챕터', ch], ['최고 기록', SAVE.bestTurn + '턴'], ['레벨', S.level], ['최대 콤보', S.maxCombo]]
-    : [['스테이지', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['레벨', S.level], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]];
+    ? [['점수', S.score.toLocaleString()], ['도달 레벨', S.world + 1], ['내 최고 점수', SAVE.bestScore.toLocaleString()], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]]
+    : [['레벨', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
   $('earned').textContent = `골드 +${runGold}` + (bonus ? ` (클리어 보너스 ${Math.round(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
   $('overNote').textContent = note; $('overNote').hidden = !note;
-  const hasNext = cleared && !STG.endless && STG.n + 1 < STAGES.length;
-  $('again').textContent = hasNext ? `NEXT ${STAGES[STG.n + 1].id}` : 'RETRY';
+  $('again').textContent = cleared && !STG.endless ? `NEXT ${levelInfo(STG.g + 1).id}` : 'RETRY';
+  $('overRank').hidden = !STG.endless;
   $('claimRow').hidden = false; $('afterRow').hidden = true;
   overEl.hidden = false;
   if (cleared) { sfx.clear(); buzz(80); }
@@ -1585,7 +1647,7 @@ function claim(mult) {
 }
 function againOrNext() {
   if (STG.endless) startEndless();
-  else startStage(runCleared && STG.n + 1 < STAGES.length ? STG.n + 1 : STG.n);
+  else startLevel(runCleared ? STG.g + 1 : STG.g);
 }
 
 // ---------- workshop ----------
@@ -1620,93 +1682,93 @@ function closeShop() {
   if (shopReturn) shopReturn.hidden = false;
   refreshTitle();
 }
+function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b, 0); }
 function refreshTitle() {
-  const nx = STAGES[nextStageIndex()];
-  applyTheme(nx.world);
-  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
-  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${allStars}/${STAGES.length * 3}`;
+  const nx = levelInfo(nextLevelIndex());
+  applyTheme(nx.land);
+  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
-  $('nextInfo').textContent = `${TH.name} · 보스 ${nx.bosses}마리`;
+  $('nextInfo').textContent = `${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
   $('endless').disabled = !open;
-  $('endless').textContent = open ? '무한 모드' : `무한 모드 (1-${STAGES_PER_WORLD} 클리어 시 열림)`;
-  $('best').textContent = SAVE.bestTurn ? `ENDLESS BEST ${SAVE.bestTurn} TURNS` : '';
+  $('endless').textContent = open ? '무한 모드' : '무한 모드 (스테이지 1 클리어 시 열림)';
+  $('best').textContent = SAVE.bestScore ? `ENDLESS BEST ${SAVE.bestScore.toLocaleString()}` + (SAVE.champion ? ' · CHAMPION' : '') : '';
 }
 
-// ---------- stage map ----------
+// ---------- stage map: one card per stage (its landscape), five level nodes each ----------
 let mapSel = 0, mapReturn = null;
 function openMap(from) {
   mapReturn = from; if (from) from.hidden = true;
-  mapSel = nextStageIndex();
+  mapSel = nextLevelIndex();
   renderMap(); $('map').hidden = false;
   const sel = document.querySelector('#mapList .node.sel');
   if (sel) sel.closest('.world').scrollIntoView({ block: 'center' });
 }
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
-  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
-  $('mapInfo').textContent = `★ ${allStars}/${STAGES.length * 3} · 보유 골드 ${SAVE.gold}G`;
-  WORLD_ORDER.forEach((wid, w) => {
-    const th = themeFor(wid), open = w * STAGES_PER_WORLD <= SAVE.unlocked;
+  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${SAVE.gold}G`;
+  const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
+  for (let st = 0; st <= lastStage; st++) {
+    const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
     const sec = document.createElement('section');
     sec.className = 'world' + (open ? '' : ' locked');
-    sec.style.cssText = `--wb:${th.css.bg};--wp:${th.css.panel};--wa:${th.accent};--wi:${th.css.ink};--wd:${th.css.dim};--wf:${th.disp}`;
-    sec.innerHTML = `<header><b>WORLD ${w + 1}</b><span>${th.name}</span></header><p>${WORLD_MODS[w].text}</p>`;
+    sec.style.cssText = `--wa:${R.accent};--thumb:url(${landThumb(st)})`;
+    sec.innerHTML = `<header><b>STAGE ${st + 1}</b><span>${L.name}</span></header><p>${R.place} · ${G.text}</p>`;
     const path = document.createElement('div'); path.className = 'path';
-    for (let i = 0; i < STAGES_PER_WORLD; i++) {
-      const st = STAGES[w * STAGES_PER_WORLD + i], lock = st.n > SAVE.unlocked, stars = SAVE.stars[st.n] || 0;
+    for (let l = 0; l < LEVELS_PER_STAGE; l++) {
+      const lv = levelInfo(st * LEVELS_PER_STAGE + l), lock = lv.g > SAVE.unlocked, stars = SAVE.stars[lv.g] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'node' + (lock ? ' lock' : '') + (st.n === SAVE.unlocked && !lock ? ' cur' : '') + (st.n === mapSel ? ' sel' : '');
-      b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : st.id}</span>`
+      b.className = 'node' + (lock ? ' lock' : '') + (lv.g === SAVE.unlocked && !lock ? ' cur' : '') + (lv.g === mapSel ? ' sel' : '') + (lv.bosses > 1 ? ' boss' : '');
+      b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : lv.id}</span>`
         + `<span class="st">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}">★</i>`).join('')}</span>`;
-      b.onclick = () => { mapSel = st.n; sfx.pick(); renderMap(); };
+      b.onclick = () => { mapSel = lv.g; sfx.pick(); renderMap(); };
       path.appendChild(b);
     }
     sec.appendChild(path); list.appendChild(sec);
-  });
-  const st = STAGES[mapSel], lock = st.n > SAVE.unlocked, first = !(SAVE.stars[st.n] > 0);
-  applyTheme(st.world);
-  $('mapSelInfo').innerHTML = `<b>STAGE ${st.id}</b> · 보스 ${st.bosses}마리 · 벽돌 체력 ×${st.hpMul.toFixed(1)}<br>`
-    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(st, first) * st.gold)}G`;
+  }
+  const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
+  applyTheme(lv.land);
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 보스 ${lv.bosses}마리 · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
+    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(lv, first) * lv.gold)}G`;
   $('mapPlay').disabled = lock;
-  $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${st.id}`;
+  $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
 }
 function closeMap() {
   $('map').hidden = true;
   if (mapReturn) mapReturn.hidden = false;
   refreshTitle();
 }
-function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map')]) el.hidden = true; hideShieldOffer(); }
+function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map'), $('rank')]) el.hidden = true; hideShieldOffer(); }
 function beginRun() {
   ensureAudio();
   hideMenus();
   newRun();
   if (S.pendingLevels > 0) showLevel();
 }
-function startStage(n) {
-  STG = STAGES[clamp(n, 0, STAGES.length - 1)];
-  applyTheme(STG.world);
+function startLevel(g) {
+  STG = levelInfo(Math.max(0, g));
+  applyTheme(STG.land);
   beginRun();
-  showBanner(`STAGE ${STG.id}`, `보스 ${STG.bosses}마리를 처치하라`, TH.accent);
+  showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = ENDLESS;
-  applyTheme('neon');
+  applyTheme(0);
   beginRun();
-  showBanner('ENDLESS', '보스 3마리마다 다음 월드로', TH.accent);
+  showBanner('ENDLESS', '보스를 잡을 때마다 레벨과 풍경이 바뀝니다', TH.accent);
 }
-
-// Every BOSSES_PER_WORLD bosses the run moves to the next world (full visual theme).
+// Endless: each boss raises the level and moves to the next landscape.
 function switchWorld() {
   S.worldPending = false;
-  S.world = (S.world + 1) % WORLD_ORDER.length;
-  applyTheme(WORLD_ORDER[S.world]);
+  S.world++;
+  applyTheme(S.world);
   S.wipe = 1; shake(10); sfx.clear(); buzz(120);
-  showBanner(`WORLD ${S.world + 1}`, TH.name, TH.accent);
+  showBanner(`LEVEL ${S.world + 1}`, TH.name, TH.accent);
   S.banner.life = S.banner.max = 2.6;
   for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
 }
+
 // ---------- per-frame update ----------
 function update(dt) {
   if (S.hitstop > 0) { S.hitstop -= dt; updateFx(dt * 0.2); return; }
@@ -2145,17 +2207,12 @@ function drawHud(now, ch) {
   const hd = TH.hud;
   ctx.fillStyle = hd.bg; ctx.fillRect(0, 0, W, TOP - 4);
   ctx.fillStyle = hd.line; ctx.fillRect(0, TOP - 4, W, 4);
-  if (TH === THEMES.jackpot) {
-    const on = Math.floor(now / 140) % 3;
-    for (let x = 6, i = 0; x < W; x += 14, i++) { ctx.fillStyle = (i % 3) === on ? '#fff3b0' : '#7a5c0a'; ctx.beginPath(); ctx.arc(x, TOP - 2, 2, 0, Math.PI * 2); ctx.fill(); }
-  } else if (TH === THEMES.synth) {
-    ctx.drawImage(glow('#ff3ea5'), 0, TOP - 14, W, 24);
-  }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText('TURN', 16, 22);
   ctx.fillStyle = hd.ink; ctx.font = DISP(18); ctx.fillText(String(S.turn), 16, 48);
-  ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText('LEVEL', W - 16, 22);
-  ctx.fillStyle = hd.accent; ctx.font = DISP(18); ctx.fillText(String(S.level), W - 16, 48);
+  // right: endless shows the score, classic shows the in-run power level
+  ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText(STG.endless ? 'SCORE' : 'POWER LV', W - 16, 22);
+  ctx.fillStyle = hd.accent; ctx.font = DISP(STG.endless ? 15 : 18); ctx.fillText(STG.endless ? S.score.toLocaleString() : String(S.level), W - 16, 48);
   // one life: a single heart that beats faster as bricks close in
   {
     const bp = 1 + (S.beatPulse || 0) * 0.35;
@@ -2167,11 +2224,10 @@ function drawHud(now, ch) {
     }
   }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
-  ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `CH${ch}` : STG.id, W / 2 - 78, 15);
-  // boss progress toward the next world: one diamond per boss in this world
-  // stage mode: bosses killed of the stage goal; endless: progress toward the next world
-  const pipN = STG.endless ? BOSSES_PER_WORLD : STG.bosses, pipOn = STG.endless ? S.bosses % BOSSES_PER_WORLD : S.bosses;
-  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? `W${S.world + 1}` : 'BOSS', 16, 72); ctx.textAlign = 'center';
+  ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `LV ${S.world + 1}` : STG.id, W / 2 - 78, 15);
+  // classic: bosses beaten of this level's goal; endless: nothing to count, the level is the label
+  const pipN = STG.endless ? 0 : STG.bosses, pipOn = S.bosses;
+  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? TH.name : 'BOSS', 16, 72); ctx.textAlign = 'center';
   for (let i = 0; i < pipN; i++) {
     const x = 46 + i * 10, y = 69, on = i < pipOn;
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
@@ -2345,6 +2401,116 @@ function draw(now) {
   if (S.flash > 0) { ctx.fillStyle = `rgba(${S.flashCol},${S.flash * 0.5})`; ctx.fillRect(0, 0, W, H); }
 }
 
+// ---- 85-rank.js ----
+// Weekly endless-mode leaderboard, kept in the artifact's shared database (db capability).
+// One document per player at lb/<userId>: { season, score, level, turn, at, lastSeason, lastScore }.
+// A new week starts on Monday (UTC). When a player opens the game after a week ends, the
+// previous week's top three get their reward once: 1st the champion crown, a golden ball and
+// 1000G; 2nd and 3rd 300G. Outside claude.ai (for example in the Expo app) there is no shared
+// store, so the board says so and only the local best is kept.
+const RANK = { db: null, user: null, me: null, writable: null, state: 'loading', rows: [], names: {} };
+const REWARD = { 1: { gold: 1000, crown: true }, 2: { gold: 300 }, 3: { gold: 300 } };
+
+function seasonId(d = new Date()) {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y = t.getUTCFullYear(), week = Math.ceil(((t - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
+  return `${y}-W${String(week).padStart(2, '0')}`;
+}
+const prevSeasonId = () => seasonId(new Date(Date.now() - 7 * 864e5));
+function seasonEndsIn() {
+  const now = new Date(), day = now.getUTCDay() || 7;
+  const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + (8 - day));
+  const h = Math.max(0, Math.floor((end - now) / 36e5));
+  return h >= 24 ? `${Math.floor(h / 24)}일 ${h % 24}시간` : `${h}시간`;
+}
+const withTimeout = (p, ms = 10000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+async function rankInit() {
+  if (!window.claude || typeof window.claude.use !== 'function') { RANK.state = 'offline'; return; }
+  try {
+    const [db, user] = await withTimeout(Promise.all([window.claude.use('db'), window.claude.use('user')]));
+    if (!db || !user) { RANK.state = 'offline'; return; }
+    RANK.db = db; RANK.user = user;
+    RANK.me = await user.id();
+    RANK.writable = await user.can('data.write');
+    RANK.state = 'ready';
+    checkChampion();
+  } catch (e) { RANK.state = 'offline'; }
+}
+
+async function submitScore(score, level, turn) {
+  if (RANK.state !== 'ready' || !RANK.me || RANK.writable === false || score <= 0) return;
+  const ref = RANK.db.doc('lb/' + RANK.me), season = seasonId();
+  try {
+    const snap = await withTimeout(ref.get());
+    const cur = snap.exists ? snap.data() : null;
+    if (cur && cur.season === season && cur.score >= score) return;
+    const carry = cur && cur.season !== season ? { lastSeason: cur.season, lastScore: cur.score } : { lastSeason: cur ? cur.lastSeason || '' : '', lastScore: cur ? cur.lastScore || 0 : 0 };
+    await withTimeout(ref.set({ season, score, level, turn, at: Date.now(), ...carry }));
+  } catch (e) {
+    if (e && e.code === 'invalid_argument') RANK.writable = false;
+  }
+}
+
+async function loadBoard() {
+  if (RANK.state !== 'ready') return [];
+  const snap = await withTimeout(RANK.db.collection('lb').where('season', '==', seasonId()).orderBy('score', 'desc').limit(50).get());
+  const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try { const ps = await RANK.user.profiles(rows.map(r => r.id)); for (const r of rows) r.name = (ps[r.id] && ps[r.id].name) || ''; } catch (e) {}
+  return rows;
+}
+
+// Last week's standings come from two places: players still on that season, and players who
+// already moved on (their old score sits in lastSeason/lastScore).
+async function checkChampion() {
+  const prev = prevSeasonId();
+  if (RANK.state !== 'ready' || SAVE.champSeasons[prev] !== undefined) return;
+  try {
+    const col = RANK.db.collection('lb');
+    const [a, b] = await withTimeout(Promise.all([
+      col.where('season', '==', prev).orderBy('score', 'desc').limit(3).get(),
+      col.where('lastSeason', '==', prev).orderBy('lastScore', 'desc').limit(3).get(),
+    ]));
+    const all = [...a.docs.map(d => ({ id: d.id, s: d.data().score })), ...b.docs.map(d => ({ id: d.id, s: d.data().lastScore }))]
+      .sort((x, y) => y.s - x.s).slice(0, 3);
+    const place = all.findIndex(r => r.id === RANK.me) + 1;
+    SAVE.champSeasons[prev] = place;
+    if (REWARD[place]) {
+      SAVE.gold += REWARD[place].gold;
+      if (REWARD[place].crown) SAVE.champion = true;
+      showTitleNote(place === 1 ? `지난주 무한 모드 1위! 챔피언 왕관과 황금 공, ${REWARD[1].gold}G를 받았어요` : `지난주 무한 모드 ${place}위! ${REWARD[place].gold}G를 받았어요`);
+      if (REWARD[place].crown) applyTheme(TH.land);
+      refreshTitle();
+    }
+    writeSave();
+  } catch (e) {}
+}
+function showTitleNote(text) { const n = $('titleNote'); n.textContent = text; n.hidden = false; }
+
+// ---------- leaderboard screen ----------
+let rankReturn = null;
+async function openRank(from) {
+  rankReturn = from; if (from) from.hidden = true;
+  $('rank').hidden = false;
+  $('rankSeason').textContent = `${seasonId()} 시즌 · 종료까지 ${seasonEndsIn()}`;
+  $('rankMine').textContent = SAVE.bestScore ? `내 최고 점수 ${SAVE.bestScore.toLocaleString()}` : '아직 기록이 없어요';
+  const list = $('rankList');
+  if (RANK.state === 'offline') { list.innerHTML = '<p class="note">랭킹은 claude.ai에서 게임을 열었을 때 함께 겨룰 수 있어요. 지금은 내 기록만 저장됩니다.</p>'; return; }
+  if (RANK.state !== 'ready') { list.innerHTML = '<p class="note">랭킹을 불러오는 중…</p>'; setTimeout(() => { if (!$('rank').hidden) openRank(from); }, 1500); return; }
+  list.innerHTML = '<p class="note">랭킹을 불러오는 중…</p>';
+  try {
+    const rows = await loadBoard();
+    if (!rows.length) { list.innerHTML = '<p class="note">이번 주 첫 기록의 주인공이 되어보세요!</p>'; }
+    else list.innerHTML = rows.map((r, i) => `<div class="rrow${r.id === RANK.me ? ' me' : ''}"><b>${i + 1}</b><span>${escapeHtml(r.name || (r.id === RANK.me ? '나' : '플레이어'))}</span><em>LV ${r.level}</em><i>${Number(r.score).toLocaleString()}</i></div>`).join('');
+    if (RANK.writable === false) list.insertAdjacentHTML('beforeend', '<p class="note">보기 권한이라 기록을 올릴 수 없어요. 공유한 사람에게 참여 권한을 받으면 함께 겨룰 수 있어요.</p>');
+  } catch (e) {
+    list.innerHTML = '<p class="note">랭킹을 지금 불러올 수 없어요. 잠시 후 다시 열어주세요.</p>';
+  }
+}
+function closeRank() { $('rank').hidden = true; if (rankReturn) rankReturn.hidden = false; }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
 // ---- 90-main.js ----
 // Screen fit, input, buttons and the main loop.
 let scale = 1, dpr = 1;
@@ -2382,13 +2548,16 @@ cv.addEventListener('pointercancel', () => { S.aiming = false; });
 
 sndEl.onclick = () => { muted = !muted; sndEl.textContent = muted ? 'SND OFF' : 'SND ON'; ensureAudio(); };
 recallEl.onclick = recall;
-$('start').onclick = () => startStage(nextStageIndex());
+$('start').onclick = () => startLevel(nextLevelIndex());
 $('again').onclick = againOrNext;
 $('endless').onclick = startEndless;
 $('titleMap').onclick = () => openMap(titleEl);
 $('overMap').onclick = () => openMap(overEl);
 $('mapClose').onclick = closeMap;
-$('mapPlay').onclick = () => startStage(mapSel);
+$('mapPlay').onclick = () => startLevel(mapSel);
+$('titleRank').onclick = () => openRank(titleEl);
+$('overRank').onclick = () => openRank(overEl);
+$('rankClose').onclick = closeRank;
 $('titleShop').onclick = () => openShop(titleEl);
 $('overShop').onclick = () => openShop(overEl);
 $('shopClose').onclick = closeShop;
@@ -2399,19 +2568,13 @@ $('claim2x').onclick = () => claim(2); // ad placeholder
 
 // ---------- boot ----------
 loadSave();
-STG = STAGES[nextStageIndex()];
-applyTheme(STG.world);
+STG = levelInfo(nextLevelIndex());
+applyTheme(STG.land);
 newRun(); S.phase = 'title';
 refreshTitle();
-// Design-draft links: #glass, #clay, #flat restyle the whole game; #clay-blossom previews one world.
-function previewFromHash() {
-  const id = location.hash.slice(1);
-  if (DIRECTIONS[id]) PREVIEW_DIR = id;
-  else if (themeFor(id) && id.includes('-')) PREVIEW_DIR = id.split('-')[0];
-  else if (!id) PREVIEW_DIR = null;
-  if (S.phase === 'title') { refreshTitle(); if (themeFor(id) && id.includes('-')) applyTheme(id); }
-  else applyTheme(STG.world);
-}
+rankInit();
+// #land-7 previews landscape 7 on the title screen (for browsing the places)
+function previewFromHash() { const m = location.hash.match(/^#land-(\d+)$/); if (m && S.phase === 'title') applyTheme(+m[1]); }
 addEventListener('hashchange', previewFromHash);
 previewFromHash();
 let last = performance.now();
@@ -2430,9 +2593,16 @@ window.__bm = {
   tick(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) update(dt); },
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
-  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : STAGES[stage]; newRun(); if (S.pendingLevels > 0) showLevel(); },
+  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : levelInfo(stage); newRun(); if (S.pendingLevels > 0) showLevel(); },
   theme(id) { applyTheme(id); },
-  STAGES,
+  levelInfo, landOf, LANDS,
+  // render landscape s (with its animated parts) to an image, for galleries
+  landShot(s, w = 210, now = 4000) {
+    const c = document.createElement('canvas'); c.width = w * 2; c.height = Math.round(w * H / W) * 2;
+    const g = c.getContext('2d'); g.scale(c.width / W, c.height / H);
+    const L = landOf(s); paintStatic(g, L.R, L.V); paintAnim(g, L.R, now);
+    return c.toDataURL('image/jpeg', 0.85);
+  },
   word(i) { bigWords.push({ s: TH.words[i], life: 0.85, max: 1.1, y: H * 0.3, size: 16 + i * 2 }); },
   draw(now = performance.now()) { draw(now); },
 };

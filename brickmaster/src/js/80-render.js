@@ -345,17 +345,12 @@ function drawHud(now, ch) {
   const hd = TH.hud;
   ctx.fillStyle = hd.bg; ctx.fillRect(0, 0, W, TOP - 4);
   ctx.fillStyle = hd.line; ctx.fillRect(0, TOP - 4, W, 4);
-  if (TH === THEMES.jackpot) {
-    const on = Math.floor(now / 140) % 3;
-    for (let x = 6, i = 0; x < W; x += 14, i++) { ctx.fillStyle = (i % 3) === on ? '#fff3b0' : '#7a5c0a'; ctx.beginPath(); ctx.arc(x, TOP - 2, 2, 0, Math.PI * 2); ctx.fill(); }
-  } else if (TH === THEMES.synth) {
-    ctx.drawImage(glow('#ff3ea5'), 0, TOP - 14, W, 24);
-  }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText('TURN', 16, 22);
   ctx.fillStyle = hd.ink; ctx.font = DISP(18); ctx.fillText(String(S.turn), 16, 48);
-  ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText('LEVEL', W - 16, 22);
-  ctx.fillStyle = hd.accent; ctx.font = DISP(18); ctx.fillText(String(S.level), W - 16, 48);
+  // right: endless shows the score, classic shows the in-run power level
+  ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText(STG.endless ? 'SCORE' : 'POWER LV', W - 16, 22);
+  ctx.fillStyle = hd.accent; ctx.font = DISP(STG.endless ? 15 : 18); ctx.fillText(STG.endless ? S.score.toLocaleString() : String(S.level), W - 16, 48);
   // one life: a single heart that beats faster as bricks close in
   {
     const bp = 1 + (S.beatPulse || 0) * 0.35;
@@ -367,11 +362,10 @@ function drawHud(now, ch) {
     }
   }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
-  ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `CH${ch}` : STG.id, W / 2 - 78, 15);
-  // boss progress toward the next world: one diamond per boss in this world
-  // stage mode: bosses killed of the stage goal; endless: progress toward the next world
-  const pipN = STG.endless ? BOSSES_PER_WORLD : STG.bosses, pipOn = STG.endless ? S.bosses % BOSSES_PER_WORLD : S.bosses;
-  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? `W${S.world + 1}` : 'BOSS', 16, 72); ctx.textAlign = 'center';
+  ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `LV ${S.world + 1}` : STG.id, W / 2 - 78, 15);
+  // classic: bosses beaten of this level's goal; endless: nothing to count, the level is the label
+  const pipN = STG.endless ? 0 : STG.bosses, pipOn = S.bosses;
+  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? TH.name : 'BOSS', 16, 72); ctx.textAlign = 'center';
   for (let i = 0; i < pipN; i++) {
     const x = 46 + i * 10, y = 69, on = i < pipOn;
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);

@@ -22,7 +22,7 @@ function newRun() {
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
     camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
-    world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
+    world: STG.land, worldPending: false, wipe: 0, score: 0,
     shield: 0, ironLeft: 0, encoreChecked: false, acidDone: false, cleared: false,
   };
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = []; shards = [];

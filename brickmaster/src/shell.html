@@ -1,7 +1,7 @@
 <title>Brickmaster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&family=Bungee&family=Chakra+Petch:wght@600;700&family=Do+Hyeon&family=Fredoka:wght@600;700&family=IBM+Plex+Sans+KR:wght@500;700&family=Outfit:wght@600;800&family=Sora:wght@600;800&family=Jua&family=Lilita+One&family=Orbitron:wght@900&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;700&family=Outfit:wght@600;800&display=swap">
 <style>
 /* Layout: one portrait arcade screen (420x780 logical), letterboxed and scaled to fit the phone.
    Each visual theme sets these tokens from JS (applyTheme); the values here are the neon theme. */
@@ -18,9 +18,6 @@ body{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-selec
 #wrap{position:fixed;top:env(safe-area-inset-top,0px);bottom:env(safe-area-inset-bottom,0px);left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px);display:flex;align-items:center;justify-content:center}
 #stage{position:relative;--s:1;touch-action:none;overflow:hidden;color:var(--ink);font-family:var(--ko);background:var(--bg)}
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-.crt{position:absolute;inset:0;pointer-events:none;background:
-  repeating-linear-gradient(to bottom,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
-  radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,.5) 100%)}
 .btn{font-family:var(--disp);font-size:calc(var(--s)*9px*var(--dsz));line-height:1;color:var(--ink);background:var(--panel);
   border:calc(var(--s)*2px) solid var(--line);padding:calc(var(--s)*9px) calc(var(--s)*11px);cursor:pointer;border-radius:calc(var(--s)*4px)}
 .btn.ko{font-family:var(--ko);font-size:calc(var(--s)*17px);padding:calc(var(--s)*10px) calc(var(--s)*16px)}
@@ -97,36 +94,23 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stats span:nth-child(even){font-family:var(--disp);font-size:calc(var(--s)*12px*var(--dsz));color:var(--gold);text-align:right;font-variant-numeric:tabular-nums}
 #build{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--s)*6px)}
 #build span{font-family:var(--disp);font-size:calc(var(--s)*8px*var(--dsz));padding:calc(var(--s)*6px);background:var(--c);color:#0a0c1c;border-radius:calc(var(--s)*3px)}
-/* Neon Glass (default world): soft glass panels, pill buttons, gradient type instead of hard pixel shadows */
-#stage[data-th="neon"] .ov{backdrop-filter:blur(calc(var(--s)*8px));-webkit-backdrop-filter:blur(calc(var(--s)*8px))}
-#stage[data-th="neon"] .logo{background:linear-gradient(100deg,#5ef2e0 0%,#ffffff 45%,#9d8cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 calc(var(--s)*14px) rgba(94,242,224,.45));letter-spacing:.04em}
-#stage[data-th="neon"] .sub{color:var(--dim);letter-spacing:.12em;font-size:calc(var(--s)*15px)}
-#stage[data-th="neon"] .btn{border-radius:calc(var(--s)*12px);border:1px solid var(--line);background:rgba(255,255,255,.04)}
-#stage[data-th="neon"] .btn.big{background:linear-gradient(120deg,#5ef2e0,#9d8cff);border:0;border-radius:999px;color:#070912;box-shadow:0 0 calc(var(--s)*28px) rgba(94,242,224,.45),inset 0 1px 0 rgba(255,255,255,.6);letter-spacing:.08em}
-#stage[data-th="neon"] .btn.big:active{transform:scale(.97);box-shadow:0 0 calc(var(--s)*14px) rgba(94,242,224,.45)}
-#stage[data-th="neon"] .btn.ad{border-color:rgba(94,242,224,.6)}
-#stage[data-th="neon"] .picker,#stage[data-th="neon"] .meta{border:1px solid var(--line);border-radius:calc(var(--s)*16px);background:rgba(17,21,42,.72)}
-#stage[data-th="neon"] .card{border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:calc(var(--s)*18px);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 16%,#141933),#0c0f20 70%)}
-#stage[data-th="neon"] h2{text-shadow:0 0 calc(var(--s)*16px) rgba(255,198,107,.55);letter-spacing:.06em}
-#stage[data-th="neon"] .buy{border-radius:999px}
-#stage[data-th="neon"] .pips i{border-radius:50%}
-#stage[data-th="neon"] #build span{border-radius:999px}
 /* Stage map: one panel per world in that world's colours, four stage nodes on a zigzag path */
 #map{justify-content:flex-start;gap:calc(var(--s)*8px)}
 #mapList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;gap:calc(var(--s)*10px);padding:calc(var(--s)*2px);box-sizing:border-box}
-.world{background:linear-gradient(160deg,var(--wp),var(--wb));border:calc(var(--s)*2px) solid color-mix(in srgb,var(--wa) 55%,transparent);border-radius:calc(var(--s)*16px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--wi)}
+.world{background:linear-gradient(100deg,var(--panel) 35%,color-mix(in srgb,var(--panel) 35%,transparent)),var(--thumb) center/cover;border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--ink);box-shadow:0 calc(var(--s)*8px) calc(var(--s)*22px) rgba(60,40,120,.15)}
 .world header{display:flex;align-items:baseline;gap:calc(var(--s)*8px)}
-.world header b{font-family:var(--wf);font-size:calc(var(--s)*11px);color:var(--wa)}
+.world header b{font-family:var(--disp);font-size:calc(var(--s)*12px);color:var(--wa)}
 .world header span{font-size:calc(var(--s)*18px)}
-.world p{margin:calc(var(--s)*2px) 0 calc(var(--s)*6px);font-size:calc(var(--s)*13px);color:var(--wd)}
-.world.locked{filter:grayscale(.85) brightness(.7)}
-.path{display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--s)*6px);position:relative}
+.world p{margin:calc(var(--s)*2px) 0 calc(var(--s)*6px);font-size:calc(var(--s)*13px);color:var(--dim)}
+.world.locked{filter:grayscale(.6);opacity:.6}
+.path{display:grid;grid-template-columns:repeat(5,1fr);gap:calc(var(--s)*6px);position:relative}
 .path::before{content:"";position:absolute;left:12%;right:12%;top:calc(var(--s)*30px);border-top:calc(var(--s)*3px) dashed color-mix(in srgb,var(--wa) 45%,transparent)}
-.node{position:relative;display:grid;justify-items:center;gap:calc(var(--s)*3px);background:none;border:0;padding:0;cursor:pointer;color:var(--wi)}
+.node{position:relative;display:grid;justify-items:center;gap:calc(var(--s)*3px);background:none;border:0;padding:0;cursor:pointer;color:var(--ink)}
 .node:nth-child(even){margin-top:calc(var(--s)*14px)}
-.node .dot{display:grid;place-items:center;width:calc(var(--s)*52px);height:calc(var(--s)*52px);border-radius:50%;background:var(--wa);color:#0a0c1c;font-family:var(--wf);font-size:calc(var(--s)*13px);font-weight:700;box-shadow:0 calc(var(--s)*4px) 0 color-mix(in srgb,var(--wa) 45%,#000)}
+.node .dot{display:grid;place-items:center;width:calc(var(--s)*46px);height:calc(var(--s)*46px);border-radius:50%;background:linear-gradient(160deg,color-mix(in srgb,var(--wa) 70%,#fff),var(--wa));color:#fff;font-family:var(--disp);font-size:calc(var(--s)*13px);font-weight:800;border:calc(var(--s)*2px) solid rgba(255,255,255,.85);box-shadow:0 calc(var(--s)*4px) calc(var(--s)*10px) color-mix(in srgb,var(--wa) 45%,transparent)}
+.node.boss .dot{width:calc(var(--s)*54px);height:calc(var(--s)*54px);box-shadow:0 0 0 calc(var(--s)*3px) color-mix(in srgb,#f2a541 70%,transparent),0 calc(var(--s)*4px) calc(var(--s)*12px) rgba(242,165,65,.5)}
 .node .dot svg{width:45%;height:45%;fill:none;stroke:currentColor;stroke-width:2.4}
-.node.lock .dot{background:#3a3f55;color:#9aa0b8;box-shadow:none}
+.node.lock .dot{background:rgba(120,120,150,.35);color:#fff;box-shadow:none}
 .node.cur .dot{animation:pulse 1.1s ease-in-out infinite;box-shadow:0 0 0 calc(var(--s)*4px) color-mix(in srgb,var(--wa) 40%,transparent),0 0 calc(var(--s)*18px) var(--wa)}
 .node.sel .dot{outline:calc(var(--s)*3px) solid #fff;outline-offset:calc(var(--s)*3px)}
 .node .st{font-size:calc(var(--s)*12px);letter-spacing:.05em}
@@ -154,7 +138,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #shieldOffer.go .bar{animation:drain 6s linear both}
 @keyframes offerIn{from{transform:translateY(calc(var(--s)*60px));opacity:0}to{transform:none;opacity:1}}
 @keyframes drain{to{transform:scaleX(0)}}
-/* ---- Design drafts (v0.8): soft glass / clay / flat over the painted worlds ---- */
+/* ---- Soft Glass: frosted panels and pill buttons over the painted landscapes ---- */
 #stage[data-dir="glass"] .ov{backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15);-webkit-backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15)}
 #stage[data-dir="glass"] .btn{border-radius:calc(var(--s)*14px);border:1px solid rgba(255,255,255,.7);background:color-mix(in srgb,var(--panel) 70%,transparent);color:var(--ink)}
 #stage[data-dir="glass"] .btn.big{background:linear-gradient(120deg,var(--cool),var(--logo2));color:#fff;border:0;border-radius:999px;box-shadow:0 calc(var(--s)*8px) calc(var(--s)*24px) color-mix(in srgb,var(--cool) 45%,transparent);text-shadow:0 1px 2px rgba(0,0,0,.2);letter-spacing:.06em}
@@ -165,23 +149,21 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stage[data-dir="glass"] .card,#stage[data-dir="glass"] .meta,#stage[data-dir="glass"] .mapSel{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);box-shadow:0 calc(var(--s)*10px) calc(var(--s)*28px) rgba(60,40,120,.18)}
 #stage[data-dir="glass"] .card .ic{color:#fff}
 
-#stage[data-dir="clay"] .btn{border:0;border-radius:calc(var(--s)*18px);background:var(--panel);color:var(--ink);box-shadow:0 calc(var(--s)*4px) 0 rgba(60,30,90,.2)}
-#stage[data-dir="clay"] .btn.big{background:var(--cool);color:#fff;border-radius:calc(var(--s)*24px);box-shadow:0 calc(var(--s)*6px) 0 color-mix(in srgb,var(--cool) 55%,#2c2a4a)}
-#stage[data-dir="clay"] .btn.big:active{transform:translateY(calc(var(--s)*4px));box-shadow:0 calc(var(--s)*2px) 0 color-mix(in srgb,var(--cool) 55%,#2c2a4a)}
-#stage[data-dir="clay"] .logo{color:#fff;text-shadow:0 calc(var(--s)*4px) 0 var(--cool),0 calc(var(--s)*8px) 0 var(--logo2)}
-#stage[data-dir="clay"] h2{color:#fff;text-shadow:0 calc(var(--s)*3px) 0 var(--cool)}
-#stage[data-dir="clay"] .card{border:0;border-radius:calc(var(--s)*24px);box-shadow:0 calc(var(--s)*6px) 0 color-mix(in srgb,var(--c) 60%,#2c2a4a)}
-#stage[data-dir="clay"] .meta,#stage[data-dir="clay"] .mapSel{border:0;border-radius:calc(var(--s)*22px);box-shadow:0 calc(var(--s)*5px) 0 rgba(60,30,90,.16)}
-#stage[data-dir="clay"] .card .ic{color:#fff;box-shadow:none}
 
-#stage[data-dir="flat"] .ov{background:color-mix(in srgb,var(--bg) 82%,transparent)}
-#stage[data-dir="flat"] .btn{border-radius:calc(var(--s)*8px);border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-#stage[data-dir="flat"] .btn.big{background:var(--ink);color:var(--bg);border:0;border-radius:calc(var(--s)*10px);box-shadow:none;letter-spacing:.14em;animation:none}
-#stage[data-dir="flat"] .logo{color:var(--ink);text-shadow:none;letter-spacing:-.02em;animation:none;border-bottom:calc(var(--s)*6px) solid var(--cool);padding-bottom:calc(var(--s)*6px)}
-#stage[data-dir="flat"] h2{color:var(--ink);text-shadow:none;letter-spacing:.1em}
-#stage[data-dir="flat"] .card{border:1px solid var(--line);border-top:calc(var(--s)*5px) solid var(--c);border-radius:calc(var(--s)*10px);box-shadow:none}
-#stage[data-dir="flat"] .meta,#stage[data-dir="flat"] .mapSel{border-radius:calc(var(--s)*10px)}
-#stage[data-dir="flat"] .card .ic{box-shadow:none;color:#fff}
+#rank{justify-content:flex-start;gap:calc(var(--s)*8px)}
+.prize{width:100%;display:grid;grid-template-columns:1.6fr 1fr;gap:calc(var(--s)*8px)}
+.prize div{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*14px);padding:calc(var(--s)*8px);display:grid;gap:calc(var(--s)*2px)}
+.prize div:first-child{background:linear-gradient(135deg,#ffe9a8,#ffc46b);color:#5a3a00;border:0}
+.prize b{font-family:var(--disp);font-size:calc(var(--s)*14px)}
+.prize span{font-size:calc(var(--s)*12px)}
+#rankList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;align-content:start;gap:calc(var(--s)*6px)}
+.rrow{display:grid;grid-template-columns:calc(var(--s)*30px) 1fr auto auto;align-items:center;gap:calc(var(--s)*10px);background:var(--panel);border:1px solid rgba(255,255,255,.7);border-radius:calc(var(--s)*12px);padding:calc(var(--s)*8px) calc(var(--s)*12px);font-size:calc(var(--s)*15px);text-align:left}
+.rrow b{font-family:var(--disp);font-size:calc(var(--s)*16px);color:var(--cool)}
+.rrow:nth-child(1) b{color:#f2a541}
+.rrow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow em{font-style:normal;font-size:calc(var(--s)*11px);color:var(--dim)}
+.rrow i{font-style:normal;font-family:var(--disp);font-weight:800;font-variant-numeric:tabular-nums}
+.rrow.me{border:calc(var(--s)*2px) solid var(--cool)}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
@@ -190,7 +172,6 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 
 <div id="wrap"><div id="stage">
   <canvas id="cv" aria-label="게임 화면"></canvas>
-  <div class="crt"></div>
   <button id="snd" class="btn" type="button">SND ON</button>
   <button id="recall" class="btn" type="button" hidden>회수 ▼</button>
 
@@ -205,7 +186,9 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
       <button id="titleShop" class="btn ko" type="button">작업실</button>
     </div>
     <button id="endless" class="btn ko" type="button">무한 모드</button>
+    <button id="titleRank" class="btn ko" type="button">주간 랭킹</button>
     <p class="small" id="best"></p>
+    <p class="newNote" id="titleNote" hidden></p>
   </div>
 
   <div id="lvl" class="ov" hidden>
@@ -238,8 +221,21 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
     <div class="row" id="afterRow" hidden>
       <button id="again" class="btn big" type="button">RETRY</button>
       <button id="overMap" class="btn ko" type="button">맵</button>
+      <button id="overRank" class="btn ko" type="button" hidden>랭킹</button>
       <button id="overShop" class="btn ko" type="button">작업실</button>
     </div>
+  </div>
+
+  <div id="rank" class="ov" hidden>
+    <h2>WEEKLY RANKING</h2>
+    <p class="note" id="rankSeason"></p>
+    <div class="prize">
+      <div><b>1위</b><span>챔피언 왕관 · 황금 공 · 1000G</span></div>
+      <div><b>2~3위</b><span>300G</span></div>
+    </div>
+    <div id="rankList"></div>
+    <p class="gold" id="rankMine"></p>
+    <button id="rankClose" class="btn ko" type="button">닫기</button>
   </div>
 
   <div id="map" class="ov" hidden>

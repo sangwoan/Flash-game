@@ -18,7 +18,17 @@ function touchItem(b, br, r, c) {
   }
 }
 
-function collide(b, axis) {
+// true when the ball overlaps any solid brick other than `skip`
+function overlapsOther(b, skip) {
+  const c0 = Math.max(0, Math.floor((b.x - b.r) / CW)), c1 = Math.min(COLS - 1, Math.floor((b.x + b.r) / CW));
+  const r0 = Math.max(0, Math.floor((b.y - b.r - TOP) / RH)), r1 = Math.min(ROWS - 1, Math.floor((b.y + b.r - TOP) / RH));
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    const o = grid[r * COLS + c];
+    if (o && o !== skip && !o.dead && !isItem(o) && !b.ghost.has(o) && overlaps(b, o)) return true;
+  }
+  return false;
+}
+function collide(b, axis, prev) {
   const c0 = Math.max(0, Math.floor((b.x - b.r) / CW)), c1 = Math.min(COLS - 1, Math.floor((b.x + b.r) / CW));
   const r0 = Math.max(0, Math.floor((b.y - b.r - TOP) / RH)), r1 = Math.min(ROWS - 1, Math.floor((b.y + b.r - TOP) / RH));
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
@@ -42,6 +52,8 @@ function collide(b, axis) {
       b.y = up ? br.Y - b.r - 0.01 : br.Y + br.Ht + b.r + 0.01;
       b.vy = up ? -Math.abs(b.vy) : Math.abs(b.vy);
     }
+    // wedged in a corner between two bricks: step back to where this move started
+    if (overlapsOther(b, br)) { if (axis === 0) b.x = prev; else b.y = prev; }
     hitBrick(br, b);
     return;
   }
@@ -51,13 +63,15 @@ function moveBall(b, dt) {
   const sp = Math.hypot(b.vx, b.vy);
   const n = Math.max(1, Math.ceil(sp * dt / (b.r * 0.9)));
   for (let i = 0; i < n && b.alive; i++) {
+    const px = b.x;
     b.x += b.vx * dt / n;
     if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); sfx.wall(); }
     else if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); sfx.wall(); }
-    collide(b, 0);
+    collide(b, 0, px);
+    const py = b.y;
     b.y += b.vy * dt / n;
     if (b.y < TOP + b.r) { b.y = TOP + b.r; b.vy = Math.abs(b.vy); sfx.wall(); }
-    collide(b, 1);
+    collide(b, 1, py);
     if (b.ghost.size) for (const g of b.ghost) if (g.dead || !overlaps(b, g)) b.ghost.delete(g);
     if (b.vy > 0 && b.y >= LY && b.fb < S.lv.bounce) {
       // bounce pad: send the ball back up
