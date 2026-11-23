@@ -1,7 +1,7 @@
 <title>Brickmaster</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@500;700&family=Outfit:wght@600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans+KR:wght@500;700&display=swap">
 <style>
 /* Layout: one portrait arcade screen (420x780 logical), letterboxed and scaled to fit the phone.
    Each visual theme sets these tokens from JS (applyTheme); the values here are the neon theme. */
@@ -97,7 +97,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 /* Stage map: one panel per world in that world's colours, four stage nodes on a zigzag path */
 #map{justify-content:flex-start;gap:calc(var(--s)*8px)}
 #mapList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;gap:calc(var(--s)*10px);padding:calc(var(--s)*2px);box-sizing:border-box}
-.world{background:linear-gradient(100deg,var(--panel) 35%,color-mix(in srgb,var(--panel) 35%,transparent)),var(--thumb) center/cover;border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--ink);box-shadow:0 calc(var(--s)*8px) calc(var(--s)*22px) rgba(60,40,120,.15)}
+.world{background:linear-gradient(100deg,rgba(6,8,16,.92) 30%,rgba(6,8,16,.35)),var(--thumb) center/cover;border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--ink);box-shadow:0 calc(var(--s)*8px) calc(var(--s)*22px) rgba(60,40,120,.15)}
 .world header{display:flex;align-items:baseline;gap:calc(var(--s)*8px)}
 .world header b{font-family:var(--disp);font-size:calc(var(--s)*12px);color:var(--wa)}
 .world header span{font-size:calc(var(--s)*18px)}
@@ -138,16 +138,22 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #shieldOffer.go .bar{animation:drain 6s linear both}
 @keyframes offerIn{from{transform:translateY(calc(var(--s)*60px));opacity:0}to{transform:none;opacity:1}}
 @keyframes drain{to{transform:scaleX(0)}}
-/* ---- Soft Glass: frosted panels and pill buttons over the painted landscapes ---- */
-#stage[data-dir="glass"] .ov{backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15);-webkit-backdrop-filter:blur(calc(var(--s)*10px)) saturate(1.15)}
-#stage[data-dir="glass"] .btn{border-radius:calc(var(--s)*14px);border:1px solid rgba(255,255,255,.7);background:color-mix(in srgb,var(--panel) 70%,transparent);color:var(--ink)}
-#stage[data-dir="glass"] .btn.big{background:linear-gradient(120deg,var(--cool),var(--logo2));color:#fff;border:0;border-radius:999px;box-shadow:0 calc(var(--s)*8px) calc(var(--s)*24px) color-mix(in srgb,var(--cool) 45%,transparent);text-shadow:0 1px 2px rgba(0,0,0,.2);letter-spacing:.06em}
-#stage[data-dir="glass"] .btn.big:active{transform:scale(.97)}
-#stage[data-dir="glass"] .logo{background:linear-gradient(100deg,var(--cool),var(--logo2));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 calc(var(--s)*3px) calc(var(--s)*8px) rgba(255,255,255,.7));letter-spacing:.02em}
-#stage[data-dir="glass"] h2{color:var(--ink);text-shadow:none;letter-spacing:.04em}
-#stage[data-dir="glass"] .sub{color:var(--dim);letter-spacing:.14em;font-size:calc(var(--s)*15px)}
-#stage[data-dir="glass"] .card,#stage[data-dir="glass"] .meta,#stage[data-dir="glass"] .mapSel{background:var(--panel);border:1px solid rgba(255,255,255,.75);border-radius:calc(var(--s)*20px);box-shadow:0 calc(var(--s)*10px) calc(var(--s)*28px) rgba(60,40,120,.18)}
-#stage[data-dir="glass"] .card .ic{color:#fff}
+/* ---- Neon: dark panels with lit edges, glowing type ---- */
+#stage[data-dir="neon"] .ov{backdrop-filter:blur(calc(var(--s)*6px));-webkit-backdrop-filter:blur(calc(var(--s)*6px))}
+#stage[data-dir="neon"] .btn{border-radius:calc(var(--s)*10px);border:1px solid color-mix(in srgb,var(--cool) 55%,transparent);background:rgba(10,12,24,.85);color:var(--ink);box-shadow:0 0 calc(var(--s)*12px) color-mix(in srgb,var(--cool) 25%,transparent),inset 0 0 calc(var(--s)*10px) color-mix(in srgb,var(--cool) 12%,transparent)}
+#stage[data-dir="neon"] .btn.big{background:linear-gradient(120deg,var(--cool),var(--logo2));color:#04050a;border:0;border-radius:calc(var(--s)*12px);box-shadow:0 0 calc(var(--s)*26px) color-mix(in srgb,var(--cool) 60%,transparent),0 0 calc(var(--s)*60px) color-mix(in srgb,var(--logo2) 35%,transparent);letter-spacing:.12em}
+#stage[data-dir="neon"] .btn.big:active{transform:scale(.97)}
+#stage[data-dir="neon"] .logo{color:#fff;text-shadow:0 0 calc(var(--s)*6px) #fff,0 0 calc(var(--s)*16px) var(--cool),0 0 calc(var(--s)*34px) var(--cool),0 0 calc(var(--s)*60px) var(--logo2);letter-spacing:.06em}
+#stage[data-dir="neon"] h2{color:#fff;text-shadow:0 0 calc(var(--s)*8px) var(--cool),0 0 calc(var(--s)*22px) var(--cool);letter-spacing:.08em}
+#stage[data-dir="neon"] .sub{color:var(--cool);letter-spacing:.24em;font-size:calc(var(--s)*14px);text-shadow:0 0 calc(var(--s)*10px) var(--cool)}
+#stage[data-dir="neon"] .card,#stage[data-dir="neon"] .meta,#stage[data-dir="neon"] .mapSel{background:rgba(8,10,20,.9);border:1px solid color-mix(in srgb,var(--c,var(--cool)) 60%,transparent);border-radius:calc(var(--s)*14px);box-shadow:0 0 calc(var(--s)*18px) color-mix(in srgb,var(--c,var(--cool)) 30%,transparent),inset 0 0 calc(var(--s)*16px) color-mix(in srgb,var(--c,var(--cool)) 10%,transparent)}
+#stage[data-dir="neon"] .world{border:1px solid color-mix(in srgb,var(--wa) 55%,transparent);box-shadow:0 0 calc(var(--s)*16px) color-mix(in srgb,var(--wa) 25%,transparent)}
+#stage[data-dir="neon"] .node .dot{background:rgba(6,8,16,.9);color:#fff;border:calc(var(--s)*2px) solid var(--wa);box-shadow:0 0 calc(var(--s)*12px) var(--wa),inset 0 0 calc(var(--s)*8px) color-mix(in srgb,var(--wa) 40%,transparent)}
+#stage[data-dir="neon"] .node.lock .dot{border-color:rgba(255,255,255,.2);box-shadow:none;color:rgba(255,255,255,.5)}
+#stage[data-dir="neon"] .prize div,#stage[data-dir="neon"] .rrow{background:rgba(8,10,20,.9);border:1px solid rgba(255,255,255,.12)}
+#stage[data-dir="neon"] .prize div:first-child{background:linear-gradient(135deg,#ffd000,#ff6a3d);color:#04050a;border:0;box-shadow:0 0 calc(var(--s)*20px) rgba(255,208,0,.45)}
+#stage[data-dir="neon"] .rrow.me{border-color:var(--cool);box-shadow:0 0 calc(var(--s)*14px) color-mix(in srgb,var(--cool) 40%,transparent)}
+#stage[data-dir="neon"] .card .ic{color:#04050a}
 
 
 #rank{justify-content:flex-start;gap:calc(var(--s)*8px)}

@@ -1,7 +1,8 @@
-// Soft Glass: the game's single visual direction. Each stage (and each endless level) takes
-// its colours from its landscape; bricks are frosted glass tinted by that landscape's palette.
+// Neon: the game's single visual direction. Black stage, sleek neon bricks, and a backdrop
+// that stays dark until combos build, then lights up (drawBackdrop in 80-render.js).
+// Each stage (and each endless level) takes its accent pair from its landscape.
 const FONT = {
-  outfit: '"Outfit", "IBM Plex Sans KR", system-ui, sans-serif',
+  display: '"Chakra Petch", "IBM Plex Sans KR", system-ui, sans-serif',
   plex: '"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
 };
 const lerpHex = (a, b, k) => {
@@ -25,34 +26,32 @@ function cachedLayer(key, paint) {
   return c;
 }
 
+// Bricks use one neon ramp everywhere (low HP cyan ... high HP gold) so players learn it;
+// each stage brings its own pair of accent colours for the backdrop, beams and UI.
+const NEON_RAMP = ['#00e5ff', '#3d7bff', '#9b4dff', '#ff2bd6', '#ff6a3d', '#ffd000'];
 function makeLandTheme(s) {
-  const L = landOf(s), R = L.R, light = !L.dark;
-  const ink = light ? '#2c2a4a' : '#f2f4ff', dim = light ? '#6b6890' : '#a8b3d6';
-  const ramp = PAL[R.pal];
+  const L = landOf(s), [A, B] = L.pal;
   return {
-    id: 'land-' + s, land: s, name: L.name, tag: R.place, light,
-    num: FONT.outfit, numSize: 15, numWeight: '700', disp: FONT.outfit, dw: '800', dsz: 1.35, ko: FONT.plex,
+    id: 'land-' + s, land: s, name: L.name, tag: L.R.place, light: false, landKey: L.key, R: L.R, pal: L.pal,
+    num: FONT.display, numSize: 15, numWeight: '700', disp: FONT.display, dw: '700', dsz: 1.35, ko: FONT.plex,
     css: {
-      bg: light ? '#f6f1fb' : '#0b1430', panel: light ? 'rgba(255,255,255,.86)' : 'rgba(22,34,70,.88)', line: light ? 'rgba(80,70,140,.18)' : 'rgba(170,190,255,.22)',
-      ink, dim, gold: '#f2a541', hot: '#ff6b8b', cool: R.accent, ov: light ? 'rgba(248,244,255,.72)' : 'rgba(10,18,44,.72)', btnInk: '#ffffff', logo2: R.accent2,
+      bg: '#04050a', panel: 'rgba(12,14,26,.9)', line: 'rgba(255,255,255,.12)', ink: '#f2f4ff', dim: '#8f96b8',
+      gold: '#ffd000', hot: '#ff2b6a', cool: A, ov: 'rgba(3,4,9,.8)', btnInk: '#04050a', logo2: B,
     },
-    hud: { bg: light ? 'rgba(255,255,255,.55)' : 'rgba(10,18,44,.5)', line: light ? 'rgba(80,70,140,.12)' : 'rgba(170,190,255,.15)', ink, dim, accent: '#f2a541', xpBg: light ? 'rgba(80,70,140,.12)' : 'rgba(170,190,255,.15)', xp: R.accent, heart: '#ff6b8b', heartOff: 'rgba(120,110,160,.3)', ch: R.accent },
-    outline: light ? '#ffffff' : '#0b1430', brick: 'frost', numInk: 'auto', heartStyle: 'vector',
-    ramp: rampOf(ramp),
-    special: { bomb: '#ff6b81', chest: '#ffc857', steel: '#9aa6bd', slime: '#7bd88f', boss: [R.accent, R.accent2] },
-    ball: { core: SAVE.champion ? '#ffd84d' : '#ffffff', glow: R.accent, temp: R.accent2 }, particle: 'dust',
-    words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'], wordStyle: 'clean', accent: R.accent, fever: '#f2a541', line2: '#ff6b8b',
-    field(g, now) {
-      g.drawImage(cachedLayer(L.key, c => paintStatic(c, R, L.V)), 0, 0, W, H);
-      paintAnim(g, R, now);
-    },
+    hud: { bg: 'rgba(6,8,16,.78)', line: 'rgba(255,255,255,.08)', ink: '#f2f4ff', dim: '#8f96b8', accent: '#ffd000', xpBg: 'rgba(255,255,255,.08)', xp: A, heart: '#ff2b6a', heartOff: 'rgba(255,255,255,.15)', ch: A },
+    outline: '#04050a', brick: 'neonx', numInk: '#ffffff', heartStyle: 'vector',
+    ramp: rampOf(NEON_RAMP),
+    special: { bomb: '#ff3355', chest: '#ffd000', steel: '#c8d0e0', slime: '#39ff88', boss: [A, B] },
+    ball: { core: SAVE.champion ? '#ffd84d' : '#ffffff', glow: A, temp: B }, particle: 'spark',
+    words: ['NICE', 'GREAT', 'EXCELLENT', 'UNREAL', 'LEGENDARY'], wordStyle: 'neon', accent: A, accent2: B, fever: '#ffd000', line2: '#ff2b6a',
+    field(g, now) { drawBackdrop(now); },
   };
 }
 let TH = null;
 // s: the landscape index (classic: the stage, endless: the level).
 function applyTheme(s) {
   TH = makeLandTheme(s);
-  stage.dataset.th = TH.id; stage.dataset.dir = 'glass';
+  stage.dataset.th = TH.id; stage.dataset.dir = 'neon';
   const st = stage.style;
   for (const [k, v] of Object.entries(TH.css)) st.setProperty('--' + k, v);
   st.setProperty('--disp', TH.disp); st.setProperty('--ko', TH.ko); st.setProperty('--dsz', TH.dsz);

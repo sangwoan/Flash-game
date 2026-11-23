@@ -107,6 +107,12 @@ function kill(br) {
   br.dead = true; clearCells(br);
   const cx = br.X + br.Wd / 2, cy = br.Y + br.Ht / 2, boss = br.type === 'boss';
   shatter(br);
+  // light: a bloom where it broke, a pillar of light, and a flash on the black behind it
+  const lc = br.col || brickColor(br);
+  if (blooms.length < 40) blooms.push({ x: cx, y: cy, r: boss ? 160 : 70, col: lc, life: 0.3, max: 0.3 });
+  if (pillars.length < 24) pillars.push({ x: cx, y: cy, w: boss ? br.Wd * 0.6 : 26, col: lc, life: 0.35, max: 0.35 });
+  if (bgFlashes.length < 14) bgFlashes.push({ x: cx, y: cy, col: lc, life: 0.5, max: 0.5 });
+  S.pulse = Math.min(1, (S.pulse || 0) + (boss ? 1 : 0.22));
   burst(cx, cy, br.col || brickColor(br), boss ? 50 : 5, boss ? 380 : 220);
   pops.push({ x: br.X, y: br.Y, w: br.Wd, h: br.Ht, life: 0.22, max: 0.22 });
   shockwave(cx, cy, CW * (boss ? 4 : 1.7), boss ? 14 : 5);

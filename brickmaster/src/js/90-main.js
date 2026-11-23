@@ -86,7 +86,7 @@ window.__bm = {
   landShot(s, w = 210, now = 4000) {
     const c = document.createElement('canvas'); c.width = w * 2; c.height = Math.round(w * H / W) * 2;
     const g = c.getContext('2d'); g.scale(c.width / W, c.height / H);
-    const L = landOf(s); paintStatic(g, L.R, L.V); paintAnim(g, L.R, now);
+    const L = landOf(s); g.fillStyle = '#04050a'; g.fillRect(0, 0, W, H); neonStatic(g, L.R, L.pal); neonAnim(g, L.R, L.pal, now, 1);
     return c.toDataURL('image/jpeg', 0.85);
   },
   word(i) { bigWords.push({ s: TH.words[i], life: 0.85, max: 1.1, y: H * 0.3, size: 16 + i * 2 }); },

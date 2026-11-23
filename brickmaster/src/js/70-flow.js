@@ -384,6 +384,13 @@ function updateFx(dt) {
   for (const b of bolts) b.life -= dt; bolts = bolts.filter(b => b.life > 0);
   for (const b of beams) b.life -= dt; beams = beams.filter(b => b.life > 0);
   for (const p of pops) p.life -= dt; pops = pops.filter(p => p.life > 0);
+  for (const p of pillars) p.life -= dt; pillars = pillars.filter(p => p.life > 0);
+  for (const b of blooms) b.life -= dt; blooms = blooms.filter(b => b.life > 0);
+  for (const f of bgFlashes) f.life -= dt; bgFlashes = bgFlashes.filter(f => f.life > 0);
+  // stage lights follow the combo: rise fast, fade slowly once the volley is over
+  const tgt = S.fever ? 1 : S.phase === 'fire' ? clamp(S.combo / 22, 0, 1) : 0;
+  S.energy += (tgt - S.energy) * Math.min(1, dt * (tgt > S.energy ? 4 : 0.7));
+  S.pulse = Math.max(0, (S.pulse || 0) - dt * 3.2);
   for (const h of shards) {
     h.vy += 1100 * dt; h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.vr * dt; h.life -= dt;
     if (h.y > LY + 8 && h.vy > 0 && h.bounced < 2) { h.y = LY + 8; h.vy *= -0.38; h.vx *= 0.7; h.vr *= 0.6; h.bounced++; }
