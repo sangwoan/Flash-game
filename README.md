@@ -23,6 +23,10 @@ node build.js   # src/shell.html + generators.js + app.js → index.html
 
 벽돌깨기 × 로그라이트 모바일 게임. 소스는 `brickmaster/src/`, `node brickmaster/build.js`로 `brickmaster/index.html` 한 파일을 만든다. 설계와 밸런스 메모는 [`brickmaster/DESIGN.md`](brickmaster/DESIGN.md).
 
+## Brickmaster 앱 (`brickmaster-app/`)
+
+Brickmaster를 WebView로 감싼 Expo(SDK 58) 앱. Expo Go 실행 방법은 [`brickmaster-app/README.md`](brickmaster-app/README.md).
+
 ## Nova Rogue (`nova-rogue/`)
 
 세로 슈팅 × 로그라이트 손맛 테스트용 프로토타입. `nova-rogue/index.html` 한 파일(빌드 없음).

@@ -22,6 +22,7 @@ const BAL = {
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   bossEvery: 10, bossHp: 6,
+  stageHp: n => 1 + 0.22 * n, // brick HP multiplier for stage n (0-based)
   xpNeed: lvl => Math.round(3 + lvl * 2 + 0.25 * Math.pow(lvl, 2.2)), // fast early levels, slow after ~15
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };

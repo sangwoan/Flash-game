@@ -34,47 +34,31 @@ cv.addEventListener('pointercancel', () => { S.aiming = false; });
 
 sndEl.onclick = () => { muted = !muted; sndEl.textContent = muted ? 'SND OFF' : 'SND ON'; ensureAudio(); };
 recallEl.onclick = recall;
-$('start').onclick = startRun;
-$('again').onclick = startRun;
+$('start').onclick = () => startStage(nextStageIndex());
+$('again').onclick = againOrNext;
+$('endless').onclick = startEndless;
+$('titleMap').onclick = () => openMap(titleEl);
+$('overMap').onclick = () => openMap(overEl);
+$('mapClose').onclick = closeMap;
+$('mapPlay').onclick = () => startStage(mapSel);
 $('titleShop').onclick = () => openShop(titleEl);
 $('overShop').onclick = () => openShop(overEl);
 $('shopClose').onclick = closeShop;
 $('reviveBtn').onclick = revive;   // ad placeholder: a rewarded ad would play here
-$('giveUp').onclick = showResults;
+$('giveUp').onclick = () => showResults(false);
 $('claim').onclick = () => claim(1);
 $('claim2x').onclick = () => claim(2); // ad placeholder
 
-// ---------- worlds: the title picker chooses the starting world among those unlocked ----------
-// A link with #synth, #candy, ... previews any world without unlocking it.
-function setTheme(id, remember) {
-  applyTheme(id);
-  if (S) S.world = WORLD_ORDER.indexOf(id);
-  const n = WORLD_ORDER.indexOf(id) + 1;
-  $('thNo').textContent = `WORLD ${n} · ${TH.tag} · 해금 ${SAVE.worlds}/${WORLD_ORDER.length}`;
-  if (remember) { SAVE.theme = id; writeSave(); }
-}
-function stepTheme(d) {
-  const open = WORLD_ORDER.slice(0, Math.max(SAVE.worlds, WORLD_ORDER.indexOf(SAVE.theme) + 1));
-  const i = Math.max(0, open.indexOf(SAVE.theme));
-  setTheme(open[(i + d + open.length) % open.length], true);
-  ensureAudio(); sfx.pick();
-  burst(W / 2, H * 0.5, TH.accent, 40, 320);
-  if (open.length === 1) $('thLine').textContent = '보스 3마리를 잡으면 다음 월드가 열립니다';
-}
-$('thPrev').onclick = () => stepTheme(-1);
-$('thNext').onclick = () => stepTheme(1);
-addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) { SAVE.theme = id; setTheme(id, false); } });
-
 // ---------- boot ----------
 loadSave();
+STG = STAGES[nextStageIndex()];
+applyTheme(STG.world);
 newRun(); S.phase = 'title';
-{
-  const fromLink = location.hash.slice(1);
-  if (THEMES[fromLink]) SAVE.theme = fromLink;
-  else if (WORLD_ORDER.indexOf(SAVE.theme) + 1 > SAVE.worlds) SAVE.theme = 'neon';
-  setTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon', false);
-}
 refreshTitle();
+// A link ending in #synth, #candy, ... previews that world's look on the title screen.
+function previewFromHash() { const id = location.hash.slice(1); if (THEMES[id] && S.phase === 'title') applyTheme(id); }
+addEventListener('hashchange', previewFromHash);
+previewFromHash();
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.033, (now - last) / 1000); last = now;
@@ -91,8 +75,9 @@ window.__bm = {
   tick(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) update(dt); },
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
-  newRun(meta) { if (meta) Object.assign(SAVE.meta, meta); newRun(); if (S.pendingLevels > 0) showLevel(); },
-  theme(id) { setTheme(id, false); },
+  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : STAGES[stage]; newRun(); if (S.pendingLevels > 0) showLevel(); },
+  theme(id) { applyTheme(id); },
+  STAGES,
   word(i) { bigWords.push({ s: TH.words[i], life: 0.85, max: 1.1, y: H * 0.3, size: 16 + i * 2 }); },
   draw(now = performance.now()) { draw(now); },
 };

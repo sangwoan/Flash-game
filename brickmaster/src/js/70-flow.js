@@ -5,6 +5,16 @@ function fire() {
   S.kick = 1; rings.push({ x: S.launchX, y: LY, r: 40, life: 0.25, max: 0.25, col: TH.accent });
   S.phase = 'fire'; S.toFire = S.balls; S.fireTimer = 0; S.turnTime = 0; S.timeScale = 1;
   S.combo = 0; S.nextLaunchX = null; S.aiming = false;
+  S.encoreChecked = false; S.acidDone = false;
+  S.ironLeft = S.lv.iron ? (S.lv.iron >= 3 ? 2 : 1) : 0;
+}
+// Encore: every ball fires again from where the first one landed, without spending a turn.
+function encore() {
+  S.toFire = S.balls; S.fireTimer = 0;
+  S.launchX = S.nextLaunchX ?? S.launchX; S.nextLaunchX = null;
+  S.ironLeft = S.lv.iron ? (S.lv.iron >= 3 ? 2 : 1) : 0;
+  bigWords.push({ s: 'ENCORE!', life: 1, max: 1, y: H * 0.36, size: 20, col: UPG.encore.col });
+  sfx.clear(); shake(5); buzz(40);
 }
 function recall() {
   if (S.phase !== 'fire') return;
@@ -17,6 +27,7 @@ function recall() {
 function comboWord(c) { return c >= 40 ? 'INSANE' : c >= 25 ? 'AMAZING' : c >= 15 ? 'GREAT' : 'NICE'; }
 function endTurn() {
   recallEl.hidden = true;
+  if (S.cleared) { S.phase = 'cleared'; S.dieTimer = 0.9; return; }
   if (S.combo >= 8) texts.push(mkText(W / 2, 420, comboWord(S.combo) + ' x' + S.combo, TH.accent, 1.2, 16));
   S.launchX = S.nextLaunchX ?? S.launchX; S.nextLaunchX = null;
   if (S.orbsGot) { S.balls += S.orbsGot; S.orbsGot = 0; }
@@ -24,9 +35,20 @@ function endTurn() {
   shiftDown(true);
   let hurt = 0;
   for (const br of S.bricks) {
-    if (br.r < ROWS) continue;
+    if (br.r < ROWS || br.dead) continue;
     br.dead = true;
     if (isItem(br)) continue;
+    if (S.shield > 0) {
+      // shield: absorb the hit and blow the brick up against the barrier
+      S.shield--;
+      const cx = br.X + br.Wd / 2;
+      rings.push({ x: cx, y: FB - 10, r: 90, life: 0.35, max: 0.35, col: UPG.shield.col });
+      burst(cx, FB - 10, UPG.shield.col, 24, 300);
+      for (const o of S.bricks) if (!o.dead && !isItem(o) && o.r >= ROWS - 2 && Math.abs(o.X + o.Wd / 2 - cx) < CW * 1.6) dealDamage(o, S.dmg * 3, false);
+      texts.push(mkText(cx, FB - 40, 'BLOCK', UPG.shield.col, 1, 12));
+      shake(6); sfx.boom();
+      continue;
+    }
     hurt += br.type === 'boss' ? 2 : 1;
     burst(br.X + br.Wd / 2, FB - 10, TH.css.hot, 16, 260);
   }
@@ -40,6 +62,7 @@ function endTurn() {
   addGold(BAL.goldPerTurn);
   if (S.turn % BAL.bossEvery === 1) {
     const ch = chapterOf(S.turn);
+    if (S.lv.shield && S.shield < S.lv.shield) { S.shield = S.lv.shield; texts.push(mkText(W / 2, FB - 20, 'SHIELD FULL', UPG.shield.col, 1.2, 10)); }
     showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
   if (S.worldPending) switchWorld();
@@ -117,30 +140,58 @@ function revive() {
   showBanner('REVIVE', '다시 한 번!', TH.accent);
   if (S.pendingLevels > 0) showLevel(); else S.phase = 'aim';
 }
-let runGold = 0;
-function showResults() {
+let runGold = 0, runCleared = false;
+function showResults(cleared = false) {
   reviveEl.hidden = true;
   S.phase = 'over';
+  runCleared = cleared;
   const reached = S.turn - 1, ch = chapterOf(Math.max(1, reached));
-  const newBest = reached > SAVE.bestTurn;
-  SAVE.bestTurn = Math.max(SAVE.bestTurn, reached);
-  SAVE.bestChapter = Math.max(SAVE.bestChapter, ch);
+  let stars = 0, bonus = 0, first = false, note = '';
+  if (STG.endless) {
+    const newBest = reached > SAVE.bestTurn;
+    SAVE.bestTurn = Math.max(SAVE.bestTurn, reached);
+    SAVE.bestChapter = Math.max(SAVE.bestChapter, ch);
+    if (newBest) note = '무한 모드 최고 기록!';
+  } else if (cleared) {
+    stars = S.hp >= S.maxHp && !S.revived ? 3 : S.hp * 2 >= S.maxHp ? 2 : 1;
+    const prev = SAVE.stars[STG.n] || 0;
+    first = prev === 0;
+    SAVE.stars[STG.n] = Math.max(prev, stars);
+    const before = SAVE.unlocked;
+    SAVE.unlocked = Math.max(SAVE.unlocked, STG.n + 1);
+    bonus = clearBonus(STG, first);
+    if (SAVE.unlocked > before && STG.n + 1 < STAGES.length && STAGES[STG.n + 1].w !== STG.w) note = `새 월드 해금: ${THEMES[STAGES[STG.n + 1].world].name}`;
+    else if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = '무한 모드 해금!';
+    SAVE.worlds = Math.max(SAVE.worlds, Math.min(WORLD_ORDER.length, Math.floor(SAVE.unlocked / STAGES_PER_WORLD) + 1));
+  }
   SAVE.runs++; writeSave();
-  runGold = Math.floor(S.gold * (1 + 0.15 * SAVE.meta.gold));
-  $('stats').innerHTML = [
-    ['버틴 턴', reached + (newBest ? ' NEW' : '')], ['도달 챕터', ch], ['최고 기록', SAVE.bestTurn + '턴'],
-    ['레벨', S.level], ['부순 벽돌', S.kills], ['최대 콤보', S.maxCombo],
-  ].map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
+  runGold = Math.floor((S.gold * (1 + 0.15 * SAVE.meta.gold) + bonus) * STG.gold);
+  $('overTitle').textContent = cleared ? 'STAGE CLEAR' : 'GAME OVER';
+  overEl.classList.toggle('win', cleared);
+  $('stars').hidden = !cleared;
+  $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
+  const rows = STG.endless
+    ? [['모드', '무한'], ['버틴 턴', reached], ['도달 챕터', ch], ['최고 기록', SAVE.bestTurn + '턴'], ['레벨', S.level], ['최대 콤보', S.maxCombo]]
+    : [['스테이지', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['레벨', S.level], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]];
+  $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
-  $('earned').textContent = `골드 +${runGold}`;
+  $('earned').textContent = `골드 +${runGold}` + (bonus ? ` (클리어 보너스 ${Math.round(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
+  $('overNote').textContent = note; $('overNote').hidden = !note;
+  const hasNext = cleared && !STG.endless && STG.n + 1 < STAGES.length;
+  $('again').textContent = hasNext ? `NEXT ${STAGES[STG.n + 1].id}` : 'RETRY';
   $('claimRow').hidden = false; $('afterRow').hidden = true;
   overEl.hidden = false;
+  if (cleared) { sfx.clear(); buzz(80); }
 }
 function claim(mult) {
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
   $('earned').textContent = `골드 +${got} 받음 · 보유 ${SAVE.gold}G`;
   $('claimRow').hidden = true; $('afterRow').hidden = false;
+}
+function againOrNext() {
+  if (STG.endless) startEndless();
+  else startStage(runCleared && STG.n + 1 < STAGES.length ? STG.n + 1 : STG.n);
 }
 
 // ---------- workshop ----------
@@ -176,30 +227,92 @@ function closeShop() {
   refreshTitle();
 }
 function refreshTitle() {
-  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G`;
-  $('best').textContent = SAVE.bestTurn ? `BEST TURN ${SAVE.bestTurn} · CHAPTER ${SAVE.bestChapter || chapterOf(SAVE.bestTurn)}` : '';
+  const nx = STAGES[nextStageIndex()];
+  applyTheme(nx.world);
+  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
+  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${allStars}/${STAGES.length * 3}`;
+  $('start').textContent = `PLAY ${nx.id}`;
+  $('nextInfo').textContent = `${TH.name} · 보스 ${nx.bosses}마리`;
+  const open = SAVE.unlocked >= ENDLESS_UNLOCK;
+  $('endless').disabled = !open;
+  $('endless').textContent = open ? '무한 모드' : `무한 모드 (1-${STAGES_PER_WORLD} 클리어 시 열림)`;
+  $('best').textContent = SAVE.bestTurn ? `ENDLESS BEST ${SAVE.bestTurn} TURNS` : '';
 }
+
+// ---------- stage map ----------
+let mapSel = 0, mapReturn = null;
+function openMap(from) {
+  mapReturn = from; if (from) from.hidden = true;
+  mapSel = nextStageIndex();
+  renderMap(); $('map').hidden = false;
+  const sel = document.querySelector('#mapList .node.sel');
+  if (sel) sel.closest('.world').scrollIntoView({ block: 'center' });
+}
+function renderMap() {
+  const list = $('mapList'); list.innerHTML = '';
+  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
+  $('mapInfo').textContent = `★ ${allStars}/${STAGES.length * 3} · 보유 골드 ${SAVE.gold}G`;
+  WORLD_ORDER.forEach((wid, w) => {
+    const th = THEMES[wid], open = w * STAGES_PER_WORLD <= SAVE.unlocked;
+    const sec = document.createElement('section');
+    sec.className = 'world' + (open ? '' : ' locked');
+    sec.style.cssText = `--wb:${th.css.bg};--wp:${th.css.panel};--wa:${th.accent};--wi:${th.css.ink};--wd:${th.css.dim};--wf:${th.disp}`;
+    sec.innerHTML = `<header><b>WORLD ${w + 1}</b><span>${th.name}</span></header><p>${WORLD_MODS[w].text}</p>`;
+    const path = document.createElement('div'); path.className = 'path';
+    for (let i = 0; i < STAGES_PER_WORLD; i++) {
+      const st = STAGES[w * STAGES_PER_WORLD + i], lock = st.n > SAVE.unlocked, stars = SAVE.stars[st.n] || 0;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'node' + (lock ? ' lock' : '') + (st.n === SAVE.unlocked && !lock ? ' cur' : '') + (st.n === mapSel ? ' sel' : '');
+      b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : st.id}</span>`
+        + `<span class="st">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}">★</i>`).join('')}</span>`;
+      b.onclick = () => { mapSel = st.n; sfx.pick(); renderMap(); };
+      path.appendChild(b);
+    }
+    sec.appendChild(path); list.appendChild(sec);
+  });
+  const st = STAGES[mapSel], lock = st.n > SAVE.unlocked, first = !(SAVE.stars[st.n] > 0);
+  applyTheme(st.world);
+  $('mapSelInfo').innerHTML = `<b>STAGE ${st.id}</b> · 보스 ${st.bosses}마리 · 벽돌 체력 ×${st.hpMul.toFixed(1)}<br>`
+    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(st, first) * st.gold)}G`;
+  $('mapPlay').disabled = lock;
+  $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${st.id}`;
+}
+function closeMap() {
+  $('map').hidden = true;
+  if (mapReturn) mapReturn.hidden = false;
+  refreshTitle();
+}
+function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map')]) el.hidden = true; }
+function beginRun() {
+  ensureAudio();
+  hideMenus();
+  newRun();
+  if (S.pendingLevels > 0) showLevel();
+}
+function startStage(n) {
+  STG = STAGES[clamp(n, 0, STAGES.length - 1)];
+  applyTheme(STG.world);
+  beginRun();
+  showBanner(`STAGE ${STG.id}`, `보스 ${STG.bosses}마리를 처치하라`, TH.accent);
+}
+function startEndless() {
+  STG = ENDLESS;
+  applyTheme('neon');
+  beginRun();
+  showBanner('ENDLESS', '보스 3마리마다 다음 월드로', TH.accent);
+}
+
 // Every BOSSES_PER_WORLD bosses the run moves to the next world (full visual theme).
 function switchWorld() {
   S.worldPending = false;
   S.world = (S.world + 1) % WORLD_ORDER.length;
   applyTheme(WORLD_ORDER[S.world]);
   S.wipe = 1; shake(10); sfx.clear(); buzz(120);
-  const isNew = S.world + 1 > SAVE.worlds;
-  if (isNew) { SAVE.worlds = S.world + 1; writeSave(); }
-  showBanner(`WORLD ${S.world + 1}`, isNew ? `${TH.name} 해금!` : TH.name, TH.accent);
+  showBanner(`WORLD ${S.world + 1}`, TH.name, TH.accent);
   S.banner.life = S.banner.max = 2.6;
   for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
 }
-function startRun() {
-  ensureAudio();
-  titleEl.hidden = true; overEl.hidden = true;
-  applyTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon');
-  newRun();
-  showBanner('CHAPTER 1', chapterName(1), TH.accent);
-  if (S.pendingLevels > 0) showLevel();
-}
-
 // ---------- per-frame update ----------
 function update(dt) {
   if (S.hitstop > 0) { S.hitstop -= dt; updateFx(dt * 0.2); return; }
@@ -210,16 +323,25 @@ function update(dt) {
     const gdt = dt * S.timeScale;
     if (S.toFire > 0) {
       S.fireTimer -= gdt;
-      const sp = BAL.ballSpeed * (1 + 0.15 * S.lv.speed);
+      const sp = BAL.ballSpeed;
       while (S.toFire > 0 && S.fireTimer <= 0) {
-        S.movers.push(mkBall(S.launchX, LY - 0.5, S.aim.x * sp, S.aim.y * sp, false));
+        const b = mkBall(S.launchX, LY - 0.5, S.aim.x * sp, S.aim.y * sp, false);
+        if (S.ironLeft > 0) { S.ironLeft--; b.iron = true; b.r = IRON_R; }
+        S.movers.push(b);
         S.toFire--; S.fireTimer += BAL.fireGap; sfx.shoot();
       }
     }
     for (const b of S.movers) if (b.alive) moveBall(b, gdt);
     S.movers = S.movers.filter(b => b.alive);
     processBlasts(gdt);
-    if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) endTurn();
+    if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) {
+      // end of a volley: maybe encore, then acid settles, then the turn ends
+      if (!S.encoreChecked && (S.encoreChecked = true) && S.lv.encore && rnd() < 0.15 * S.lv.encore) encore();
+      else if (S.lv.acid && !S.acidDone) { S.acidDone = true; acidTick(); }
+      else endTurn();
+    }
+  } else if (S.phase === 'cleared') {
+    S.dieTimer -= dt; if (S.dieTimer <= 0) showResults(true);
   } else if (S.phase === 'dying') {
     S.dieTimer -= dt;
     if (S.dieTimer <= 0) { if (S.revived) showResults(); else showRevive(); }

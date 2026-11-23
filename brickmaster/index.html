@@ -111,6 +111,37 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stage[data-th="neon"] .buy{border-radius:999px}
 #stage[data-th="neon"] .pips i{border-radius:50%}
 #stage[data-th="neon"] #build span{border-radius:999px}
+/* Stage map: one panel per world in that world's colours, four stage nodes on a zigzag path */
+#map{justify-content:flex-start;gap:calc(var(--s)*8px)}
+#mapList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;gap:calc(var(--s)*10px);padding:calc(var(--s)*2px);box-sizing:border-box}
+.world{background:linear-gradient(160deg,var(--wp),var(--wb));border:calc(var(--s)*2px) solid color-mix(in srgb,var(--wa) 55%,transparent);border-radius:calc(var(--s)*16px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--wi)}
+.world header{display:flex;align-items:baseline;gap:calc(var(--s)*8px)}
+.world header b{font-family:var(--wf);font-size:calc(var(--s)*11px);color:var(--wa)}
+.world header span{font-size:calc(var(--s)*18px)}
+.world p{margin:calc(var(--s)*2px) 0 calc(var(--s)*6px);font-size:calc(var(--s)*13px);color:var(--wd)}
+.world.locked{filter:grayscale(.85) brightness(.7)}
+.path{display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--s)*6px);position:relative}
+.path::before{content:"";position:absolute;left:12%;right:12%;top:calc(var(--s)*30px);border-top:calc(var(--s)*3px) dashed color-mix(in srgb,var(--wa) 45%,transparent)}
+.node{position:relative;display:grid;justify-items:center;gap:calc(var(--s)*3px);background:none;border:0;padding:0;cursor:pointer;color:var(--wi)}
+.node:nth-child(even){margin-top:calc(var(--s)*14px)}
+.node .dot{display:grid;place-items:center;width:calc(var(--s)*52px);height:calc(var(--s)*52px);border-radius:50%;background:var(--wa);color:#0a0c1c;font-family:var(--wf);font-size:calc(var(--s)*13px);font-weight:700;box-shadow:0 calc(var(--s)*4px) 0 color-mix(in srgb,var(--wa) 45%,#000)}
+.node .dot svg{width:45%;height:45%;fill:none;stroke:currentColor;stroke-width:2.4}
+.node.lock .dot{background:#3a3f55;color:#9aa0b8;box-shadow:none}
+.node.cur .dot{animation:pulse 1.1s ease-in-out infinite;box-shadow:0 0 0 calc(var(--s)*4px) color-mix(in srgb,var(--wa) 40%,transparent),0 0 calc(var(--s)*18px) var(--wa)}
+.node.sel .dot{outline:calc(var(--s)*3px) solid #fff;outline-offset:calc(var(--s)*3px)}
+.node .st{font-size:calc(var(--s)*12px);letter-spacing:.05em}
+.node .st i,.stars i{font-style:normal;color:rgba(128,128,150,.45)}
+.node .st i.on{color:#ffd23f}
+.mapSel{width:100%;display:grid;gap:calc(var(--s)*8px);background:var(--panel);border:calc(var(--s)*2px) solid var(--line);border-radius:calc(var(--s)*14px);padding:calc(var(--s)*10px);box-sizing:border-box}
+.mapSel .note{color:var(--ink);font-size:calc(var(--s)*15px)}
+.mapSel .btn.big:disabled{filter:grayscale(1);opacity:.5;animation:none}
+#endless:disabled{opacity:.45}
+.stars{margin:0;font-size:calc(var(--s)*44px);line-height:1;letter-spacing:.08em}
+.stars i{display:inline-block}
+.stars i.on{color:#ffd23f;text-shadow:0 0 calc(var(--s)*18px) rgba(255,210,63,.8);animation:starPop .45s cubic-bezier(.2,1.8,.4,1) both}
+.newNote{margin:0;font-size:calc(var(--s)*17px);color:var(--cool)}
+#over.win h2{animation:numPop .5s cubic-bezier(.2,1.8,.4,1) both}
+@keyframes starPop{from{transform:scale(0) rotate(-90deg);opacity:0}to{transform:none;opacity:1}}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
@@ -126,14 +157,14 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
   <div id="title" class="ov">
     <p class="logo">BRICK<br>MASTER</p>
     <p class="sub">벽돌깨기 × 로그라이트</p>
-    <div class="picker">
-      <button id="thPrev" class="btn" type="button" aria-label="이전 테마">◀</button>
-      <div><p class="thNo" id="thNo"></p><p class="thTag" id="thName"></p><p class="note" id="thLine"></p></div>
-      <button id="thNext" class="btn" type="button" aria-label="다음 테마">▶</button>
-    </div>
     <p class="gold" id="titleGold"></p>
-    <button id="start" class="btn big" type="button">START</button>
-    <button id="titleShop" class="btn ko" type="button">작업실 (영구 강화)</button>
+    <button id="start" class="btn big" type="button">PLAY 1-1</button>
+    <p class="note" id="nextInfo"></p>
+    <div class="row">
+      <button id="titleMap" class="btn ko" type="button">스테이지 맵</button>
+      <button id="titleShop" class="btn ko" type="button">작업실</button>
+    </div>
+    <button id="endless" class="btn ko" type="button">무한 모드</button>
     <p class="small" id="best"></p>
   </div>
 
@@ -154,17 +185,33 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
   </div>
 
   <div id="over" class="ov" hidden>
-    <h2>GAME OVER</h2>
+    <h2 id="overTitle">GAME OVER</h2>
+    <p class="stars" id="stars" hidden></p>
     <div id="stats"></div>
     <div id="build"></div>
     <p class="gold" id="earned"></p>
+    <p class="newNote" id="overNote" hidden></p>
     <div class="row" id="claimRow">
       <button id="claim2x" class="btn ko ad" type="button">2배로 받기</button>
       <button id="claim" class="btn ko" type="button">받기</button>
     </div>
     <div class="row" id="afterRow" hidden>
       <button id="again" class="btn big" type="button">RETRY</button>
+      <button id="overMap" class="btn ko" type="button">맵</button>
       <button id="overShop" class="btn ko" type="button">작업실</button>
+    </div>
+  </div>
+
+  <div id="map" class="ov" hidden>
+    <h2>STAGE MAP</h2>
+    <p class="gold" id="mapInfo"></p>
+    <div id="mapList"></div>
+    <div class="mapSel">
+      <p class="note" id="mapSelInfo"></p>
+      <div class="row">
+        <button id="mapPlay" class="btn big" type="button">PLAY</button>
+        <button id="mapClose" class="btn ko" type="button">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -203,6 +250,7 @@ const BAL = {
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   bossEvery: 10, bossHp: 6,
+  stageHp: n => 1 + 0.22 * n, // brick HP multiplier for stage n (0-based)
   xpNeed: lvl => Math.round(3 + lvl * 2 + 0.25 * Math.pow(lvl, 2.2)), // fast early levels, slow after ~15
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };
@@ -279,7 +327,11 @@ const sfx = {
 let lastBuzz = 0;
 function buzz(ms) {
   const t = performance.now(); if (t - lastBuzz < 70) return; lastBuzz = t;
-  try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {}
+  try {
+    // inside the Expo app, native haptics (iOS has no navigator.vibrate)
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'haptic', s: ms >= 60 ? 'heavy' : ms >= 25 ? 'medium' : 'light' }));
+    else if (navigator.vibrate) navigator.vibrate(ms);
+  } catch (e) {}
 }
 
 // ---- 20-data.js ----
@@ -294,8 +346,12 @@ const UPG = {
   chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 번개가 벽돌 ${n + 1}개를 지짐`, apply() {} },
   pierce: { tag: 'PIERCE', name: '관통',      max: 4,  col: '#b98cff', w: 1.5, desc: n => `${15 * n}% 확률로 벽돌을 뚫고 지나감`, apply() { S.pierce = 0.15 * S.lv.pierce; } },
   split:  { tag: 'SPLIT',  name: '분열',      max: 4,  col: '#ff9be0', w: 2,   desc: n => `공이 처음 맞힐 때 ${n + 1}갈래로 갈라짐`, apply() {} },
-  speed:  { tag: 'SPEED',  name: '가속',      max: 3,  col: '#7dffb0', w: 1.2, desc: n => `공 속도 +${15 * n}%`, apply() {} },
-  big:    { tag: 'BIG',    name: '거대화',    max: 3,  col: '#9fb4ff', w: 1.2, desc: n => `공 크기 +${30 * n}%`, apply() {} },
+  rush:   { tag: 'RUSH',   name: '폭주',      max: 4,  col: '#ff6a3d', w: 2,   desc: n => `튕길 때마다 그 공의 피해 +${12 * n}%, 점점 빨라짐`, apply() {} },
+  iron:   { tag: 'IRON',   name: '철구',      max: 3,  col: '#b8c2d9', w: 1.6, desc: n => `매 턴 ${n >= 3 ? '첫 공 2개' : '첫 공'}가 쇠공: 벽돌을 모두 뚫고 ${n + 2}배 피해`, apply() {} },
+  encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `턴이 끝날 때 ${15 * n}% 확률로 공 전부를 한 번 더 발사`, apply() {} },
+  bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `공이 바닥에 닿으면 ${n}번까지 다시 튕겨 오름`, apply() {} },
+  acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힌 벽돌에 부식이 쌓여 턴이 끝날 때 한꺼번에 피해 (${n}중첩/타격)`, apply() {} },
+  shield: { tag: 'SHIELD', name: '방어막',    max: 3,  col: '#6ec8ff', w: 1.4, desc: n => `빨간 선에 닿은 벽돌을 ${n}번 막고 폭파 (챕터마다 충전)`, apply() { S.shield = S.lv.shield; } },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
   heal:   { tag: 'HP+1',   name: '수리',      max: 99, col: '#ff4f7b', w: 1,   desc: () => '체력 +1, 최대 체력 +1', apply() { S.maxHp++; S.hp++; } },
 };
@@ -309,8 +365,12 @@ const ICONS = {
   chain: '<path d="M13.5 2L5 13.5h6.5L10 22l9-12h-6.5z"/>',
   pierce: '<rect x="9" y="4.5" width="6" height="15" rx="1.5"/><path d="M1.5 12h21M18.5 8l4 4-4 4"/>',
   split: '<path d="M12 22v-9M12 13L6 4.5M12 13l6-8.5M3.5 6.5L6 4.5l2.2 2.3M20.5 6.5L18 4.5l-2.2 2.3"/>',
-  speed: '<path d="M4 5l7 7-7 7M12.5 5l7 7-7 7"/>',
-  big: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/>',
+  rush: '<path d="M3 17c4 0 5-3 8-3s4 3 8 3M3 11c4 0 5-3 8-3s4 3 8 3"/><path d="M17 4l3 3-3 3"/>',
+  iron: '<circle cx="12" cy="12" r="8.5"/><path d="M8 9.5a4.5 4.5 0 0 1 4-3"/><path d="M3.5 12h-2M22.5 12h-2"/>',
+  encore: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.7M20 3.5v5.2h-5.2"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.3M4 20.5v-5.2h5.2"/>',
+  bounce: '<path d="M2.5 19.5h19"/><path d="M5 19.5l2-4h10l2 4"/><circle cx="12" cy="6.5" r="3"/><path d="M12 10.5v2"/>',
+  acid: '<path d="M12 2.8s-6 6.6-6 11a6 6 0 0 0 12 0c0-4.4-6-11-6-11z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/>',
+  shield: '<path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   xp: '<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/>',
   heal: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8z"/><path d="M12 9v6.5M8.8 12.2h6.4"/>',
 };
@@ -324,7 +384,7 @@ const META = {
   start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 150 },
   gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 80 },
 };
-const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.6, l) / 5) * 5;
+const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.45, l) / 5) * 5;
 
 // ---- 25-themes.js ----
 // Visual themes (design drafts). Each theme owns its palette, fonts, brick style,
@@ -521,26 +581,69 @@ function applyTheme(id) {
   document.body.style.background = TH.css.bg;
   document.querySelector('.crt').hidden = !TH.crt;
   for (const k in glowCache) delete glowCache[k];
-  const el = $('thName'); if (el) { el.textContent = TH.name; $('thLine').textContent = TH.line; }
 }
 
 // ---- 30-save.js ----
 // Progress lives in this browser only (localStorage). Every access is guarded:
 // private windows and blocked storage must still give a playable game.
 const SAVE_KEY = 'brickmaster.save.v1';
-let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, runs: 0, meta: {}, worlds: 1, theme: 'neon' };
+let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, runs: 0, meta: {}, worlds: 1, theme: 'neon', stars: {}, unlocked: 0 };
 function loadSave() {
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    // inside the Expo app the native copy (window.__BM_SAVE) wins; it survives WebView storage resets
+    let raw = typeof window.__BM_SAVE === 'string' && window.__BM_SAVE ? window.__BM_SAVE : null;
+    if (!raw) { try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {} }
+    const s = JSON.parse(raw || 'null');
     if (s && typeof s === 'object') SAVE = Object.assign(SAVE, s, { meta: Object.assign({}, s.meta) });
     if (!SAVE.bestTurn) SAVE.bestTurn = +localStorage.getItem('brickrogue.best') || 0; // prototype record
   } catch (e) {}
   SAVE.worlds = clamp(Math.floor(+SAVE.worlds) || 1, 1, WORLD_ORDER.length);
+  SAVE.unlocked = clamp(Math.floor(+SAVE.unlocked) || 0, 0, 999);
+  if (!SAVE.stars || typeof SAVE.stars !== 'object') SAVE.stars = {};
   for (const k of Object.keys(META)) SAVE.meta[k] = clamp(+SAVE.meta[k] || 0, 0, META[k].max);
 }
 function writeSave() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) {}
+  const json = JSON.stringify(SAVE);
+  try { localStorage.setItem(SAVE_KEY, json); } catch (e) {}
+  // inside the Expo app the save is also kept in native storage
+  try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'save', data: json })); } catch (e) {}
 }
+
+// ---- 35-stages.js ----
+// Stage map: 5 worlds x 4 stages. A stage is cleared by killing its bosses (one every 10 turns).
+// Later stages scale brick HP, so permanent upgrades from the workshop carry the player forward.
+// Each world adds its own brick mix on top of the base chances in BAL.
+const WORLD_MODS = [
+  { text: '기본 규칙', mod: {} },
+  { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
+  { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
+  { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
+  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.05, steel: 0.1 }, gold: 2 },
+];
+const STAGES_PER_WORLD = 4;
+const STAGE_BOSSES = [1, 1, 2, 3];
+const STAGES = [];
+WORLD_ORDER.forEach((world, w) => {
+  for (let i = 0; i < STAGES_PER_WORLD; i++) {
+    const n = w * STAGES_PER_WORLD + i;
+    STAGES.push({
+      n, w, i, world, id: `${w + 1}-${i + 1}`, bosses: STAGE_BOSSES[i],
+      hpMul: BAL.stageHp(n), mod: WORLD_MODS[w].mod, gold: WORLD_MODS[w].gold || 1, text: WORLD_MODS[w].text,
+    });
+  }
+});
+// Endless: no goal, worlds rotate every BOSSES_PER_WORLD bosses. Opens after clearing world 1.
+const ENDLESS = { endless: true, id: 'ENDLESS', bosses: Infinity, hpMul: 1, mod: {}, gold: 1, w: 0, world: 'neon' };
+const ENDLESS_UNLOCK = STAGES_PER_WORLD; // stages cleared
+let STG = STAGES[0];
+
+// Spawn chance for a brick kind in the current stage.
+function chance(k, t) {
+  const base = typeof BAL[k] === 'function' ? BAL[k](t) : BAL[k];
+  return base + (STG.mod[k] || 0);
+}
+const clearBonus = (s, first) => Math.round((30 + 12 * s.n) * (first ? 2 : 1));
+const nextStageIndex = () => Math.min(SAVE.unlocked, STAGES.length - 1);
 
 // ---- 40-state.js ----
 // Run state, the brick grid and row spawning.
@@ -567,13 +670,15 @@ function newRun() {
     revived: false, banner: null,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
     world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
+    shield: 0, ironLeft: 0, encoreChecked: false, acidDone: false, cleared: false,
   };
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = [];
   for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
   rebuildGrid();
 }
 
-const ballR = () => 6 * (1 + 0.3 * S.lv.big);
+const ballR = () => 6;
+const IRON_R = 10;
 
 function setRect(br) { br.X = br.c * CW + 2; br.Y = TOP + br.r * RH + 2; br.Wd = br.span * CW - 4; br.Ht = RH - 4; }
 function addBrick(o, slide) {
@@ -594,31 +699,31 @@ function shiftDown(slide) {
 }
 
 function spawnRow(t, slide = true) {
-  const h = BAL.hp(t), used = new Array(COLS).fill(false);
+  const h = Math.max(1, Math.round(BAL.hp(t) * STG.hpMul)), used = new Array(COLS).fill(false);
   if (t % BAL.bossEvery === 0) {
     const c = Math.floor(rnd() * (COLS - 2));
     addBrick({ c, r: 0, span: 3, type: 'boss', hp: h * BAL.bossHp, chapter: chapterOf(t) }, slide);
     used[c] = used[c + 1] = used[c + 2] = true;
-    showBanner('BOSS', `챕터 ${chapterOf(t)} 보스가 나타났다`, TH.css.hot);
+    showBanner('BOSS', STG.endless ? `챕터 ${chapterOf(t)} 보스가 나타났다` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
     sfx.boss();
   }
   let placed = 0;
   for (let c = 0; c < COLS; c++) {
-    if (used[c] || rnd() > BAL.density(t)) continue;
+    if (used[c] || rnd() > chance('density', t)) continue;
     let type = 'n', hp = rnd() < BAL.doubleHp ? h * 2 : h, acc = 0;
     const r = rnd();
-    if (r < (acc += BAL.bomb(t))) { type = 'bomb'; hp = Math.ceil(h * 0.6); }
-    else if (r < (acc += BAL.chest(t))) { type = 'chest'; hp = h * 2; }
-    else if (r < (acc += BAL.steel(t))) { type = 'steel'; hp = h * 3; }
-    else if (r < (acc += BAL.slime(t))) { type = 'slime'; hp = Math.ceil(h * 1.2); }
+    if (r < (acc += chance('bomb', t))) { type = 'bomb'; hp = Math.ceil(h * 0.6); }
+    else if (r < (acc += chance('chest', t))) { type = 'chest'; hp = h * 2; }
+    else if (r < (acc += chance('steel', t))) { type = 'steel'; hp = h * 3; }
+    else if (r < (acc += chance('slime', t))) { type = 'slime'; hp = Math.ceil(h * 1.2); }
     addBrick({ c, r: 0, span: 1, type, hp }, slide); used[c] = true; placed++;
   }
   const free = [];
   for (let c = 0; c < COLS; c++) if (!used[c]) free.push(c);
   const take = () => free.splice(Math.floor(rnd() * free.length), 1)[0];
   while (placed < 2 && t % BAL.bossEvery !== 0 && free.length > 1) { addBrick({ c: take(), r: 0, span: 1, type: 'n', hp: h }, slide); placed++; }
-  if (free.length && rnd() < BAL.orb) addBrick({ c: take(), r: 0, span: 1, type: 'orb', hp: 1 }, slide);
-  if (free.length && rnd() < BAL.laser(t)) addBrick({ c: take(), r: 0, span: 1, type: rnd() < 0.5 ? 'lzh' : 'lzv', hp: 1 }, slide);
+  if (free.length && rnd() < chance('orb', t)) addBrick({ c: take(), r: 0, span: 1, type: 'orb', hp: 1 }, slide);
+  if (free.length && rnd() < chance('laser', t)) addBrick({ c: take(), r: 0, span: 1, type: rnd() < 0.5 ? 'lzh' : 'lzv', hp: 1 }, slide);
 }
 
 // ---------- fx helpers ----------
@@ -690,9 +795,12 @@ function kill(br) {
   const bonus = Math.floor(S.turn / 10);
   if (boss) {
     gainXp(25);
-    S.bosses++; if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
+    S.bosses++; S.hitstop = 0.16;
+    if (STG.endless) { if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; }
+    else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
-    showBanner(`CHAPTER ${br.chapter} CLEAR`, '보스 격파! 다음 챕터로', TH.css.gold);
+    if (S.cleared) showBanner('STAGE CLEAR', `스테이지 ${STG.id} 돌파!`, TH.css.gold);
+    else showBanner(STG.endless ? `CHAPTER ${br.chapter} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
   else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }
@@ -752,6 +860,22 @@ function zap(from) {
   if (cand.length) sfx.zap();
 }
 
+// Acid: stacks left by hits all burst at the end of the turn, then halve.
+function acidTick() {
+  let any = false;
+  for (const br of S.bricks) {
+    if (br.dead || isItem(br) || !br.acid) continue;
+    const d = br.acid * S.dmg * 0.5;
+    texts.push(mkText(br.X + br.Wd / 2, br.Y + 4, fmtDmg(Math.round(d * 10) / 10), UPG.acid.col, 0.8, 9));
+    burst(br.X + br.Wd / 2, br.Y + br.Ht / 2, UPG.acid.col, 4, 120);
+    br.acid = Math.floor(br.acid / 2);
+    dealDamage(br, d, false);
+    any = true;
+  }
+  if (any) { sfx.slime(); shake(2); }
+  return any;
+}
+
 // Laser items fire once per ball that passes through them.
 function fireLaser(item) {
   item.flash = 1;
@@ -767,6 +891,13 @@ function fireLaser(item) {
 
 function hitBrick(br, b) {
   let d = S.dmg, crit = false;
+  if (b.iron) d *= S.lv.iron + 2;
+  if (S.lv.rush) {
+    d *= 1 + b.rush * 0.12 * S.lv.rush;
+    b.rush = Math.min(20, b.rush + 1);
+    if (Math.hypot(b.vx, b.vy) < BAL.ballSpeed * 1.6) { b.vx *= 1.03; b.vy *= 1.03; }
+  }
+  if (S.lv.acid && !isItem(br)) br.acid = (br.acid || 0) + S.lv.acid;
   if (S.crit && rnd() < S.crit) { d *= 3; crit = true; }
   if (br.type === 'steel') sfx.steel(); else sfx.hit();
   dealDamage(br, d, crit);
@@ -788,7 +919,7 @@ function hitBrick(br, b) {
 // Ball movement. The ball collides as a square (AABB) against bricks, one axis at a time,
 // in sub-steps shorter than its radius so it never tunnels through a brick.
 function mkBall(x, y, vx, vy, temp) {
-  return { x, y, vx, vy, r: ballR(), alive: true, temp, split: false, ghost: new Set(), touched: new Set(), trail: [] };
+  return { x, y, vx, vy, r: ballR(), alive: true, temp, split: false, ghost: new Set(), touched: new Set(), trail: [], rush: 0, fb: 0, iron: false };
 }
 function overlaps(b, br) { return b.x + b.r > br.X && b.x - b.r < br.X + br.Wd && b.y + b.r > br.Y && b.y - b.r < br.Y + br.Ht; }
 
@@ -813,6 +944,7 @@ function collide(b, axis) {
     if (!br || br.dead) continue;
     if (isItem(br)) { touchItem(b, br, r, c); continue; }
     if (b.ghost.has(br) || !overlaps(b, br)) continue;
+    if (b.iron) { b.ghost.add(br); hitBrick(br, b); continue; } // iron ball ploughs through
     if (S.pierce && rnd() < S.pierce) { b.ghost.add(br); hitBrick(br, b); continue; }
     // Push out on the side the ball's centre is on (not by velocity sign), and never
     // through a wall: a ball squeezed between a brick and the wall bounces vertically.
@@ -845,7 +977,11 @@ function moveBall(b, dt) {
     if (b.y < TOP + b.r) { b.y = TOP + b.r; b.vy = Math.abs(b.vy); sfx.wall(); }
     collide(b, 1);
     if (b.ghost.size) for (const g of b.ghost) if (g.dead || !overlaps(b, g)) b.ghost.delete(g);
-    if (b.vy > 0 && b.y >= LY) {
+    if (b.vy > 0 && b.y >= LY && b.fb < S.lv.bounce) {
+      // bounce pad: send the ball back up
+      b.fb++; b.y = LY - 0.5; b.vy = -Math.abs(b.vy);
+      rings.push({ x: b.x, y: LY, r: 26, life: 0.22, max: 0.22, col: UPG.bounce.col }); sfx.wall();
+    } else if (b.vy > 0 && b.y >= LY) {
       b.alive = false;
       if (!b.temp) {
         if (S.nextLaunchX === null) S.nextLaunchX = clamp(b.x, 12, W - 12);
@@ -894,6 +1030,16 @@ function fire() {
   S.kick = 1; rings.push({ x: S.launchX, y: LY, r: 40, life: 0.25, max: 0.25, col: TH.accent });
   S.phase = 'fire'; S.toFire = S.balls; S.fireTimer = 0; S.turnTime = 0; S.timeScale = 1;
   S.combo = 0; S.nextLaunchX = null; S.aiming = false;
+  S.encoreChecked = false; S.acidDone = false;
+  S.ironLeft = S.lv.iron ? (S.lv.iron >= 3 ? 2 : 1) : 0;
+}
+// Encore: every ball fires again from where the first one landed, without spending a turn.
+function encore() {
+  S.toFire = S.balls; S.fireTimer = 0;
+  S.launchX = S.nextLaunchX ?? S.launchX; S.nextLaunchX = null;
+  S.ironLeft = S.lv.iron ? (S.lv.iron >= 3 ? 2 : 1) : 0;
+  bigWords.push({ s: 'ENCORE!', life: 1, max: 1, y: H * 0.36, size: 20, col: UPG.encore.col });
+  sfx.clear(); shake(5); buzz(40);
 }
 function recall() {
   if (S.phase !== 'fire') return;
@@ -906,6 +1052,7 @@ function recall() {
 function comboWord(c) { return c >= 40 ? 'INSANE' : c >= 25 ? 'AMAZING' : c >= 15 ? 'GREAT' : 'NICE'; }
 function endTurn() {
   recallEl.hidden = true;
+  if (S.cleared) { S.phase = 'cleared'; S.dieTimer = 0.9; return; }
   if (S.combo >= 8) texts.push(mkText(W / 2, 420, comboWord(S.combo) + ' x' + S.combo, TH.accent, 1.2, 16));
   S.launchX = S.nextLaunchX ?? S.launchX; S.nextLaunchX = null;
   if (S.orbsGot) { S.balls += S.orbsGot; S.orbsGot = 0; }
@@ -913,9 +1060,20 @@ function endTurn() {
   shiftDown(true);
   let hurt = 0;
   for (const br of S.bricks) {
-    if (br.r < ROWS) continue;
+    if (br.r < ROWS || br.dead) continue;
     br.dead = true;
     if (isItem(br)) continue;
+    if (S.shield > 0) {
+      // shield: absorb the hit and blow the brick up against the barrier
+      S.shield--;
+      const cx = br.X + br.Wd / 2;
+      rings.push({ x: cx, y: FB - 10, r: 90, life: 0.35, max: 0.35, col: UPG.shield.col });
+      burst(cx, FB - 10, UPG.shield.col, 24, 300);
+      for (const o of S.bricks) if (!o.dead && !isItem(o) && o.r >= ROWS - 2 && Math.abs(o.X + o.Wd / 2 - cx) < CW * 1.6) dealDamage(o, S.dmg * 3, false);
+      texts.push(mkText(cx, FB - 40, 'BLOCK', UPG.shield.col, 1, 12));
+      shake(6); sfx.boom();
+      continue;
+    }
     hurt += br.type === 'boss' ? 2 : 1;
     burst(br.X + br.Wd / 2, FB - 10, TH.css.hot, 16, 260);
   }
@@ -929,6 +1087,7 @@ function endTurn() {
   addGold(BAL.goldPerTurn);
   if (S.turn % BAL.bossEvery === 1) {
     const ch = chapterOf(S.turn);
+    if (S.lv.shield && S.shield < S.lv.shield) { S.shield = S.lv.shield; texts.push(mkText(W / 2, FB - 20, 'SHIELD FULL', UPG.shield.col, 1.2, 10)); }
     showBanner(`CHAPTER ${ch}`, chapterName(ch), TH.accent);
   }
   if (S.worldPending) switchWorld();
@@ -1006,30 +1165,58 @@ function revive() {
   showBanner('REVIVE', '다시 한 번!', TH.accent);
   if (S.pendingLevels > 0) showLevel(); else S.phase = 'aim';
 }
-let runGold = 0;
-function showResults() {
+let runGold = 0, runCleared = false;
+function showResults(cleared = false) {
   reviveEl.hidden = true;
   S.phase = 'over';
+  runCleared = cleared;
   const reached = S.turn - 1, ch = chapterOf(Math.max(1, reached));
-  const newBest = reached > SAVE.bestTurn;
-  SAVE.bestTurn = Math.max(SAVE.bestTurn, reached);
-  SAVE.bestChapter = Math.max(SAVE.bestChapter, ch);
+  let stars = 0, bonus = 0, first = false, note = '';
+  if (STG.endless) {
+    const newBest = reached > SAVE.bestTurn;
+    SAVE.bestTurn = Math.max(SAVE.bestTurn, reached);
+    SAVE.bestChapter = Math.max(SAVE.bestChapter, ch);
+    if (newBest) note = '무한 모드 최고 기록!';
+  } else if (cleared) {
+    stars = S.hp >= S.maxHp && !S.revived ? 3 : S.hp * 2 >= S.maxHp ? 2 : 1;
+    const prev = SAVE.stars[STG.n] || 0;
+    first = prev === 0;
+    SAVE.stars[STG.n] = Math.max(prev, stars);
+    const before = SAVE.unlocked;
+    SAVE.unlocked = Math.max(SAVE.unlocked, STG.n + 1);
+    bonus = clearBonus(STG, first);
+    if (SAVE.unlocked > before && STG.n + 1 < STAGES.length && STAGES[STG.n + 1].w !== STG.w) note = `새 월드 해금: ${THEMES[STAGES[STG.n + 1].world].name}`;
+    else if (SAVE.unlocked >= ENDLESS_UNLOCK && before < ENDLESS_UNLOCK) note = '무한 모드 해금!';
+    SAVE.worlds = Math.max(SAVE.worlds, Math.min(WORLD_ORDER.length, Math.floor(SAVE.unlocked / STAGES_PER_WORLD) + 1));
+  }
   SAVE.runs++; writeSave();
-  runGold = Math.floor(S.gold * (1 + 0.15 * SAVE.meta.gold));
-  $('stats').innerHTML = [
-    ['버틴 턴', reached + (newBest ? ' NEW' : '')], ['도달 챕터', ch], ['최고 기록', SAVE.bestTurn + '턴'],
-    ['레벨', S.level], ['부순 벽돌', S.kills], ['최대 콤보', S.maxCombo],
-  ].map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
+  runGold = Math.floor((S.gold * (1 + 0.15 * SAVE.meta.gold) + bonus) * STG.gold);
+  $('overTitle').textContent = cleared ? 'STAGE CLEAR' : 'GAME OVER';
+  overEl.classList.toggle('win', cleared);
+  $('stars').hidden = !cleared;
+  $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
+  const rows = STG.endless
+    ? [['모드', '무한'], ['버틴 턴', reached], ['도달 챕터', ch], ['최고 기록', SAVE.bestTurn + '턴'], ['레벨', S.level], ['최대 콤보', S.maxCombo]]
+    : [['스테이지', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['레벨', S.level], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]];
+  $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
-  $('earned').textContent = `골드 +${runGold}`;
+  $('earned').textContent = `골드 +${runGold}` + (bonus ? ` (클리어 보너스 ${Math.round(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
+  $('overNote').textContent = note; $('overNote').hidden = !note;
+  const hasNext = cleared && !STG.endless && STG.n + 1 < STAGES.length;
+  $('again').textContent = hasNext ? `NEXT ${STAGES[STG.n + 1].id}` : 'RETRY';
   $('claimRow').hidden = false; $('afterRow').hidden = true;
   overEl.hidden = false;
+  if (cleared) { sfx.clear(); buzz(80); }
 }
 function claim(mult) {
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
   $('earned').textContent = `골드 +${got} 받음 · 보유 ${SAVE.gold}G`;
   $('claimRow').hidden = true; $('afterRow').hidden = false;
+}
+function againOrNext() {
+  if (STG.endless) startEndless();
+  else startStage(runCleared && STG.n + 1 < STAGES.length ? STG.n + 1 : STG.n);
 }
 
 // ---------- workshop ----------
@@ -1065,30 +1252,92 @@ function closeShop() {
   refreshTitle();
 }
 function refreshTitle() {
-  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G`;
-  $('best').textContent = SAVE.bestTurn ? `BEST TURN ${SAVE.bestTurn} · CHAPTER ${SAVE.bestChapter || chapterOf(SAVE.bestTurn)}` : '';
+  const nx = STAGES[nextStageIndex()];
+  applyTheme(nx.world);
+  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
+  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${allStars}/${STAGES.length * 3}`;
+  $('start').textContent = `PLAY ${nx.id}`;
+  $('nextInfo').textContent = `${TH.name} · 보스 ${nx.bosses}마리`;
+  const open = SAVE.unlocked >= ENDLESS_UNLOCK;
+  $('endless').disabled = !open;
+  $('endless').textContent = open ? '무한 모드' : `무한 모드 (1-${STAGES_PER_WORLD} 클리어 시 열림)`;
+  $('best').textContent = SAVE.bestTurn ? `ENDLESS BEST ${SAVE.bestTurn} TURNS` : '';
 }
+
+// ---------- stage map ----------
+let mapSel = 0, mapReturn = null;
+function openMap(from) {
+  mapReturn = from; if (from) from.hidden = true;
+  mapSel = nextStageIndex();
+  renderMap(); $('map').hidden = false;
+  const sel = document.querySelector('#mapList .node.sel');
+  if (sel) sel.closest('.world').scrollIntoView({ block: 'center' });
+}
+function renderMap() {
+  const list = $('mapList'); list.innerHTML = '';
+  const allStars = Object.values(SAVE.stars).reduce((a, b) => a + b, 0);
+  $('mapInfo').textContent = `★ ${allStars}/${STAGES.length * 3} · 보유 골드 ${SAVE.gold}G`;
+  WORLD_ORDER.forEach((wid, w) => {
+    const th = THEMES[wid], open = w * STAGES_PER_WORLD <= SAVE.unlocked;
+    const sec = document.createElement('section');
+    sec.className = 'world' + (open ? '' : ' locked');
+    sec.style.cssText = `--wb:${th.css.bg};--wp:${th.css.panel};--wa:${th.accent};--wi:${th.css.ink};--wd:${th.css.dim};--wf:${th.disp}`;
+    sec.innerHTML = `<header><b>WORLD ${w + 1}</b><span>${th.name}</span></header><p>${WORLD_MODS[w].text}</p>`;
+    const path = document.createElement('div'); path.className = 'path';
+    for (let i = 0; i < STAGES_PER_WORLD; i++) {
+      const st = STAGES[w * STAGES_PER_WORLD + i], lock = st.n > SAVE.unlocked, stars = SAVE.stars[st.n] || 0;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'node' + (lock ? ' lock' : '') + (st.n === SAVE.unlocked && !lock ? ' cur' : '') + (st.n === mapSel ? ' sel' : '');
+      b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : st.id}</span>`
+        + `<span class="st">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}">★</i>`).join('')}</span>`;
+      b.onclick = () => { mapSel = st.n; sfx.pick(); renderMap(); };
+      path.appendChild(b);
+    }
+    sec.appendChild(path); list.appendChild(sec);
+  });
+  const st = STAGES[mapSel], lock = st.n > SAVE.unlocked, first = !(SAVE.stars[st.n] > 0);
+  applyTheme(st.world);
+  $('mapSelInfo').innerHTML = `<b>STAGE ${st.id}</b> · 보스 ${st.bosses}마리 · 벽돌 체력 ×${st.hpMul.toFixed(1)}<br>`
+    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(st, first) * st.gold)}G`;
+  $('mapPlay').disabled = lock;
+  $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${st.id}`;
+}
+function closeMap() {
+  $('map').hidden = true;
+  if (mapReturn) mapReturn.hidden = false;
+  refreshTitle();
+}
+function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map')]) el.hidden = true; }
+function beginRun() {
+  ensureAudio();
+  hideMenus();
+  newRun();
+  if (S.pendingLevels > 0) showLevel();
+}
+function startStage(n) {
+  STG = STAGES[clamp(n, 0, STAGES.length - 1)];
+  applyTheme(STG.world);
+  beginRun();
+  showBanner(`STAGE ${STG.id}`, `보스 ${STG.bosses}마리를 처치하라`, TH.accent);
+}
+function startEndless() {
+  STG = ENDLESS;
+  applyTheme('neon');
+  beginRun();
+  showBanner('ENDLESS', '보스 3마리마다 다음 월드로', TH.accent);
+}
+
 // Every BOSSES_PER_WORLD bosses the run moves to the next world (full visual theme).
 function switchWorld() {
   S.worldPending = false;
   S.world = (S.world + 1) % WORLD_ORDER.length;
   applyTheme(WORLD_ORDER[S.world]);
   S.wipe = 1; shake(10); sfx.clear(); buzz(120);
-  const isNew = S.world + 1 > SAVE.worlds;
-  if (isNew) { SAVE.worlds = S.world + 1; writeSave(); }
-  showBanner(`WORLD ${S.world + 1}`, isNew ? `${TH.name} 해금!` : TH.name, TH.accent);
+  showBanner(`WORLD ${S.world + 1}`, TH.name, TH.accent);
   S.banner.life = S.banner.max = 2.6;
   for (let i = 0; i < 4; i++) burst(W * (0.2 + 0.2 * i), H * 0.45, TH.accent, 30, 360);
 }
-function startRun() {
-  ensureAudio();
-  titleEl.hidden = true; overEl.hidden = true;
-  applyTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon');
-  newRun();
-  showBanner('CHAPTER 1', chapterName(1), TH.accent);
-  if (S.pendingLevels > 0) showLevel();
-}
-
 // ---------- per-frame update ----------
 function update(dt) {
   if (S.hitstop > 0) { S.hitstop -= dt; updateFx(dt * 0.2); return; }
@@ -1099,16 +1348,25 @@ function update(dt) {
     const gdt = dt * S.timeScale;
     if (S.toFire > 0) {
       S.fireTimer -= gdt;
-      const sp = BAL.ballSpeed * (1 + 0.15 * S.lv.speed);
+      const sp = BAL.ballSpeed;
       while (S.toFire > 0 && S.fireTimer <= 0) {
-        S.movers.push(mkBall(S.launchX, LY - 0.5, S.aim.x * sp, S.aim.y * sp, false));
+        const b = mkBall(S.launchX, LY - 0.5, S.aim.x * sp, S.aim.y * sp, false);
+        if (S.ironLeft > 0) { S.ironLeft--; b.iron = true; b.r = IRON_R; }
+        S.movers.push(b);
         S.toFire--; S.fireTimer += BAL.fireGap; sfx.shoot();
       }
     }
     for (const b of S.movers) if (b.alive) moveBall(b, gdt);
     S.movers = S.movers.filter(b => b.alive);
     processBlasts(gdt);
-    if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) endTurn();
+    if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) {
+      // end of a volley: maybe encore, then acid settles, then the turn ends
+      if (!S.encoreChecked && (S.encoreChecked = true) && S.lv.encore && rnd() < 0.15 * S.lv.encore) encore();
+      else if (S.lv.acid && !S.acidDone) { S.acidDone = true; acidTick(); }
+      else endTurn();
+    }
+  } else if (S.phase === 'cleared') {
+    S.dieTimer -= dt; if (S.dieTimer <= 0) showResults(true);
   } else if (S.phase === 'dying') {
     S.dieTimer -= dt;
     if (S.dieTimer <= 0) { if (S.revived) showResults(); else showRevive(); }
@@ -1280,6 +1538,10 @@ function drawBrick(br, now) {
     if ((now / 400 + br.id) % 3 < 1) { ctx.fillStyle = '#fff'; ctx.fillRect(6, 6, 3, 3); ctx.fillRect(5, 7, 5, 1); ctx.fillRect(7, 5, 1, 5); }
   }
   ctx.restore();
+  if (br.acid) { // acid stacks as green drops
+    ctx.fillStyle = UPG.acid.col;
+    for (let i = 0; i < Math.min(3, 1 + Math.floor(br.acid / 4)); i++) { ctx.beginPath(); ctx.arc(w - 7 - i * 7, 7, 2.6, 0, Math.PI * 2); ctx.fill(); }
+  }
   if (br.r >= ROWS - 2) {
     ctx.strokeStyle = `rgba(255,60,90,${0.5 + 0.5 * Math.sin(now / 120)})`; ctx.lineWidth = 3; ctx.strokeRect(-1, -1, w + 2, h + 2);
   }
@@ -1387,20 +1649,27 @@ function drawBalls(now) {
     const t = b.trail;
     for (let i = 0; i < t.length; i += 2) {
       ctx.globalAlpha = (TH.light ? 0.05 : 0.07) + 0.05 * i; const s = b.r * (1.4 + i * 0.12);
-      const g = fever ? glow(RAINBOW[Math.floor(now / 60 + i + b.x / 40) % RAINBOW.length]) : b.temp ? glT : gl;
+      const g = fever ? glow(RAINBOW[Math.floor(now / 60 + i + b.x / 40) % RAINBOW.length]) : b.temp ? glT : b.iron ? glow('#b8c2d9') : b.rush >= 4 ? glow('#ff6a3d') : gl;
       ctx.drawImage(g, t[i] - s, t[i + 1] - s, s * 2, s * 2);
     }
-    ctx.globalAlpha = TH.light ? 0.55 : 0.9; ctx.drawImage(b.temp ? glT : gl, b.x - b.r * 2.6, b.y - b.r * 2.6, b.r * 5.2, b.r * 5.2);
+    ctx.globalAlpha = TH.light ? 0.55 : 0.9; ctx.drawImage(b.temp ? glT : b.rush >= 4 ? glow('#ff6a3d') : gl, b.x - b.r * 2.6, b.y - b.r * 2.6, b.r * 5.2, b.r * 5.2);
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   const outline = TH.brick === 'comic' || TH.light;
   ctx.fillStyle = bc; ctx.beginPath();
-  for (const b of S.movers) if (!b.temp) { ctx.moveTo(b.x + b.r, b.y); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); }
+  for (const b of S.movers) if (!b.temp && !b.iron) { ctx.moveTo(b.x + b.r, b.y); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); }
   for (const h of homers) { ctx.moveTo(h.x + r * 0.7, LY); ctx.arc(h.x, LY, r * 0.7, 0, Math.PI * 2); }
   ctx.fill(); if (outline) { ctx.strokeStyle = TH.outline === '#ffffff' ? TH.hud.ink : TH.outline; ctx.lineWidth = 1.6; ctx.stroke(); }
   ctx.fillStyle = TH.ball.temp; ctx.beginPath();
   for (const b of S.movers) if (b.temp) { ctx.moveTo(b.x + b.r, b.y); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); }
   ctx.fill(); if (outline) ctx.stroke();
+  // iron balls: heavy steel spheres
+  for (const b of S.movers) if (b.iron) {
+    const g = ctx.createRadialGradient(b.x - b.r * 0.4, b.y - b.r * 0.4, 1, b.x, b.y, b.r);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#c9d1e3'); g.addColorStop(1, '#4b5368');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2a2f3d'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
 }
 
 function drawHud(now, ch) {
@@ -1422,12 +1691,20 @@ function drawHud(now, ch) {
     const hw = S.maxHp * 19 - 4, hx = W / 2 - hw / 2;
     for (let i = 0; i < S.maxHp; i++) heart(hx + i * 19, 24, i < S.hp);
   } else { heart(W / 2 - 34, 24, true); ctx.textAlign = 'left'; ctx.fillStyle = hd.ink; ctx.font = DISP(12); ctx.fillText(`${S.hp}/${S.maxHp}`, W / 2 - 12, 38); }
+  // shield charges, right of the hearts
+  for (let i = 0; i < S.lv.shield; i++) {
+    const x = W / 2 + Math.min(S.maxHp, 9) * 9.5 + 10 + i * 12, y = 27, on = i < S.shield;
+    ctx.fillStyle = on ? UPG.shield.col : hd.heartOff;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y + 2); ctx.lineTo(x + 8, y + 7); ctx.lineTo(x + 4, y + 12); ctx.lineTo(x, y + 7); ctx.lineTo(x, y + 2); ctx.closePath(); ctx.fill();
+  }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
-  ctx.fillStyle = hd.ch; ctx.fillText(`CH${ch}`, W / 2 - 78, 15);
+  ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `CH${ch}` : STG.id, W / 2 - 78, 15);
   // boss progress toward the next world: one diamond per boss in this world
-  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(`W${S.world + 1}`, 16, 72); ctx.textAlign = 'center';
-  for (let i = 0; i < BOSSES_PER_WORLD; i++) {
-    const x = 46 + i * 10, y = 69, on = i < S.bosses % BOSSES_PER_WORLD;
+  // stage mode: bosses killed of the stage goal; endless: progress toward the next world
+  const pipN = STG.endless ? BOSSES_PER_WORLD : STG.bosses, pipOn = STG.endless ? S.bosses % BOSSES_PER_WORLD : S.bosses;
+  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? `W${S.world + 1}` : 'BOSS', 16, 72); ctx.textAlign = 'center';
+  for (let i = 0; i < pipN; i++) {
+    const x = 46 + i * 10, y = 69, on = i < pipOn;
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
     ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-2.6, -2.6, 5.2, 5.2); ctx.restore();
   }
@@ -1448,6 +1725,15 @@ function draw(now) {
   TH.field(ctx, now, ch);
   ctx.strokeStyle = TH.line2; ctx.globalAlpha = 0.7; ctx.setLineDash([8, 6]); ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, FB + 1); ctx.lineTo(W, FB + 1); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  if (S.shield > 0) { // shield barrier on the red line
+    ctx.globalAlpha = 0.55 + 0.25 * Math.sin(now / 200);
+    ctx.drawImage(glow(UPG.shield.col), -40, FB - 12, W + 80, 26);
+    ctx.fillStyle = UPG.shield.col; ctx.fillRect(0, FB, W, 2); ctx.globalAlpha = 1;
+  }
+  if (S.lv.bounce) { // bounce pad along the launcher line
+    ctx.globalAlpha = 0.5; ctx.drawImage(glow(UPG.bounce.col), -40, LY + 1, W + 80, 18); ctx.globalAlpha = 1;
+    ctx.fillStyle = UPG.bounce.col; ctx.fillRect(0, LY + ballR() + 2, W, 2);
+  }
 
   ctx.save(); ctx.beginPath(); ctx.rect(0, TOP, W, H - TOP); ctx.clip();
   for (const br of S.bricks) if (!br.dead) drawBrick(br, now);
@@ -1607,47 +1893,31 @@ cv.addEventListener('pointercancel', () => { S.aiming = false; });
 
 sndEl.onclick = () => { muted = !muted; sndEl.textContent = muted ? 'SND OFF' : 'SND ON'; ensureAudio(); };
 recallEl.onclick = recall;
-$('start').onclick = startRun;
-$('again').onclick = startRun;
+$('start').onclick = () => startStage(nextStageIndex());
+$('again').onclick = againOrNext;
+$('endless').onclick = startEndless;
+$('titleMap').onclick = () => openMap(titleEl);
+$('overMap').onclick = () => openMap(overEl);
+$('mapClose').onclick = closeMap;
+$('mapPlay').onclick = () => startStage(mapSel);
 $('titleShop').onclick = () => openShop(titleEl);
 $('overShop').onclick = () => openShop(overEl);
 $('shopClose').onclick = closeShop;
 $('reviveBtn').onclick = revive;   // ad placeholder: a rewarded ad would play here
-$('giveUp').onclick = showResults;
+$('giveUp').onclick = () => showResults(false);
 $('claim').onclick = () => claim(1);
 $('claim2x').onclick = () => claim(2); // ad placeholder
 
-// ---------- worlds: the title picker chooses the starting world among those unlocked ----------
-// A link with #synth, #candy, ... previews any world without unlocking it.
-function setTheme(id, remember) {
-  applyTheme(id);
-  if (S) S.world = WORLD_ORDER.indexOf(id);
-  const n = WORLD_ORDER.indexOf(id) + 1;
-  $('thNo').textContent = `WORLD ${n} · ${TH.tag} · 해금 ${SAVE.worlds}/${WORLD_ORDER.length}`;
-  if (remember) { SAVE.theme = id; writeSave(); }
-}
-function stepTheme(d) {
-  const open = WORLD_ORDER.slice(0, Math.max(SAVE.worlds, WORLD_ORDER.indexOf(SAVE.theme) + 1));
-  const i = Math.max(0, open.indexOf(SAVE.theme));
-  setTheme(open[(i + d + open.length) % open.length], true);
-  ensureAudio(); sfx.pick();
-  burst(W / 2, H * 0.5, TH.accent, 40, 320);
-  if (open.length === 1) $('thLine').textContent = '보스 3마리를 잡으면 다음 월드가 열립니다';
-}
-$('thPrev').onclick = () => stepTheme(-1);
-$('thNext').onclick = () => stepTheme(1);
-addEventListener('hashchange', () => { const id = location.hash.slice(1); if (THEMES[id]) { SAVE.theme = id; setTheme(id, false); } });
-
 // ---------- boot ----------
 loadSave();
+STG = STAGES[nextStageIndex()];
+applyTheme(STG.world);
 newRun(); S.phase = 'title';
-{
-  const fromLink = location.hash.slice(1);
-  if (THEMES[fromLink]) SAVE.theme = fromLink;
-  else if (WORLD_ORDER.indexOf(SAVE.theme) + 1 > SAVE.worlds) SAVE.theme = 'neon';
-  setTheme(THEMES[SAVE.theme] ? SAVE.theme : 'neon', false);
-}
 refreshTitle();
+// A link ending in #synth, #candy, ... previews that world's look on the title screen.
+function previewFromHash() { const id = location.hash.slice(1); if (THEMES[id] && S.phase === 'title') applyTheme(id); }
+addEventListener('hashchange', previewFromHash);
+previewFromHash();
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.033, (now - last) / 1000); last = now;
@@ -1664,8 +1934,9 @@ window.__bm = {
   tick(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) update(dt); },
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
-  newRun(meta) { if (meta) Object.assign(SAVE.meta, meta); newRun(); if (S.pendingLevels > 0) showLevel(); },
-  theme(id) { setTheme(id, false); },
+  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : STAGES[stage]; newRun(); if (S.pendingLevels > 0) showLevel(); },
+  theme(id) { applyTheme(id); },
+  STAGES,
   word(i) { bigWords.push({ s: TH.words[i], life: 0.85, max: 1.1, y: H * 0.3, size: 16 + i * 2 }); },
   draw(now = performance.now()) { draw(now); },
 };

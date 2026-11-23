@@ -22,13 +22,15 @@ function newRun() {
     revived: false, banner: null,
     fever: false, comboMile: 0, kick: 0, goldBump: 0, xpFlash: 0, lvlT: 0,
     world: Math.max(0, WORLD_ORDER.indexOf(TH.id)), worldPending: false, wipe: 0,
+    shield: 0, ironLeft: 0, encoreChecked: false, acidDone: false, cleared: false,
   };
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = [];
   for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
   rebuildGrid();
 }
 
-const ballR = () => 6 * (1 + 0.3 * S.lv.big);
+const ballR = () => 6;
+const IRON_R = 10;
 
 function setRect(br) { br.X = br.c * CW + 2; br.Y = TOP + br.r * RH + 2; br.Wd = br.span * CW - 4; br.Ht = RH - 4; }
 function addBrick(o, slide) {
@@ -49,31 +51,31 @@ function shiftDown(slide) {
 }
 
 function spawnRow(t, slide = true) {
-  const h = BAL.hp(t), used = new Array(COLS).fill(false);
+  const h = Math.max(1, Math.round(BAL.hp(t) * STG.hpMul)), used = new Array(COLS).fill(false);
   if (t % BAL.bossEvery === 0) {
     const c = Math.floor(rnd() * (COLS - 2));
     addBrick({ c, r: 0, span: 3, type: 'boss', hp: h * BAL.bossHp, chapter: chapterOf(t) }, slide);
     used[c] = used[c + 1] = used[c + 2] = true;
-    showBanner('BOSS', `챕터 ${chapterOf(t)} 보스가 나타났다`, TH.css.hot);
+    showBanner('BOSS', STG.endless ? `챕터 ${chapterOf(t)} 보스가 나타났다` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
     sfx.boss();
   }
   let placed = 0;
   for (let c = 0; c < COLS; c++) {
-    if (used[c] || rnd() > BAL.density(t)) continue;
+    if (used[c] || rnd() > chance('density', t)) continue;
     let type = 'n', hp = rnd() < BAL.doubleHp ? h * 2 : h, acc = 0;
     const r = rnd();
-    if (r < (acc += BAL.bomb(t))) { type = 'bomb'; hp = Math.ceil(h * 0.6); }
-    else if (r < (acc += BAL.chest(t))) { type = 'chest'; hp = h * 2; }
-    else if (r < (acc += BAL.steel(t))) { type = 'steel'; hp = h * 3; }
-    else if (r < (acc += BAL.slime(t))) { type = 'slime'; hp = Math.ceil(h * 1.2); }
+    if (r < (acc += chance('bomb', t))) { type = 'bomb'; hp = Math.ceil(h * 0.6); }
+    else if (r < (acc += chance('chest', t))) { type = 'chest'; hp = h * 2; }
+    else if (r < (acc += chance('steel', t))) { type = 'steel'; hp = h * 3; }
+    else if (r < (acc += chance('slime', t))) { type = 'slime'; hp = Math.ceil(h * 1.2); }
     addBrick({ c, r: 0, span: 1, type, hp }, slide); used[c] = true; placed++;
   }
   const free = [];
   for (let c = 0; c < COLS; c++) if (!used[c]) free.push(c);
   const take = () => free.splice(Math.floor(rnd() * free.length), 1)[0];
   while (placed < 2 && t % BAL.bossEvery !== 0 && free.length > 1) { addBrick({ c: take(), r: 0, span: 1, type: 'n', hp: h }, slide); placed++; }
-  if (free.length && rnd() < BAL.orb) addBrick({ c: take(), r: 0, span: 1, type: 'orb', hp: 1 }, slide);
-  if (free.length && rnd() < BAL.laser(t)) addBrick({ c: take(), r: 0, span: 1, type: rnd() < 0.5 ? 'lzh' : 'lzv', hp: 1 }, slide);
+  if (free.length && rnd() < chance('orb', t)) addBrick({ c: take(), r: 0, span: 1, type: 'orb', hp: 1 }, slide);
+  if (free.length && rnd() < chance('laser', t)) addBrick({ c: take(), r: 0, span: 1, type: rnd() < 0.5 ? 'lzh' : 'lzv', hp: 1 }, slide);
 }
 
 // ---------- fx helpers ----------

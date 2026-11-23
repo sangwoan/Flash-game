@@ -1,7 +1,7 @@
 // Ball movement. The ball collides as a square (AABB) against bricks, one axis at a time,
 // in sub-steps shorter than its radius so it never tunnels through a brick.
 function mkBall(x, y, vx, vy, temp) {
-  return { x, y, vx, vy, r: ballR(), alive: true, temp, split: false, ghost: new Set(), touched: new Set(), trail: [] };
+  return { x, y, vx, vy, r: ballR(), alive: true, temp, split: false, ghost: new Set(), touched: new Set(), trail: [], rush: 0, fb: 0, iron: false };
 }
 function overlaps(b, br) { return b.x + b.r > br.X && b.x - b.r < br.X + br.Wd && b.y + b.r > br.Y && b.y - b.r < br.Y + br.Ht; }
 
@@ -26,6 +26,7 @@ function collide(b, axis) {
     if (!br || br.dead) continue;
     if (isItem(br)) { touchItem(b, br, r, c); continue; }
     if (b.ghost.has(br) || !overlaps(b, br)) continue;
+    if (b.iron) { b.ghost.add(br); hitBrick(br, b); continue; } // iron ball ploughs through
     if (S.pierce && rnd() < S.pierce) { b.ghost.add(br); hitBrick(br, b); continue; }
     // Push out on the side the ball's centre is on (not by velocity sign), and never
     // through a wall: a ball squeezed between a brick and the wall bounces vertically.
@@ -58,7 +59,11 @@ function moveBall(b, dt) {
     if (b.y < TOP + b.r) { b.y = TOP + b.r; b.vy = Math.abs(b.vy); sfx.wall(); }
     collide(b, 1);
     if (b.ghost.size) for (const g of b.ghost) if (g.dead || !overlaps(b, g)) b.ghost.delete(g);
-    if (b.vy > 0 && b.y >= LY) {
+    if (b.vy > 0 && b.y >= LY && b.fb < S.lv.bounce) {
+      // bounce pad: send the ball back up
+      b.fb++; b.y = LY - 0.5; b.vy = -Math.abs(b.vy);
+      rings.push({ x: b.x, y: LY, r: 26, life: 0.22, max: 0.22, col: UPG.bounce.col }); sfx.wall();
+    } else if (b.vy > 0 && b.y >= LY) {
       b.alive = false;
       if (!b.temp) {
         if (S.nextLaunchX === null) S.nextLaunchX = clamp(b.x, 12, W - 12);

@@ -60,5 +60,9 @@ const sfx = {
 let lastBuzz = 0;
 function buzz(ms) {
   const t = performance.now(); if (t - lastBuzz < 70) return; lastBuzz = t;
-  try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {}
+  try {
+    // inside the Expo app, native haptics (iOS has no navigator.vibrate)
+    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'haptic', s: ms >= 60 ? 'heavy' : ms >= 25 ? 'medium' : 'light' }));
+    else if (navigator.vibrate) navigator.vibrate(ms);
+  } catch (e) {}
 }

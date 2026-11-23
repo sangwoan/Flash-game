@@ -192,5 +192,4 @@ function applyTheme(id) {
   document.body.style.background = TH.css.bg;
   document.querySelector('.crt').hidden = !TH.crt;
   for (const k in glowCache) delete glowCache[k];
-  const el = $('thName'); if (el) { el.textContent = TH.name; $('thLine').textContent = TH.line; }
 }

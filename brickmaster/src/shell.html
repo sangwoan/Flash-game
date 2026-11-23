@@ -111,6 +111,37 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 #stage[data-th="neon"] .buy{border-radius:999px}
 #stage[data-th="neon"] .pips i{border-radius:50%}
 #stage[data-th="neon"] #build span{border-radius:999px}
+/* Stage map: one panel per world in that world's colours, four stage nodes on a zigzag path */
+#map{justify-content:flex-start;gap:calc(var(--s)*8px)}
+#mapList{width:100%;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:grid;gap:calc(var(--s)*10px);padding:calc(var(--s)*2px);box-sizing:border-box}
+.world{background:linear-gradient(160deg,var(--wp),var(--wb));border:calc(var(--s)*2px) solid color-mix(in srgb,var(--wa) 55%,transparent);border-radius:calc(var(--s)*16px);padding:calc(var(--s)*10px) calc(var(--s)*12px);text-align:left;color:var(--wi)}
+.world header{display:flex;align-items:baseline;gap:calc(var(--s)*8px)}
+.world header b{font-family:var(--wf);font-size:calc(var(--s)*11px);color:var(--wa)}
+.world header span{font-size:calc(var(--s)*18px)}
+.world p{margin:calc(var(--s)*2px) 0 calc(var(--s)*6px);font-size:calc(var(--s)*13px);color:var(--wd)}
+.world.locked{filter:grayscale(.85) brightness(.7)}
+.path{display:grid;grid-template-columns:repeat(4,1fr);gap:calc(var(--s)*6px);position:relative}
+.path::before{content:"";position:absolute;left:12%;right:12%;top:calc(var(--s)*30px);border-top:calc(var(--s)*3px) dashed color-mix(in srgb,var(--wa) 45%,transparent)}
+.node{position:relative;display:grid;justify-items:center;gap:calc(var(--s)*3px);background:none;border:0;padding:0;cursor:pointer;color:var(--wi)}
+.node:nth-child(even){margin-top:calc(var(--s)*14px)}
+.node .dot{display:grid;place-items:center;width:calc(var(--s)*52px);height:calc(var(--s)*52px);border-radius:50%;background:var(--wa);color:#0a0c1c;font-family:var(--wf);font-size:calc(var(--s)*13px);font-weight:700;box-shadow:0 calc(var(--s)*4px) 0 color-mix(in srgb,var(--wa) 45%,#000)}
+.node .dot svg{width:45%;height:45%;fill:none;stroke:currentColor;stroke-width:2.4}
+.node.lock .dot{background:#3a3f55;color:#9aa0b8;box-shadow:none}
+.node.cur .dot{animation:pulse 1.1s ease-in-out infinite;box-shadow:0 0 0 calc(var(--s)*4px) color-mix(in srgb,var(--wa) 40%,transparent),0 0 calc(var(--s)*18px) var(--wa)}
+.node.sel .dot{outline:calc(var(--s)*3px) solid #fff;outline-offset:calc(var(--s)*3px)}
+.node .st{font-size:calc(var(--s)*12px);letter-spacing:.05em}
+.node .st i,.stars i{font-style:normal;color:rgba(128,128,150,.45)}
+.node .st i.on{color:#ffd23f}
+.mapSel{width:100%;display:grid;gap:calc(var(--s)*8px);background:var(--panel);border:calc(var(--s)*2px) solid var(--line);border-radius:calc(var(--s)*14px);padding:calc(var(--s)*10px);box-sizing:border-box}
+.mapSel .note{color:var(--ink);font-size:calc(var(--s)*15px)}
+.mapSel .btn.big:disabled{filter:grayscale(1);opacity:.5;animation:none}
+#endless:disabled{opacity:.45}
+.stars{margin:0;font-size:calc(var(--s)*44px);line-height:1;letter-spacing:.08em}
+.stars i{display:inline-block}
+.stars i.on{color:#ffd23f;text-shadow:0 0 calc(var(--s)*18px) rgba(255,210,63,.8);animation:starPop .45s cubic-bezier(.2,1.8,.4,1) both}
+.newNote{margin:0;font-size:calc(var(--s)*17px);color:var(--cool)}
+#over.win h2{animation:numPop .5s cubic-bezier(.2,1.8,.4,1) both}
+@keyframes starPop{from{transform:scale(0) rotate(-90deg);opacity:0}to{transform:none;opacity:1}}
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
@@ -126,14 +157,14 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
   <div id="title" class="ov">
     <p class="logo">BRICK<br>MASTER</p>
     <p class="sub">벽돌깨기 × 로그라이트</p>
-    <div class="picker">
-      <button id="thPrev" class="btn" type="button" aria-label="이전 테마">◀</button>
-      <div><p class="thNo" id="thNo"></p><p class="thTag" id="thName"></p><p class="note" id="thLine"></p></div>
-      <button id="thNext" class="btn" type="button" aria-label="다음 테마">▶</button>
-    </div>
     <p class="gold" id="titleGold"></p>
-    <button id="start" class="btn big" type="button">START</button>
-    <button id="titleShop" class="btn ko" type="button">작업실 (영구 강화)</button>
+    <button id="start" class="btn big" type="button">PLAY 1-1</button>
+    <p class="note" id="nextInfo"></p>
+    <div class="row">
+      <button id="titleMap" class="btn ko" type="button">스테이지 맵</button>
+      <button id="titleShop" class="btn ko" type="button">작업실</button>
+    </div>
+    <button id="endless" class="btn ko" type="button">무한 모드</button>
     <p class="small" id="best"></p>
   </div>
 
@@ -154,17 +185,33 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
   </div>
 
   <div id="over" class="ov" hidden>
-    <h2>GAME OVER</h2>
+    <h2 id="overTitle">GAME OVER</h2>
+    <p class="stars" id="stars" hidden></p>
     <div id="stats"></div>
     <div id="build"></div>
     <p class="gold" id="earned"></p>
+    <p class="newNote" id="overNote" hidden></p>
     <div class="row" id="claimRow">
       <button id="claim2x" class="btn ko ad" type="button">2배로 받기</button>
       <button id="claim" class="btn ko" type="button">받기</button>
     </div>
     <div class="row" id="afterRow" hidden>
       <button id="again" class="btn big" type="button">RETRY</button>
+      <button id="overMap" class="btn ko" type="button">맵</button>
       <button id="overShop" class="btn ko" type="button">작업실</button>
+    </div>
+  </div>
+
+  <div id="map" class="ov" hidden>
+    <h2>STAGE MAP</h2>
+    <p class="gold" id="mapInfo"></p>
+    <div id="mapList"></div>
+    <div class="mapSel">
+      <p class="note" id="mapSelInfo"></p>
+      <div class="row">
+        <button id="mapPlay" class="btn big" type="button">PLAY</button>
+        <button id="mapClose" class="btn ko" type="button">닫기</button>
+      </div>
     </div>
   </div>
 

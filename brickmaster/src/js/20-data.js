@@ -9,8 +9,12 @@ const UPG = {
   chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 번개가 벽돌 ${n + 1}개를 지짐`, apply() {} },
   pierce: { tag: 'PIERCE', name: '관통',      max: 4,  col: '#b98cff', w: 1.5, desc: n => `${15 * n}% 확률로 벽돌을 뚫고 지나감`, apply() { S.pierce = 0.15 * S.lv.pierce; } },
   split:  { tag: 'SPLIT',  name: '분열',      max: 4,  col: '#ff9be0', w: 2,   desc: n => `공이 처음 맞힐 때 ${n + 1}갈래로 갈라짐`, apply() {} },
-  speed:  { tag: 'SPEED',  name: '가속',      max: 3,  col: '#7dffb0', w: 1.2, desc: n => `공 속도 +${15 * n}%`, apply() {} },
-  big:    { tag: 'BIG',    name: '거대화',    max: 3,  col: '#9fb4ff', w: 1.2, desc: n => `공 크기 +${30 * n}%`, apply() {} },
+  rush:   { tag: 'RUSH',   name: '폭주',      max: 4,  col: '#ff6a3d', w: 2,   desc: n => `튕길 때마다 그 공의 피해 +${12 * n}%, 점점 빨라짐`, apply() {} },
+  iron:   { tag: 'IRON',   name: '철구',      max: 3,  col: '#b8c2d9', w: 1.6, desc: n => `매 턴 ${n >= 3 ? '첫 공 2개' : '첫 공'}가 쇠공: 벽돌을 모두 뚫고 ${n + 2}배 피해`, apply() {} },
+  encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `턴이 끝날 때 ${15 * n}% 확률로 공 전부를 한 번 더 발사`, apply() {} },
+  bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `공이 바닥에 닿으면 ${n}번까지 다시 튕겨 오름`, apply() {} },
+  acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힌 벽돌에 부식이 쌓여 턴이 끝날 때 한꺼번에 피해 (${n}중첩/타격)`, apply() {} },
+  shield: { tag: 'SHIELD', name: '방어막',    max: 3,  col: '#6ec8ff', w: 1.4, desc: n => `빨간 선에 닿은 벽돌을 ${n}번 막고 폭파 (챕터마다 충전)`, apply() { S.shield = S.lv.shield; } },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
   heal:   { tag: 'HP+1',   name: '수리',      max: 99, col: '#ff4f7b', w: 1,   desc: () => '체력 +1, 최대 체력 +1', apply() { S.maxHp++; S.hp++; } },
 };
@@ -24,8 +28,12 @@ const ICONS = {
   chain: '<path d="M13.5 2L5 13.5h6.5L10 22l9-12h-6.5z"/>',
   pierce: '<rect x="9" y="4.5" width="6" height="15" rx="1.5"/><path d="M1.5 12h21M18.5 8l4 4-4 4"/>',
   split: '<path d="M12 22v-9M12 13L6 4.5M12 13l6-8.5M3.5 6.5L6 4.5l2.2 2.3M20.5 6.5L18 4.5l-2.2 2.3"/>',
-  speed: '<path d="M4 5l7 7-7 7M12.5 5l7 7-7 7"/>',
-  big: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/>',
+  rush: '<path d="M3 17c4 0 5-3 8-3s4 3 8 3M3 11c4 0 5-3 8-3s4 3 8 3"/><path d="M17 4l3 3-3 3"/>',
+  iron: '<circle cx="12" cy="12" r="8.5"/><path d="M8 9.5a4.5 4.5 0 0 1 4-3"/><path d="M3.5 12h-2M22.5 12h-2"/>',
+  encore: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.7M20 3.5v5.2h-5.2"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.3M4 20.5v-5.2h5.2"/>',
+  bounce: '<path d="M2.5 19.5h19"/><path d="M5 19.5l2-4h10l2 4"/><circle cx="12" cy="6.5" r="3"/><path d="M12 10.5v2"/>',
+  acid: '<path d="M12 2.8s-6 6.6-6 11a6 6 0 0 0 12 0c0-4.4-6-11-6-11z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/>',
+  shield: '<path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   xp: '<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/>',
   heal: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8z"/><path d="M12 9v6.5M8.8 12.2h6.4"/>',
 };
@@ -39,4 +47,4 @@ const META = {
   start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 150 },
   gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 80 },
 };
-const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.6, l) / 5) * 5;
+const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.45, l) / 5) * 5;

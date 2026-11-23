@@ -47,9 +47,12 @@ function kill(br) {
   const bonus = Math.floor(S.turn / 10);
   if (boss) {
     gainXp(25);
-    S.bosses++; if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; S.hitstop = 0.16; S.flash = 0.6; S.flashCol = '255,255,255';
+    S.bosses++; S.hitstop = 0.16;
+    if (STG.endless) { if (S.bosses % BOSSES_PER_WORLD === 0) S.worldPending = true; }
+    else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
     addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
-    showBanner(`CHAPTER ${br.chapter} CLEAR`, '보스 격파! 다음 챕터로', TH.css.gold);
+    if (S.cleared) showBanner('STAGE CLEAR', `스테이지 ${STG.id} 돌파!`, TH.css.gold);
+    else showBanner(STG.endless ? `CHAPTER ${br.chapter} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(3 + bonus); addGold(2, cx, cy); }
   else { gainXp(1 + bonus); addGold(BAL.goldPerKill); }
@@ -109,6 +112,22 @@ function zap(from) {
   if (cand.length) sfx.zap();
 }
 
+// Acid: stacks left by hits all burst at the end of the turn, then halve.
+function acidTick() {
+  let any = false;
+  for (const br of S.bricks) {
+    if (br.dead || isItem(br) || !br.acid) continue;
+    const d = br.acid * S.dmg * 0.5;
+    texts.push(mkText(br.X + br.Wd / 2, br.Y + 4, fmtDmg(Math.round(d * 10) / 10), UPG.acid.col, 0.8, 9));
+    burst(br.X + br.Wd / 2, br.Y + br.Ht / 2, UPG.acid.col, 4, 120);
+    br.acid = Math.floor(br.acid / 2);
+    dealDamage(br, d, false);
+    any = true;
+  }
+  if (any) { sfx.slime(); shake(2); }
+  return any;
+}
+
 // Laser items fire once per ball that passes through them.
 function fireLaser(item) {
   item.flash = 1;
@@ -124,6 +143,13 @@ function fireLaser(item) {
 
 function hitBrick(br, b) {
   let d = S.dmg, crit = false;
+  if (b.iron) d *= S.lv.iron + 2;
+  if (S.lv.rush) {
+    d *= 1 + b.rush * 0.12 * S.lv.rush;
+    b.rush = Math.min(20, b.rush + 1);
+    if (Math.hypot(b.vx, b.vy) < BAL.ballSpeed * 1.6) { b.vx *= 1.03; b.vy *= 1.03; }
+  }
+  if (S.lv.acid && !isItem(br)) br.acid = (br.acid || 0) + S.lv.acid;
   if (S.crit && rnd() < S.crit) { d *= 3; crit = true; }
   if (br.type === 'steel') sfx.steel(); else sfx.hit();
   dealDamage(br, d, crit);

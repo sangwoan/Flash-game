@@ -133,6 +133,10 @@ function drawBrick(br, now) {
     if ((now / 400 + br.id) % 3 < 1) { ctx.fillStyle = '#fff'; ctx.fillRect(6, 6, 3, 3); ctx.fillRect(5, 7, 5, 1); ctx.fillRect(7, 5, 1, 5); }
   }
   ctx.restore();
+  if (br.acid) { // acid stacks as green drops
+    ctx.fillStyle = UPG.acid.col;
+    for (let i = 0; i < Math.min(3, 1 + Math.floor(br.acid / 4)); i++) { ctx.beginPath(); ctx.arc(w - 7 - i * 7, 7, 2.6, 0, Math.PI * 2); ctx.fill(); }
+  }
   if (br.r >= ROWS - 2) {
     ctx.strokeStyle = `rgba(255,60,90,${0.5 + 0.5 * Math.sin(now / 120)})`; ctx.lineWidth = 3; ctx.strokeRect(-1, -1, w + 2, h + 2);
   }
@@ -240,20 +244,27 @@ function drawBalls(now) {
     const t = b.trail;
     for (let i = 0; i < t.length; i += 2) {
       ctx.globalAlpha = (TH.light ? 0.05 : 0.07) + 0.05 * i; const s = b.r * (1.4 + i * 0.12);
-      const g = fever ? glow(RAINBOW[Math.floor(now / 60 + i + b.x / 40) % RAINBOW.length]) : b.temp ? glT : gl;
+      const g = fever ? glow(RAINBOW[Math.floor(now / 60 + i + b.x / 40) % RAINBOW.length]) : b.temp ? glT : b.iron ? glow('#b8c2d9') : b.rush >= 4 ? glow('#ff6a3d') : gl;
       ctx.drawImage(g, t[i] - s, t[i + 1] - s, s * 2, s * 2);
     }
-    ctx.globalAlpha = TH.light ? 0.55 : 0.9; ctx.drawImage(b.temp ? glT : gl, b.x - b.r * 2.6, b.y - b.r * 2.6, b.r * 5.2, b.r * 5.2);
+    ctx.globalAlpha = TH.light ? 0.55 : 0.9; ctx.drawImage(b.temp ? glT : b.rush >= 4 ? glow('#ff6a3d') : gl, b.x - b.r * 2.6, b.y - b.r * 2.6, b.r * 5.2, b.r * 5.2);
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   const outline = TH.brick === 'comic' || TH.light;
   ctx.fillStyle = bc; ctx.beginPath();
-  for (const b of S.movers) if (!b.temp) { ctx.moveTo(b.x + b.r, b.y); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); }
+  for (const b of S.movers) if (!b.temp && !b.iron) { ctx.moveTo(b.x + b.r, b.y); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); }
   for (const h of homers) { ctx.moveTo(h.x + r * 0.7, LY); ctx.arc(h.x, LY, r * 0.7, 0, Math.PI * 2); }
   ctx.fill(); if (outline) { ctx.strokeStyle = TH.outline === '#ffffff' ? TH.hud.ink : TH.outline; ctx.lineWidth = 1.6; ctx.stroke(); }
   ctx.fillStyle = TH.ball.temp; ctx.beginPath();
   for (const b of S.movers) if (b.temp) { ctx.moveTo(b.x + b.r, b.y); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); }
   ctx.fill(); if (outline) ctx.stroke();
+  // iron balls: heavy steel spheres
+  for (const b of S.movers) if (b.iron) {
+    const g = ctx.createRadialGradient(b.x - b.r * 0.4, b.y - b.r * 0.4, 1, b.x, b.y, b.r);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#c9d1e3'); g.addColorStop(1, '#4b5368');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2a2f3d'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
 }
 
 function drawHud(now, ch) {
@@ -275,12 +286,20 @@ function drawHud(now, ch) {
     const hw = S.maxHp * 19 - 4, hx = W / 2 - hw / 2;
     for (let i = 0; i < S.maxHp; i++) heart(hx + i * 19, 24, i < S.hp);
   } else { heart(W / 2 - 34, 24, true); ctx.textAlign = 'left'; ctx.fillStyle = hd.ink; ctx.font = DISP(12); ctx.fillText(`${S.hp}/${S.maxHp}`, W / 2 - 12, 38); }
+  // shield charges, right of the hearts
+  for (let i = 0; i < S.lv.shield; i++) {
+    const x = W / 2 + Math.min(S.maxHp, 9) * 9.5 + 10 + i * 12, y = 27, on = i < S.shield;
+    ctx.fillStyle = on ? UPG.shield.col : hd.heartOff;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y + 2); ctx.lineTo(x + 8, y + 7); ctx.lineTo(x + 4, y + 12); ctx.lineTo(x, y + 7); ctx.lineTo(x, y + 2); ctx.closePath(); ctx.fill();
+  }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
-  ctx.fillStyle = hd.ch; ctx.fillText(`CH${ch}`, W / 2 - 78, 15);
+  ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `CH${ch}` : STG.id, W / 2 - 78, 15);
   // boss progress toward the next world: one diamond per boss in this world
-  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(`W${S.world + 1}`, 16, 72); ctx.textAlign = 'center';
-  for (let i = 0; i < BOSSES_PER_WORLD; i++) {
-    const x = 46 + i * 10, y = 69, on = i < S.bosses % BOSSES_PER_WORLD;
+  // stage mode: bosses killed of the stage goal; endless: progress toward the next world
+  const pipN = STG.endless ? BOSSES_PER_WORLD : STG.bosses, pipOn = STG.endless ? S.bosses % BOSSES_PER_WORLD : S.bosses;
+  ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? `W${S.world + 1}` : 'BOSS', 16, 72); ctx.textAlign = 'center';
+  for (let i = 0; i < pipN; i++) {
+    const x = 46 + i * 10, y = 69, on = i < pipOn;
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
     ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-2.6, -2.6, 5.2, 5.2); ctx.restore();
   }
@@ -301,6 +320,15 @@ function draw(now) {
   TH.field(ctx, now, ch);
   ctx.strokeStyle = TH.line2; ctx.globalAlpha = 0.7; ctx.setLineDash([8, 6]); ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, FB + 1); ctx.lineTo(W, FB + 1); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  if (S.shield > 0) { // shield barrier on the red line
+    ctx.globalAlpha = 0.55 + 0.25 * Math.sin(now / 200);
+    ctx.drawImage(glow(UPG.shield.col), -40, FB - 12, W + 80, 26);
+    ctx.fillStyle = UPG.shield.col; ctx.fillRect(0, FB, W, 2); ctx.globalAlpha = 1;
+  }
+  if (S.lv.bounce) { // bounce pad along the launcher line
+    ctx.globalAlpha = 0.5; ctx.drawImage(glow(UPG.bounce.col), -40, LY + 1, W + 80, 18); ctx.globalAlpha = 1;
+    ctx.fillStyle = UPG.bounce.col; ctx.fillRect(0, LY + ballR() + 2, W, 2);
+  }
 
   ctx.save(); ctx.beginPath(); ctx.rect(0, TOP, W, H - TOP); ctx.clip();
   for (const br of S.bricks) if (!br.dead) drawBrick(br, now);
