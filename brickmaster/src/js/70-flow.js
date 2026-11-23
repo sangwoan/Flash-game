@@ -184,7 +184,7 @@ function showResults(cleared = false) {
     : [['레벨', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
-  $('earned').textContent = `골드 +${runGold}` + (bonus ? ` (클리어 보너스 ${Math.round(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
+  $('earned').textContent = `골드 +${fmtN(runGold)}` + (bonus ? ` (클리어 보너스 ${fmtN(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
   $('overNote').textContent = note; $('overNote').hidden = !note;
   $('again').textContent = cleared && !STG.endless ? `NEXT ${levelInfo(STG.g + 1).id}` : 'RETRY';
   $('overRank').hidden = !STG.endless;
@@ -195,7 +195,7 @@ function showResults(cleared = false) {
 function claim(mult) {
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
-  $('earned').textContent = `골드 +${got} 받음 · 보유 ${SAVE.gold}G`;
+  $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtN(SAVE.gold)}G`;
   $('claimRow').hidden = true; $('afterRow').hidden = false;
 }
 function againOrNext() {
@@ -210,7 +210,7 @@ function openShop(from) {
   renderShop(); shopEl.hidden = false;
 }
 function renderShop() {
-  $('shopGold').textContent = `보유 골드 ${SAVE.gold}G`;
+  $('shopGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G`;
   const list = $('metaList'); list.innerHTML = '';
   for (const k of Object.keys(META)) {
     const m = META[k], l = SAVE.meta[k], maxed = l >= m.max, cost = metaCost(k, l);
@@ -219,7 +219,7 @@ function renderShop() {
     row.innerHTML = `<div><div class="mn">${m.name}</div><div class="md">${m.desc}</div><div class="pips">${pips}</div></div>`;
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'buy';
-    btn.textContent = maxed ? 'MAX' : cost + 'G';
+    btn.textContent = maxed ? 'MAX' : fmtN(cost) + 'G';
     btn.disabled = maxed || SAVE.gold < cost;
     btn.onclick = () => buyMeta(k);
     row.appendChild(btn); list.appendChild(row);
@@ -239,7 +239,7 @@ function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b,
 function refreshTitle() {
   const nx = levelInfo(nextLevelIndex());
   applyTheme(nx.land);
-  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${totalStars()}`;
+  $('titleGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
   $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
@@ -259,7 +259,7 @@ function openMap(from) {
 }
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
-  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${SAVE.gold}G`;
+  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtN(SAVE.gold)}G`;
   const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
@@ -289,7 +289,7 @@ function renderMap() {
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
   $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 보스 ${lv.bosses}마리 · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
-    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(lv, first) * lv.gold)}G`;
+    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtN(clearBonus(lv, first) * lv.gold)}G`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
 }

@@ -40,11 +40,14 @@ const ICONS = {
 const SHIELD_COL = '#6ec8ff';
 
 // Permanent upgrades bought with gold in the workshop.
+// Prices double (or more) with every level, so the first few are quick and the last ones take
+// many stages of saving even though clear rewards also grow. Starting picks are the strongest
+// boost of all, so they cost the most.
 const META = {
-  balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40 },
-  power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50 },
-  xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 60 },
-  start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 150 },
-  gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 80 },
+  balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40,   growth: 2 },
+  power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50,   growth: 2 },
+  xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 80,   growth: 2.5 },
+  start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 1500, growth: 4 },
+  gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 100,  growth: 2.2 },
 };
-const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.45, l) / 5) * 5;
+const metaCost = (k, l) => Math.round(META[k].base * Math.pow(META[k].growth, l) / 5) * 5;

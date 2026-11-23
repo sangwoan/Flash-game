@@ -280,6 +280,7 @@ const LY = 716;               // launcher line
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const rnd = Math.random;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const fmtN = n => Math.round(n).toLocaleString('ko-KR'); // 31000 -> "31,000"
 const $ = id => document.getElementById(id);
 
 // Balance knobs. Every tuning number lives here; t = turn number.
@@ -429,14 +430,17 @@ const ICONS = {
 const SHIELD_COL = '#6ec8ff';
 
 // Permanent upgrades bought with gold in the workshop.
+// Prices double (or more) with every level, so the first few are quick and the last ones take
+// many stages of saving even though clear rewards also grow. Starting picks are the strongest
+// boost of all, so they cost the most.
 const META = {
-  balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40 },
-  power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50 },
-  xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 60 },
-  start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 150 },
-  gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 80 },
+  balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40,   growth: 2 },
+  power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50,   growth: 2 },
+  xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 80,   growth: 2.5 },
+  start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 1500, growth: 4 },
+  gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 100,  growth: 2.2 },
 };
-const metaCost = (k, l) => Math.round(META[k].base * Math.pow(1.45, l) / 5) * 5;
+const metaCost = (k, l) => Math.round(META[k].base * Math.pow(META[k].growth, l) / 5) * 5;
 
 // ---- 24-landscapes.js ----
 // Landscapes: famous real places drawn as neon line art on black, one per stage.
@@ -1609,7 +1613,7 @@ function showResults(cleared = false) {
     : [['레벨', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
-  $('earned').textContent = `골드 +${runGold}` + (bonus ? ` (클리어 보너스 ${Math.round(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
+  $('earned').textContent = `골드 +${fmtN(runGold)}` + (bonus ? ` (클리어 보너스 ${fmtN(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
   $('overNote').textContent = note; $('overNote').hidden = !note;
   $('again').textContent = cleared && !STG.endless ? `NEXT ${levelInfo(STG.g + 1).id}` : 'RETRY';
   $('overRank').hidden = !STG.endless;
@@ -1620,7 +1624,7 @@ function showResults(cleared = false) {
 function claim(mult) {
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
-  $('earned').textContent = `골드 +${got} 받음 · 보유 ${SAVE.gold}G`;
+  $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtN(SAVE.gold)}G`;
   $('claimRow').hidden = true; $('afterRow').hidden = false;
 }
 function againOrNext() {
@@ -1635,7 +1639,7 @@ function openShop(from) {
   renderShop(); shopEl.hidden = false;
 }
 function renderShop() {
-  $('shopGold').textContent = `보유 골드 ${SAVE.gold}G`;
+  $('shopGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G`;
   const list = $('metaList'); list.innerHTML = '';
   for (const k of Object.keys(META)) {
     const m = META[k], l = SAVE.meta[k], maxed = l >= m.max, cost = metaCost(k, l);
@@ -1644,7 +1648,7 @@ function renderShop() {
     row.innerHTML = `<div><div class="mn">${m.name}</div><div class="md">${m.desc}</div><div class="pips">${pips}</div></div>`;
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'buy';
-    btn.textContent = maxed ? 'MAX' : cost + 'G';
+    btn.textContent = maxed ? 'MAX' : fmtN(cost) + 'G';
     btn.disabled = maxed || SAVE.gold < cost;
     btn.onclick = () => buyMeta(k);
     row.appendChild(btn); list.appendChild(row);
@@ -1664,7 +1668,7 @@ function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b,
 function refreshTitle() {
   const nx = levelInfo(nextLevelIndex());
   applyTheme(nx.land);
-  $('titleGold').textContent = `보유 골드 ${SAVE.gold}G · ★ ${totalStars()}`;
+  $('titleGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
   $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
@@ -1684,7 +1688,7 @@ function openMap(from) {
 }
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
-  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${SAVE.gold}G`;
+  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtN(SAVE.gold)}G`;
   const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
@@ -1714,7 +1718,7 @@ function renderMap() {
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
   $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 보스 ${lv.bosses}마리 · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
-    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${Math.round(clearBonus(lv, first) * lv.gold)}G`;
+    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtN(clearBonus(lv, first) * lv.gold)}G`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
 }

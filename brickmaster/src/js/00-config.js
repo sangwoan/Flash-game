@@ -6,6 +6,7 @@ const LY = 716;               // launcher line
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const rnd = Math.random;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const fmtN = n => Math.round(n).toLocaleString('ko-KR'); // 31000 -> "31,000"
 const $ = id => document.getElementById(id);
 
 // Balance knobs. Every tuning number lives here; t = turn number.
