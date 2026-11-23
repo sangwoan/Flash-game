@@ -43,7 +43,7 @@ function shatter(br) {
     P.push([i * w / nx + (edge ? 0 : (rnd() - 0.5) * jx * 2), j * h / ny + (edge ? 0 : (rnd() - 0.5) * jy * 2)]);
   }
   const at = (i, j) => P[j * (nx + 1) + i];
-  const kx = br.kdx || 0, ky = br.kdy || -1, power = br.type === 'boss' ? 520 : 300;
+  const kx = br.kdx || 0, ky = br.kdy || -1, power = isBigBoss(br) ? 640 : br.type === 'boss' ? 520 : 300;
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const a = at(i, j), b = at(i + 1, j), c = at(i + 1, j + 1), d = at(i, j + 1);
     for (const tri of (rnd() < 0.5 ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]])) {
@@ -103,6 +103,15 @@ function perfectClear() {
   addGold(10 + S.turn, W / 2, H * 0.45); sfx.whoosh(); sfx.slam(3); sfx.clear(); buzz(200);
 }
 
+// The main boss goes down: slow motion, a slam word and light along its whole body.
+function mainBossDown(br) {
+  S.slowmo = Math.max(S.slowmo, 0.7); S.chroma = 1; S.camZ = 0.08; S.pulse = 1;
+  bigWords.push({ s: 'BOSS DOWN', life: 1.6, max: 1.6, y: H * 0.24, size: 26, style: 'slam' });
+  for (let i = 0; i < 5; i++) burst(br.X + br.Wd * (i + 0.5) / 5, br.Y + br.Ht / 2, i % 2 ? TH.accent : TH.css.gold, 26, 420);
+  for (let i = 0; i < 3; i++) if (pillars.length < 24) pillars.push({ x: br.X + br.Wd * (i + 0.5) / 3, y: br.Y + br.Ht / 2, w: 44, col: TH.css.gold, life: 0.5, max: 0.5 });
+  sfx.slam(3); buzz(220);
+}
+
 function kill(br) {
   br.dead = true; clearCells(br);
   const cx = br.X + br.Wd / 2, cy = br.Y + br.Ht / 2, boss = br.type === 'boss';
@@ -133,13 +142,21 @@ function kill(br) {
   sfx.brk(S.combo); buzz(boss ? 80 : 8);
   const bonus = BAL.xpTurnBonus ? Math.floor(S.turn / BAL.xpTurnBonus) : 0;
   if (boss) {
-    gainXp(BAL.xpBoss);
-    S.bosses++; S.hitstop = 0.16;
+    const big = isBigBoss(br);
+    S.bosses++; S.hitstop = big ? 0.24 : 0.16;
+    if (br.rank === 'sub') S.subDown = true; else if (big) S.mainDown = true;
     if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
-    else if (S.bosses >= STG.bosses) S.cleared = true; S.flash = 0.6; S.flashCol = '255,255,255';
-    addGold(BAL.goldBoss + BAL.goldChapter(br.chapter), cx, cy);
+    else if (S.bosses >= STG.bosses) S.cleared = true;
+    if (!S.cleared) gainXp(BAL.xpBoss); // no level-up popping over the clear
+    S.flash = 0.6; S.flashCol = '255,255,255';
+    addGold((BAL.goldBoss + BAL.goldChapter(br.chapter)) * (big ? 2 : 1), cx, cy);
+    if (big) mainBossDown(br);
     if (S.cleared) showBanner('LEVEL CLEAR', `레벨 ${STG.id} 돌파!`, TH.css.gold);
-    else showBanner(STG.endless ? `LEVEL ${S.world + 1} CLEAR` : `BOSS ${S.bosses}/${STG.bosses}`, '보스 격파!', TH.css.gold);
+    else if (STG.endless) showBanner(`LEVEL ${S.world + 1} CLEAR`, '보스 격파!', TH.css.gold);
+    else if (br.rank === 'sub') {
+      const left = BAL.mainBossTurn - S.turn;
+      showBanner('SUB BOSS DOWN', left > 0 ? `메인 보스까지 ${left}턴` : '남은 건 메인 보스!', TH.css.gold);
+    } else showBanner(br.rank === 'stage' ? 'STAGE BOSS DOWN' : 'MAIN BOSS DOWN', '서브 보스가 아직 남아 있다', TH.css.gold);
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }

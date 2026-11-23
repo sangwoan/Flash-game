@@ -18,7 +18,7 @@ function newRun() {
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
     bricks: [], movers: [], toFire: 0, fireTimer: 0, turnTime: 0, timeScale: 1, blasts: [],
     dmg: 1 + 0.1 * m.power, crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
-    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, gold: 0, comboPulse: 0,
+    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, subDown: false, mainDown: false, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
     camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false, energy: 0, pulse: 0,
@@ -55,12 +55,12 @@ function shiftDown(slide) {
 
 function spawnRow(t, slide = true) {
   const h = Math.max(1, Math.round(BAL.hp(t) * STG.hpMul)), used = new Array(COLS).fill(false);
-  if (t % BAL.bossEvery === 0) {
-    const c = Math.floor(rnd() * (COLS - 2));
-    addBrick({ c, r: 0, span: 3, type: 'boss', hp: h * BAL.bossHp, chapter: chapterOf(t) }, slide);
-    used[c] = used[c + 1] = used[c + 2] = true;
-    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : `보스 ${Math.min(chapterOf(t), STG.bosses)}/${STG.bosses} 등장`, TH.css.hot);
-    sfx.boss();
+  const boss = bossAt(t);
+  if (boss) {
+    const c = Math.floor(rnd() * (COLS - boss.span + 1));
+    addBrick({ c, r: 0, span: boss.span, type: 'boss', rank: boss.rank, hp: h * boss.hpMul, chapter: chapterOf(t) }, slide);
+    for (let k = 0; k < boss.span; k++) used[c + k] = true;
+    bossEntrance(boss.rank);
   }
   let placed = 0;
   for (let c = 0; c < COLS; c++) {
@@ -76,7 +76,7 @@ function spawnRow(t, slide = true) {
   const free = [];
   for (let c = 0; c < COLS; c++) if (!used[c]) free.push(c);
   const take = () => free.splice(Math.floor(rnd() * free.length), 1)[0];
-  while (placed < 2 && t % BAL.bossEvery !== 0 && free.length > 1) { addBrick({ c: take(), r: 0, span: 1, type: 'n', hp: h }, slide); placed++; }
+  while (placed < 2 && !boss && free.length > 1) { addBrick({ c: take(), r: 0, span: 1, type: 'n', hp: h }, slide); placed++; }
   // remember how full the row was, so clearing a full row can be celebrated
   const rowBricks = S.bricks.filter(b => b.r === 0 && !b.dead && !isItem(b));
   for (const b of rowBricks) b.rowSize = rowBricks.length;
@@ -102,3 +102,13 @@ function burst(x, y, col, n, spd = 220) {
 }
 function shake(a) { S.shake = Math.min(14, S.shake + a * (RM ? 0.25 : 1)); }
 function showBanner(title, sub, col) { S.banner = { title, sub, col, life: 2, max: 2 }; }
+// Boss arrival. The main boss gets a longer banner, a red flash and a camera punch.
+function bossEntrance(rank) {
+  sfx.boss();
+  if (rank === 'boss') { showBanner('BOSS', `레벨 ${S.world + 1} 보스 등장`, TH.css.hot); return; }
+  if (rank === 'sub') { showBanner('SUB BOSS', `서브 보스 등장 · 메인 보스는 ${BAL.mainBossTurn}턴`, TH.css.hot); return; }
+  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장', TH.css.hot);
+  S.banner.life = S.banner.max = 2.6;
+  S.flash = 0.45; S.flashCol = '255,43,106'; S.pulse = 1; S.camZ = Math.max(S.camZ, 0.05); shake(12); buzz(140);
+  setTimeout(() => sfx.boss(), 260);
+}

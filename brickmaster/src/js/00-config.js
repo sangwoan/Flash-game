@@ -22,7 +22,9 @@ const BAL = {
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
-  bossEvery: 10, bossHp: 6,
+  bossEvery: 10, bossHp: 6, // endless: a boss every 10 turns. Boss HP = that turn's brick HP x bossHp
+  // classic: a sub-boss (3 cells, x bossHp) on turn 10, then the main boss (5 cells wide) on turn 15
+  subBossTurn: 10, mainBossTurn: 15, mainBossHp: 8, stageBossHp: 10,
   levelHp: g => 1 + 0.06 * g, // brick HP multiplier for classic level g (0-based)
   xpNeed: lvl => Math.round(3 + lvl * 2.5 + 0.28 * Math.pow(lvl, 2.2)),
   // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.

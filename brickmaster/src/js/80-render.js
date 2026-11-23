@@ -163,6 +163,11 @@ function drawItem(br, now) {
   ctx.beginPath(); ctx.moveTo(L + 6, 0); ctx.lineTo(L, -6); ctx.lineTo(L, 6); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
+const BOSS_LABEL = { boss: 'BOSS', sub: 'SUB BOSS', main: 'MAIN BOSS', stage: 'STAGE BOSS' };
+function crown(x, y) {
+  ctx.beginPath(); ctx.moveTo(x, y + 11); ctx.lineTo(x, y + 2); ctx.lineTo(x + 4, y + 6); ctx.lineTo(x + 7.5, y);
+  ctx.lineTo(x + 11, y + 6); ctx.lineTo(x + 15, y + 2); ctx.lineTo(x + 15, y + 11); ctx.closePath(); ctx.fill();
+}
 function drawBrick(br, now) {
   if (isItem(br)) { drawItem(br, now); return; }
   const x = br.X + (br.kx || 0), y = br.Y + br.oy + (br.ky || 0), w = br.Wd, h = br.Ht, f = br.flash;
@@ -171,10 +176,19 @@ function drawBrick(br, now) {
   ctx.scale(1 + f * 0.1, 1 - f * 0.06);
   ctx.translate(-w / 2, -h / 2);
   let col = brickColor(br);
+  const big = br.type === 'boss' && isBigBoss(br);
   if (br.type === 'boss') {
     const g = ctx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, TH.special.boss[0]); g.addColorStop(1, TH.special.boss[1]); col = g;
   }
+  if (big) { // the main boss breathes a hot aura
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + 0.2 * Math.sin(now / 260);
+    ctx.drawImage(glow(TH.special.boss[0]), -26, -24, w + 52, h + 48); ctx.restore();
+  }
   brickBody(br, w, h, col, now);
+  if (big) { // and wears a pulsing gold frame
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = TH.css.gold; ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.55 + 0.35 * Math.sin(now / 180); brickPath(-3.5, -3.5, w + 7, h + 7); ctx.stroke(); ctx.restore();
+  }
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
   if (br.type === 'bomb') {
     ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 5; ctx.beginPath();
@@ -204,13 +218,18 @@ function drawBrick(br, now) {
     ctx.strokeStyle = `rgba(255,60,90,${0.5 + 0.5 * Math.sin(now / 120)})`; ctx.lineWidth = 3; ctx.strokeRect(-1, -1, w + 2, h + 2);
   }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-  const label = br.type === 'boss' ? 'BOSS ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
-  ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + 2 : TH.numSize}px ${TH.num}`;
+  const label = br.type === 'boss' ? BOSS_LABEL[br.rank || 'boss'] + ' ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
+  ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + (big ? 4 : 2) : TH.numSize}px ${TH.num}`;
   if (TH.brick === 'glass') { ctx.fillStyle = 'rgba(0,0,30,.35)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   const ink = TH.numInk === 'auto' ? inkFor(typeof col === 'string' ? col : TH.special.boss[0]) : TH.numInk;
   if (TH.numInk === 'auto' && ink === '#ffffff') { ctx.fillStyle = 'rgba(30,20,60,.25)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   if (TH.numStroke) { ctx.strokeStyle = TH.numStroke; ctx.lineWidth = 3; ctx.strokeText(label, w / 2, h / 2 + 1); }
   ctx.fillStyle = ink; ctx.fillText(label, w / 2, h / 2 + 1);
+  if (big) { // a gold crown on each side of the name
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = TH.css.gold;
+    for (const x0 of [w / 2 - tw / 2 - 22, w / 2 + tw / 2 + 7]) crown(x0, h / 2 - 6);
+  }
   if (f > 0) { ctx.fillStyle = `rgba(255,255,255,${f * 0.85})`; if (TH.brick === 'neonx') { brickPath(0, 0, w, h); ctx.fill(); } else if ({ jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]) { rr(0, 0, w, h, { jelly: 10, glass: 7, frost: 9, clay: 13, flat: 5 }[TH.brick]); ctx.fill(); } else ctx.fillRect(0, 0, w, h); }
   ctx.restore();
 }
@@ -603,13 +622,19 @@ function drawHud(now, ch) {
   }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
   ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `LV ${S.world + 1}` : STG.id, W / 2 - 78, 15);
-  // classic: bosses beaten of this level's goal; endless: nothing to count, the level is the label
-  const pipN = STG.endless ? 0 : STG.bosses, pipOn = S.bosses;
+  // classic: a pip for the sub-boss and a bigger one for the main boss, then the turns until the next
+  // one arrives; endless: nothing to count, the level is the label
   ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? TH.name : 'BOSS', 16, 72); ctx.textAlign = 'center';
-  for (let i = 0; i < pipN; i++) {
-    const x = 46 + i * 10, y = 69, on = i < pipOn;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-2.6, -2.6, 5.2, 5.2); ctx.restore();
+  if (!STG.endless) {
+    for (let i = 0; i < 2; i++) {
+      const x = 46 + i * 11, y = 69, on = i ? S.mainDown : S.subDown, s = i ? 3.6 : 2.6;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
+    }
+    const subIn = BAL.subBossTurn - S.turn, mainIn = BAL.mainBossTurn - S.turn, n = subIn > 0 ? subIn : mainIn;
+    const txt = subIn > 0 ? `SUB IN ${subIn}` : mainIn > 0 ? `MAIN IN ${mainIn}` : S.mainDown ? '' : STG.stageBoss ? 'STAGE BOSS' : 'MAIN BOSS';
+    ctx.textAlign = 'left'; ctx.fillStyle = (n > 0 && n <= 2) || (n <= 0 && !S.mainDown) ? hd.accent : hd.dim;
+    ctx.fillText(txt, 66, 72); ctx.textAlign = 'center';
   }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(Math.round(S.dmg * 10) / 10)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;

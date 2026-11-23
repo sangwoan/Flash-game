@@ -181,7 +181,7 @@ function showResults(cleared = false) {
   $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
   const rows = STG.endless
     ? [['점수', S.score.toLocaleString()], ['도달 레벨', S.world + 1], ['내 최고 점수', SAVE.bestScore.toLocaleString()], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]]
-    : [['레벨', STG.id], ['처치한 보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
+    : [['레벨', STG.id], ['보스', `서브 ${S.subDown ? '격파' : '—'} · ${STG.stageBoss ? '스테이지' : '메인'} ${S.mainDown ? '격파' : '—'}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
   $('earned').textContent = `골드 +${fmtN(runGold)}` + (bonus ? ` (클리어 보너스 ${fmtN(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
@@ -278,7 +278,7 @@ function renderMap() {
       const lv = levelInfo(st * LEVELS_PER_STAGE + l), lock = lv.g > SAVE.unlocked, stars = SAVE.stars[lv.g] || 0;
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'node' + (lock ? ' lock' : '') + (lv.g === SAVE.unlocked && !lock ? ' cur' : '') + (lv.g === mapSel ? ' sel' : '') + (lv.bosses > 1 ? ' boss' : '');
+      b.className = 'node' + (lock ? ' lock' : '') + (lv.g === SAVE.unlocked && !lock ? ' cur' : '') + (lv.g === mapSel ? ' sel' : '') + (lv.stageBoss ? ' boss' : '');
       b.innerHTML = `<span class="dot">${lock ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : lv.id}</span>`
         + `<span class="st">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}">★</i>`).join('')}</span>`;
       b.onclick = () => { mapSel = lv.g; sfx.pick(); renderMap(); };
@@ -288,7 +288,7 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 보스 ${lv.bosses}마리 · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'} · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
     + `${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtN(clearBonus(lv, first) * lv.gold)}G`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
@@ -310,7 +310,7 @@ function startLevel(g) {
   applyTheme(STG.land);
   beginRun();
   if (STG.l === 0 && STG.s % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
-  else showBanner(`LEVEL ${STG.id}`, STG.bosses > 1 ? `${TH.name} · 스테이지 보스 2마리` : TH.name, TH.accent);
+  else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 스테이지 보스` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = ENDLESS;

@@ -1,5 +1,6 @@
 // Classic mode: stages of 5 levels, without end. Stage s uses landscape s (see 24-landscapes.js).
-// A level is cleared by beating its boss (turn 10); the 5th level of a stage has two bosses.
+// Every level has two bosses: a sub-boss on turn 10, then the wider, tougher main boss on turn 15.
+// Beating both clears the level. On the 5th level of a stage the main boss is the stage boss.
 // Brick HP grows with the overall level index g, so workshop upgrades carry the player forward.
 // Each stage also gets one of five brick mixes on top of the base chances in BAL.
 const LEVELS_PER_STAGE = 5;
@@ -12,12 +13,21 @@ const GIMMICKS = [
 ];
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
-  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: l === LEVELS_PER_STAGE - 1 ? 2 : 1, hpMul: BAL.levelHp(g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: 2, stageBoss: l === LEVELS_PER_STAGE - 1, hpMul: BAL.levelHp(g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
 }
 // Endless: one long run; every boss raises the level and moves to the next landscape.
 const ENDLESS = { endless: true, id: 'ENDLESS', bosses: Infinity, hpMul: 1, mod: {}, gold: 1, land: 0 };
 const ENDLESS_UNLOCK = LEVELS_PER_STAGE; // levels cleared before endless opens
 let STG = levelInfo(0);
+
+// The boss that arrives on turn t, if any. rank: sub / main / stage (classic) or boss (endless).
+function bossAt(t) {
+  if (STG.endless) return t % BAL.bossEvery === 0 ? { rank: 'boss', span: 3, hpMul: BAL.bossHp } : null;
+  if (t === BAL.subBossTurn) return { rank: 'sub', span: 3, hpMul: BAL.bossHp };
+  if (t === BAL.mainBossTurn) return STG.stageBoss ? { rank: 'stage', span: 5, hpMul: BAL.stageBossHp } : { rank: 'main', span: 5, hpMul: BAL.mainBossHp };
+  return null;
+}
+const isBigBoss = br => br.rank === 'main' || br.rank === 'stage';
 
 // Spawn chance for a brick kind in the current level.
 function chance(k, t) {
