@@ -195,7 +195,7 @@ function showResults(cleared = false) {
 function claim(mult) {
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
-  $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtN(SAVE.gold)}G`;
+  $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtGold(SAVE.gold)}`;
   $('claimRow').hidden = true; $('afterRow').hidden = false;
 }
 function againOrNext() {
@@ -210,16 +210,17 @@ function openShop(from) {
   renderShop(); shopEl.hidden = false;
 }
 function renderShop() {
-  $('shopGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G`;
+  $('shopGold').textContent = `보유 골드 ${fmtGold(SAVE.gold)}`;
   const list = $('metaList'); list.innerHTML = '';
   for (const k of Object.keys(META)) {
     const m = META[k], l = SAVE.meta[k], maxed = l >= m.max, cost = metaCost(k, l);
     const row = document.createElement('div'); row.className = 'meta';
-    const pips = Array.from({ length: m.max }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('');
-    row.innerHTML = `<div><div class="mn">${m.name}</div><div class="md">${m.desc}</div><div class="pips">${pips}</div></div>`;
+    // capped upgrades show pips; 기본 화력 has no cap and shows its level instead
+    const pips = m.max <= 12 ? Array.from({ length: m.max }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('') : '';
+    row.innerHTML = `<div><div class="mn">${m.name}${m.max > 12 ? ` <span class="lvtag">Lv ${l}</span>` : ''}</div><div class="md">${m.desc(l)}</div>${pips ? `<div class="pips">${pips}</div>` : ''}</div>`;
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'buy';
-    btn.textContent = maxed ? 'MAX' : fmtN(cost) + 'G';
+    btn.textContent = maxed ? 'MAX' : fmtGold(cost);
     btn.disabled = maxed || SAVE.gold < cost;
     btn.onclick = () => buyMeta(k);
     row.appendChild(btn); list.appendChild(row);
@@ -239,7 +240,7 @@ function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b,
 function refreshTitle() {
   const nx = levelInfo(nextLevelIndex());
   applyTheme(nx.land);
-  $('titleGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G · ★ ${totalStars()}`;
+  $('titleGold').textContent = `보유 골드 ${fmtGold(SAVE.gold)} · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
   $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
@@ -259,7 +260,7 @@ function openMap(from) {
 }
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
-  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtN(SAVE.gold)}G`;
+  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtGold(SAVE.gold)}`;
   const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
@@ -288,8 +289,8 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'} · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
-    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtN(clearBonus(lv, first) * lv.gold)}G`;
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'}<br>`
+    + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
 }
@@ -313,7 +314,7 @@ function startLevel(g) {
   else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 스테이지 보스` : TH.name, TH.accent);
 }
 function startEndless() {
-  STG = ENDLESS;
+  STG = endlessInfo();
   applyTheme(0);
   beginRun();
   showBanner('ENDLESS', '보스를 잡을 때마다 레벨과 풍경이 바뀝니다', TH.accent);

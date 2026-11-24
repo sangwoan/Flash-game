@@ -32,7 +32,7 @@ function heart(x, y, on) {
 }
 const DISP = s => `${TH.dw || ''} ${Math.round(s * TH.dsz)}px ${TH.disp}`;
 const KO = s => `${s}px ${TH.ko}`;
-function fmt(n) { n = Math.ceil(n - 1e-6); return n >= 10000 ? Math.round(n / 1000) + 'K' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
+function fmt(n) { n = Math.ceil(n - 1e-6); return n < 1000 ? String(n) : fmtBig(n); }
 function outlined(s, x, y, col, size, font = DISP) {
   ctx.font = font(size); ctx.lineJoin = 'round';
   ctx.lineWidth = Math.max(3, size / 2.6); ctx.strokeStyle = TH.outline;
@@ -219,7 +219,10 @@ function drawBrick(br, now) {
   }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
   const label = br.type === 'boss' ? BOSS_LABEL[br.rank || 'boss'] + ' ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
-  ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + (big ? 4 : 2) : TH.numSize}px ${TH.num}`;
+  let fs = br.type === 'boss' ? TH.numSize + (big ? 4 : 2) : TH.numSize;
+  ctx.font = `${TH.numWeight || ''} ${fs}px ${TH.num}`;
+  const lw = ctx.measureText(label).width; // long numbers (XP 15.6M) shrink to fit the brick
+  if (lw > w - 8) { fs = Math.max(8, Math.floor(fs * (w - 8) / lw)); ctx.font = `${TH.numWeight || ''} ${fs}px ${TH.num}`; }
   if (TH.brick === 'glass') { ctx.fillStyle = 'rgba(0,0,30,.35)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   const ink = TH.numInk === 'auto' ? inkFor(typeof col === 'string' ? col : TH.special.boss[0]) : TH.numInk;
   if (TH.numInk === 'auto' && ink === '#ffffff') { ctx.fillStyle = 'rgba(30,20,60,.25)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
@@ -636,9 +639,9 @@ function drawHud(now, ch) {
     ctx.textAlign = 'left'; ctx.fillStyle = (n > 0 && n <= 2) || (n <= 0 && !S.mainDown) ? hd.accent : hd.dim;
     ctx.fillText(txt, 66, 72); ctx.textAlign = 'center';
   }
-  ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(Math.round(S.dmg * 10) / 10)}  BALL ${S.balls}`, W / 2 + 10, 15);
+  ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(S.dmg)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;
-  ctx.save(); ctx.translate(W / 2, 50); ctx.scale(gs, gs); ctx.fillStyle = hd.accent; ctx.font = DISP(8); ctx.fillText(`${Math.floor(S.gold)}G`, 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(W / 2, 50); ctx.scale(gs, gs); ctx.fillStyle = hd.accent; ctx.font = DISP(8); ctx.fillText(withG(fmtBig(S.gold)), 0, 0); ctx.restore();
   ctx.fillStyle = hd.xpBg; ctx.fillRect(16, 58, W - 32, 6);
   ctx.fillStyle = S.xpFlash > 0 ? '#ffffff' : hd.xp; ctx.fillRect(16, 58, (W - 32) * clamp(S.xp / S.xpNeed, 0, 1), 6);
 }

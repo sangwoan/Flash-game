@@ -9,10 +9,12 @@ function gainXp(n) {
     sfx.lvl();
   }
 }
+// n is in base gold; the level's inflation multiplies it.
 function addGold(n, x, y) {
-  S.gold += n;
+  const g = n * STG.goldMul;
+  S.gold += g;
   if (x !== undefined) {
-    texts.push(mkText(x, y, '+' + Math.round(n) + 'G', TH.css.gold, 1.2, 12));
+    texts.push(mkText(x, y, '+' + withG(fmtBig(g)), TH.css.gold, 1.2, 12));
     for (let i = 0; i < Math.min(12, 2 + n / 3); i++) flyCoin(x + (rnd() - 0.5) * 30, y + (rnd() - 0.5) * 20);
   }
 }
@@ -160,7 +162,7 @@ function kill(br) {
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
-  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5) + S.dmg * 2, kind: 'bomb', t: 0.06 });
+  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });

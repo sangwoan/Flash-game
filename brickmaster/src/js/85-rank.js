@@ -2,7 +2,7 @@
 // One document per player at lb/<userId>: { season, score, level, turn, at, lastSeason, lastScore }.
 // A new week starts on Monday (UTC). When a player opens the game after a week ends, the
 // previous week's top three get their reward once: 1st the champion crown, a golden ball and
-// 1000G; 2nd and 3rd 300G. Outside claude.ai (for example in the Expo app) there is no shared
+// 1000G; 2nd and 3rd 300G (both inflated like the player's furthest classic level). Outside claude.ai (for example in the Expo app) there is no shared
 // store, so the board says so and only the local best is kept.
 const RANK = { db: null, user: null, me: null, writable: null, state: 'loading', rows: [], names: {} };
 const REWARD = { 1: { gold: 1000, crown: true }, 2: { gold: 300 }, 3: { gold: 300 } };
@@ -73,9 +73,10 @@ async function checkChampion() {
     const place = all.findIndex(r => r.id === RANK.me) + 1;
     SAVE.champSeasons[prev] = place;
     if (REWARD[place]) {
-      SAVE.gold += REWARD[place].gold;
+      const gold = Math.round(REWARD[place].gold * Math.pow(BAL.goldGrowth, SAVE.unlocked)); // inflates like level gold
+      SAVE.gold += gold;
       if (REWARD[place].crown) SAVE.champion = true;
-      showTitleNote(place === 1 ? `지난주 무한 모드 1위! 챔피언 왕관과 황금 공, ${REWARD[1].gold}G를 받았어요` : `지난주 무한 모드 ${place}위! ${REWARD[place].gold}G를 받았어요`);
+      showTitleNote(place === 1 ? `지난주 무한 모드 1위! 챔피언 왕관과 황금 공, ${fmtGold(gold)}를 받았어요` : `지난주 무한 모드 ${place}위! ${fmtGold(gold)}를 받았어요`);
       if (REWARD[place].crown) applyTheme(TH.land);
       refreshTitle();
     }

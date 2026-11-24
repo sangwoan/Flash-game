@@ -1,9 +1,9 @@
 // In-run upgrade cards. desc(n) describes the card at its next level n.
 const zapEvery = l => Math.max(4, 10 - l * 2);
-const fmtDmg = d => Number.isInteger(d) ? String(d) : d.toFixed(1);
+const fmtDmg = d => d >= 100 ? fmtBig(d) : String(Math.round(d * 10) / 10);
 const UPG = {
   multi:  { tag: 'BALL+3', name: '공 추가',   max: 99, col: '#3ee6ff', w: 3,   desc: () => '발사하는 공 +3개', apply() { S.balls += 3; } },
-  power:  { tag: 'DMG+1',  name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +1 (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += 1; } },
+  power:  { tag: 'DMG+',   name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +${fmtDmg(S.unit)} (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += S.unit; } },
   crit:   { tag: 'CRIT',   name: '치명타',    max: 4,  col: '#ffd23f', w: 2,   desc: n => `${12 * n}% 확률로 3배 피해`, apply() { S.crit = 0.12 * S.lv.crit; } },
   fire:   { tag: 'FIRE',   name: '화염탄',    max: 5,  col: '#ff8a3d', w: 2,   desc: n => `벽돌을 부수면 주변에 불꽃 폭발 (공격력 ×${n + 1})`, apply() {} },
   chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 가까운 벽돌 ${n + 1}개에 번개가 떨어짐`, apply() {} },
@@ -39,15 +39,17 @@ const ICONS = {
 // The one-off shield that can be offered once per run (rewarded-ad placeholder).
 const SHIELD_COL = '#6ec8ff';
 
-// Permanent upgrades bought with gold in the workshop.
-// Prices double (or more) with every level, so the first few are quick and the last ones take
-// many stages of saving even though clear rewards also grow. Starting picks are the strongest
-// boost of all, so they cost the most.
+// Permanent upgrades bought with gold in the workshop. Each next level costs the last price times a
+// step that itself grows (r0, r0 + dr, r0 + 2dr ...), so prices climb faster and faster. 기본 화력
+// has no cap: multiplying damage is how the player keeps up with inflating brick HP.
+const dmgMult = P => Math.pow(BAL.dmgStep, P);
 const META = {
-  balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40,   growth: 2 },
-  power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50,   growth: 2 },
-  xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 80,   growth: 2.5 },
-  start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 1500, growth: 4 },
-  gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 100,  growth: 2.2 },
+  balls: { name: '시작 공',   max: 10,       base: 60,   r0: 3,    dr: 0.3, desc: l => `시작할 때 공 +1 (지금 ${BAL.startBalls + l}개)` },
+  power: { name: '기본 화력', max: Infinity, base: 200,  r0: 1.32, dr: 0,   desc: l => `공격력 ×${BAL.dmgStep}씩 곱해짐 (지금 ×${fmtMul(dmgMult(l))})` },
+  xp:    { name: '훈련',      max: 5,        base: 250,  r0: 4,    dr: 1,   desc: l => `경험치 획득 +10% (지금 +${10 * l}%)` },
+  start: { name: '선행 연구', max: 2,        base: 8000, r0: 50,   dr: 0,   desc: l => `시작할 때 능력 1개 선택 (지금 ${l}개)` },
+  gold:  { name: '수집가',    max: 5,        base: 300,  r0: 4,    dr: 1,   desc: l => `골드 획득 +15% (지금 +${15 * l}%)` },
 };
-const metaCost = (k, l) => Math.round(META[k].base * Math.pow(META[k].growth, l) / 5) * 5;
+// Prices keep 3 significant digits (5G steps under 1,000), so the price shown is the price paid.
+const niceCost = c => c < 1000 ? Math.max(5, Math.round(c / 5) * 5) : (p => Math.round(c / p) * p)(Math.pow(10, Math.floor(Math.log10(c)) - 2));
+function metaCost(k, l) { const m = META[k]; let c = m.base; for (let i = 0; i < l; i++) c *= m.r0 + m.dr * i; return niceCost(c); }

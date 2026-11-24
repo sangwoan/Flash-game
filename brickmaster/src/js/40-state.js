@@ -17,7 +17,7 @@ function newRun() {
     balls: BAL.startBalls + m.balls, orbsGot: 0, launchX: W / 2, nextLaunchX: null,
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
     bricks: [], movers: [], toFire: 0, fireTimer: 0, turnTime: 0, timeScale: 1, blasts: [],
-    dmg: 1 + 0.1 * m.power, crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
+    dmg: dmgMult(m.power), unit: dmgMult(m.power), crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
     combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, subDown: false, mainDown: false, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,

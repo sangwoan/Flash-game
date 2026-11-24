@@ -88,6 +88,7 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 .pips{display:flex;flex-wrap:wrap;gap:calc(var(--s)*3px);margin-top:calc(var(--s)*5px)}
 .pips i{width:calc(var(--s)*8px);height:calc(var(--s)*8px);background:var(--line)}
 .pips i.on{background:var(--gold)}
+.lvtag{font:700 calc(var(--s)*11px) 'Chakra Petch',sans-serif;color:var(--gold);margin-left:calc(var(--s)*4px)}
 .buy{font-family:var(--disp);font-size:calc(var(--s)*9px*var(--dsz));min-width:calc(var(--s)*74px);padding:calc(var(--s)*10px) calc(var(--s)*8px);background:var(--gold);color:var(--btnInk);border:0;border-radius:calc(var(--s)*4px);cursor:pointer}
 .buy:disabled{background:var(--line);color:var(--dim);cursor:default}
 #stats{display:grid;grid-template-columns:1fr auto;gap:calc(var(--s)*7px) calc(var(--s)*24px);font-size:calc(var(--s)*17px);text-align:left;width:80%}
@@ -280,7 +281,20 @@ const LY = 716;               // launcher line
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const rnd = Math.random;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-const fmtN = n => Math.round(n).toLocaleString('ko-KR'); // 31000 -> "31,000"
+// Big numbers: 999, 1.23K, 45.6M, 7.89B, 1.2T, then aa, ab, ac ... (each step x1000).
+// Cut (not rounded) to 3 significant digits, so a balance never reads higher than it is.
+const BIG = ['', 'K', 'M', 'B', 'T'];
+function fmtBig(n) {
+  if (!(n >= 1000)) return String(Math.max(0, Math.floor(n + 1e-9)));
+  if (!isFinite(n)) return '\u221e';
+  const e = Math.floor(Math.log10(n) / 3 + 1e-12), m = n / Math.pow(1000, e), d = m < 10 ? 100 : m < 100 ? 10 : 1;
+  const s = e < BIG.length ? BIG[e] : String.fromCharCode(97 + Math.floor((e - BIG.length) / 26) % 26, 97 + (e - BIG.length) % 26);
+  return String(Math.floor(m * d + 1e-9) / d) + s;
+}
+const fmtN = n => n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : fmtBig(n); // 31000 -> "31,000", 2.5e6 -> "2.5M"
+const withG = s => s + (/[A-Za-z]$/.test(s) ? ' G' : 'G'); // "45,000G" but "188K G"
+const fmtGold = n => withG(fmtN(n));
+const fmtMul = x => x < 10 ? String(Math.round(x * 100) / 100) : x < 100 ? String(Math.round(x * 10) / 10) : fmtBig(x); // x1.13, x21.2, x9.6K
 const $ = id => document.getElementById(id);
 
 // Balance knobs. Every tuning number lives here; t = turn number.
@@ -291,7 +305,7 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 2 ? 0.035 : 0,
+  chest: t => t > 3 ? 0.015 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
@@ -299,11 +313,17 @@ const BAL = {
   bossEvery: 10, bossHp: 6, // endless: a boss every 10 turns. Boss HP = that turn's brick HP x bossHp
   // classic: a sub-boss (3 cells, x bossHp) on turn 10, then the main boss (5 cells wide) on turn 15
   subBossTurn: 10, mainBossTurn: 15, mainBossHp: 8, stageBossHp: 10,
-  levelHp: g => 1 + 0.06 * g, // brick HP multiplier for classic level g (0-based)
-  xpNeed: lvl => Math.round(3 + lvl * 2.5 + 0.28 * Math.pow(lvl, 2.2)),
+  // Number inflation (classic): brick HP and gold both grow x1.13 per level (x1.84 per stage), so the
+  // numbers climb from tens into K, M, B and beyond. 기본 화력 in the workshop multiplies damage by
+  // dmgStep per level to keep up.
+  hpGrowth: 1.13, goldGrowth: 1.13, dmgStep: 1.25,
+  // Brick HP multiplier for classic level g (0-based). Stage 1 eases in from x0.5 so a first-time
+  // player gets through 1-1 even with fewer level-ups; from 2-1 on it is the plain x1.13 per level.
+  levelHp: g => Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.5 + 0.1 * g),
+  xpNeed: lvl => Math.round(6 + lvl * 5 + 0.8 * Math.pow(lvl, 2.2)),
   // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
-  // Tuned to about one level-up every 5 turns early on (it was about 2 in 5).
-  xpBrick: 0.55, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  // v1.4: about 40% fewer level-ups than v1.3 (rarer XP chests, less XP per brick, steeper curve).
+  xpBrick: 0.42, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
@@ -392,10 +412,10 @@ function buzz(ms) {
 // ---- 20-data.js ----
 // In-run upgrade cards. desc(n) describes the card at its next level n.
 const zapEvery = l => Math.max(4, 10 - l * 2);
-const fmtDmg = d => Number.isInteger(d) ? String(d) : d.toFixed(1);
+const fmtDmg = d => d >= 100 ? fmtBig(d) : String(Math.round(d * 10) / 10);
 const UPG = {
   multi:  { tag: 'BALL+3', name: '공 추가',   max: 99, col: '#3ee6ff', w: 3,   desc: () => '발사하는 공 +3개', apply() { S.balls += 3; } },
-  power:  { tag: 'DMG+1',  name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +1 (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += 1; } },
+  power:  { tag: 'DMG+',   name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +${fmtDmg(S.unit)} (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += S.unit; } },
   crit:   { tag: 'CRIT',   name: '치명타',    max: 4,  col: '#ffd23f', w: 2,   desc: n => `${12 * n}% 확률로 3배 피해`, apply() { S.crit = 0.12 * S.lv.crit; } },
   fire:   { tag: 'FIRE',   name: '화염탄',    max: 5,  col: '#ff8a3d', w: 2,   desc: n => `벽돌을 부수면 주변에 불꽃 폭발 (공격력 ×${n + 1})`, apply() {} },
   chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 가까운 벽돌 ${n + 1}개에 번개가 떨어짐`, apply() {} },
@@ -431,18 +451,20 @@ const ICONS = {
 // The one-off shield that can be offered once per run (rewarded-ad placeholder).
 const SHIELD_COL = '#6ec8ff';
 
-// Permanent upgrades bought with gold in the workshop.
-// Prices double (or more) with every level, so the first few are quick and the last ones take
-// many stages of saving even though clear rewards also grow. Starting picks are the strongest
-// boost of all, so they cost the most.
+// Permanent upgrades bought with gold in the workshop. Each next level costs the last price times a
+// step that itself grows (r0, r0 + dr, r0 + 2dr ...), so prices climb faster and faster. 기본 화력
+// has no cap: multiplying damage is how the player keeps up with inflating brick HP.
+const dmgMult = P => Math.pow(BAL.dmgStep, P);
 const META = {
-  balls: { name: '시작 공',   desc: '시작할 때 공 +1',          max: 10, base: 40,   growth: 2 },
-  power: { name: '기본 화력', desc: '기본 공격력 +10%',         max: 10, base: 50,   growth: 2 },
-  xp:    { name: '훈련',      desc: '경험치 획득 +10%',         max: 5,  base: 80,   growth: 2.5 },
-  start: { name: '선행 연구', desc: '시작할 때 능력 1개 선택',  max: 2,  base: 1500, growth: 4 },
-  gold:  { name: '수집가',    desc: '골드 획득 +15%',           max: 5,  base: 100,  growth: 2.2 },
+  balls: { name: '시작 공',   max: 10,       base: 60,   r0: 3,    dr: 0.3, desc: l => `시작할 때 공 +1 (지금 ${BAL.startBalls + l}개)` },
+  power: { name: '기본 화력', max: Infinity, base: 200,  r0: 1.32, dr: 0,   desc: l => `공격력 ×${BAL.dmgStep}씩 곱해짐 (지금 ×${fmtMul(dmgMult(l))})` },
+  xp:    { name: '훈련',      max: 5,        base: 250,  r0: 4,    dr: 1,   desc: l => `경험치 획득 +10% (지금 +${10 * l}%)` },
+  start: { name: '선행 연구', max: 2,        base: 8000, r0: 50,   dr: 0,   desc: l => `시작할 때 능력 1개 선택 (지금 ${l}개)` },
+  gold:  { name: '수집가',    max: 5,        base: 300,  r0: 4,    dr: 1,   desc: l => `골드 획득 +15% (지금 +${15 * l}%)` },
 };
-const metaCost = (k, l) => Math.round(META[k].base * Math.pow(META[k].growth, l) / 5) * 5;
+// Prices keep 3 significant digits (5G steps under 1,000), so the price shown is the price paid.
+const niceCost = c => c < 1000 ? Math.max(5, Math.round(c / 5) * 5) : (p => Math.round(c / p) * p)(Math.pow(10, Math.floor(Math.log10(c)) - 2));
+function metaCost(k, l) { const m = META[k]; let c = m.base; for (let i = 0; i < l; i++) c *= m.r0 + m.dr * i; return niceCost(c); }
 
 // ---- 24-landscapes.js ----
 // Landscapes: famous real places drawn as neon line art on black, one per stage.
@@ -915,14 +937,17 @@ const GIMMICKS = [
   { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
   { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
   { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
-  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.05, steel: 0.1 }, gold: 2 },
+  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.025, steel: 0.1 }, gold: 2 },
 ];
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
-  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: 2, stageBoss: l === LEVELS_PER_STAGE - 1, hpMul: BAL.levelHp(g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: 2, stageBoss: l === LEVELS_PER_STAGE - 1, hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
 }
 // Endless: one long run; every boss raises the level and moves to the next landscape.
-const ENDLESS = { endless: true, id: 'ENDLESS', bosses: Infinity, hpMul: 1, mod: {}, gold: 1, land: 0 };
+// Brick HP is scaled by the player's workshop damage multiplier, so 기본 화력 doesn't trivialise it
+// (and the weekly ranking stays fair); gold pays like the furthest classic level reached.
+const ENDLESS = { endless: true, id: 'ENDLESS', bosses: Infinity, hpMul: 1, goldMul: 1, mod: {}, gold: 1, land: 0 };
+const endlessInfo = () => ({ ...ENDLESS, hpMul: dmgMult(SAVE.meta.power), goldMul: Math.pow(BAL.goldGrowth, SAVE.unlocked) });
 const ENDLESS_UNLOCK = LEVELS_PER_STAGE; // levels cleared before endless opens
 let STG = levelInfo(0);
 
@@ -940,7 +965,8 @@ function chance(k, t) {
   const base = typeof BAL[k] === 'function' ? BAL[k](t) : BAL[k];
   return base + (STG.mod[k] || 0);
 }
-const clearBonus = (L, first) => Math.round((20 + 6 * L.g) * (first ? 2 : 1));
+// Clear reward: 60 base gold (x2 the first time), inflated like everything else in the level.
+const clearBonus = (L, first) => Math.round(60 * (first ? 2 : 1) * L.goldMul);
 const nextLevelIndex = () => SAVE.unlocked;
 
 // ---- 40-state.js ----
@@ -963,7 +989,7 @@ function newRun() {
     balls: BAL.startBalls + m.balls, orbsGot: 0, launchX: W / 2, nextLaunchX: null,
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
     bricks: [], movers: [], toFire: 0, fireTimer: 0, turnTime: 0, timeScale: 1, blasts: [],
-    dmg: 1 + 0.1 * m.power, crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
+    dmg: dmgMult(m.power), unit: dmgMult(m.power), crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
     combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, subDown: false, mainDown: false, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
@@ -1071,10 +1097,12 @@ function gainXp(n) {
     sfx.lvl();
   }
 }
+// n is in base gold; the level's inflation multiplies it.
 function addGold(n, x, y) {
-  S.gold += n;
+  const g = n * STG.goldMul;
+  S.gold += g;
   if (x !== undefined) {
-    texts.push(mkText(x, y, '+' + Math.round(n) + 'G', TH.css.gold, 1.2, 12));
+    texts.push(mkText(x, y, '+' + withG(fmtBig(g)), TH.css.gold, 1.2, 12));
     for (let i = 0; i < Math.min(12, 2 + n / 3); i++) flyCoin(x + (rnd() - 0.5) * 30, y + (rnd() - 0.5) * 20);
   }
 }
@@ -1222,7 +1250,7 @@ function kill(br) {
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
-  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5) + S.dmg * 2, kind: 'bomb', t: 0.06 });
+  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
@@ -1663,7 +1691,7 @@ function showResults(cleared = false) {
 function claim(mult) {
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
-  $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtN(SAVE.gold)}G`;
+  $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtGold(SAVE.gold)}`;
   $('claimRow').hidden = true; $('afterRow').hidden = false;
 }
 function againOrNext() {
@@ -1678,16 +1706,17 @@ function openShop(from) {
   renderShop(); shopEl.hidden = false;
 }
 function renderShop() {
-  $('shopGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G`;
+  $('shopGold').textContent = `보유 골드 ${fmtGold(SAVE.gold)}`;
   const list = $('metaList'); list.innerHTML = '';
   for (const k of Object.keys(META)) {
     const m = META[k], l = SAVE.meta[k], maxed = l >= m.max, cost = metaCost(k, l);
     const row = document.createElement('div'); row.className = 'meta';
-    const pips = Array.from({ length: m.max }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('');
-    row.innerHTML = `<div><div class="mn">${m.name}</div><div class="md">${m.desc}</div><div class="pips">${pips}</div></div>`;
+    // capped upgrades show pips; 기본 화력 has no cap and shows its level instead
+    const pips = m.max <= 12 ? Array.from({ length: m.max }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('') : '';
+    row.innerHTML = `<div><div class="mn">${m.name}${m.max > 12 ? ` <span class="lvtag">Lv ${l}</span>` : ''}</div><div class="md">${m.desc(l)}</div>${pips ? `<div class="pips">${pips}</div>` : ''}</div>`;
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'buy';
-    btn.textContent = maxed ? 'MAX' : fmtN(cost) + 'G';
+    btn.textContent = maxed ? 'MAX' : fmtGold(cost);
     btn.disabled = maxed || SAVE.gold < cost;
     btn.onclick = () => buyMeta(k);
     row.appendChild(btn); list.appendChild(row);
@@ -1707,7 +1736,7 @@ function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b,
 function refreshTitle() {
   const nx = levelInfo(nextLevelIndex());
   applyTheme(nx.land);
-  $('titleGold').textContent = `보유 골드 ${fmtN(SAVE.gold)}G · ★ ${totalStars()}`;
+  $('titleGold').textContent = `보유 골드 ${fmtGold(SAVE.gold)} · ★ ${totalStars()}`;
   $('start').textContent = `PLAY ${nx.id}`;
   $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
@@ -1727,7 +1756,7 @@ function openMap(from) {
 }
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
-  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtN(SAVE.gold)}G`;
+  $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtGold(SAVE.gold)}`;
   const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
@@ -1756,8 +1785,8 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'} · 벽돌 체력 ×${lv.hpMul.toFixed(1)}<br>`
-    + `${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtN(clearBonus(lv, first) * lv.gold)}G`;
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'}<br>`
+    + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
 }
@@ -1781,7 +1810,7 @@ function startLevel(g) {
   else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 스테이지 보스` : TH.name, TH.accent);
 }
 function startEndless() {
-  STG = ENDLESS;
+  STG = endlessInfo();
   applyTheme(0);
   beginRun();
   showBanner('ENDLESS', '보스를 잡을 때마다 레벨과 풍경이 바뀝니다', TH.accent);
@@ -1936,7 +1965,7 @@ function heart(x, y, on) {
 }
 const DISP = s => `${TH.dw || ''} ${Math.round(s * TH.dsz)}px ${TH.disp}`;
 const KO = s => `${s}px ${TH.ko}`;
-function fmt(n) { n = Math.ceil(n - 1e-6); return n >= 10000 ? Math.round(n / 1000) + 'K' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
+function fmt(n) { n = Math.ceil(n - 1e-6); return n < 1000 ? String(n) : fmtBig(n); }
 function outlined(s, x, y, col, size, font = DISP) {
   ctx.font = font(size); ctx.lineJoin = 'round';
   ctx.lineWidth = Math.max(3, size / 2.6); ctx.strokeStyle = TH.outline;
@@ -2123,7 +2152,10 @@ function drawBrick(br, now) {
   }
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
   const label = br.type === 'boss' ? BOSS_LABEL[br.rank || 'boss'] + ' ' + fmt(br.hp) : br.type === 'chest' ? 'XP ' + fmt(br.hp) : fmt(br.hp);
-  ctx.font = `${TH.numWeight || ''} ${br.type === 'boss' ? TH.numSize + (big ? 4 : 2) : TH.numSize}px ${TH.num}`;
+  let fs = br.type === 'boss' ? TH.numSize + (big ? 4 : 2) : TH.numSize;
+  ctx.font = `${TH.numWeight || ''} ${fs}px ${TH.num}`;
+  const lw = ctx.measureText(label).width; // long numbers (XP 15.6M) shrink to fit the brick
+  if (lw > w - 8) { fs = Math.max(8, Math.floor(fs * (w - 8) / lw)); ctx.font = `${TH.numWeight || ''} ${fs}px ${TH.num}`; }
   if (TH.brick === 'glass') { ctx.fillStyle = 'rgba(0,0,30,.35)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
   const ink = TH.numInk === 'auto' ? inkFor(typeof col === 'string' ? col : TH.special.boss[0]) : TH.numInk;
   if (TH.numInk === 'auto' && ink === '#ffffff') { ctx.fillStyle = 'rgba(30,20,60,.25)'; ctx.fillText(label, w / 2, h / 2 + 2.5); }
@@ -2540,9 +2572,9 @@ function drawHud(now, ch) {
     ctx.textAlign = 'left'; ctx.fillStyle = (n > 0 && n <= 2) || (n <= 0 && !S.mainDown) ? hd.accent : hd.dim;
     ctx.fillText(txt, 66, 72); ctx.textAlign = 'center';
   }
-  ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(Math.round(S.dmg * 10) / 10)}  BALL ${S.balls}`, W / 2 + 10, 15);
+  ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(S.dmg)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;
-  ctx.save(); ctx.translate(W / 2, 50); ctx.scale(gs, gs); ctx.fillStyle = hd.accent; ctx.font = DISP(8); ctx.fillText(`${Math.floor(S.gold)}G`, 0, 0); ctx.restore();
+  ctx.save(); ctx.translate(W / 2, 50); ctx.scale(gs, gs); ctx.fillStyle = hd.accent; ctx.font = DISP(8); ctx.fillText(withG(fmtBig(S.gold)), 0, 0); ctx.restore();
   ctx.fillStyle = hd.xpBg; ctx.fillRect(16, 58, W - 32, 6);
   ctx.fillStyle = S.xpFlash > 0 ? '#ffffff' : hd.xp; ctx.fillRect(16, 58, (W - 32) * clamp(S.xp / S.xpNeed, 0, 1), 6);
 }
@@ -2714,7 +2746,7 @@ function draw(now) {
 // One document per player at lb/<userId>: { season, score, level, turn, at, lastSeason, lastScore }.
 // A new week starts on Monday (UTC). When a player opens the game after a week ends, the
 // previous week's top three get their reward once: 1st the champion crown, a golden ball and
-// 1000G; 2nd and 3rd 300G. Outside claude.ai (for example in the Expo app) there is no shared
+// 1000G; 2nd and 3rd 300G (both inflated like the player's furthest classic level). Outside claude.ai (for example in the Expo app) there is no shared
 // store, so the board says so and only the local best is kept.
 const RANK = { db: null, user: null, me: null, writable: null, state: 'loading', rows: [], names: {} };
 const REWARD = { 1: { gold: 1000, crown: true }, 2: { gold: 300 }, 3: { gold: 300 } };
@@ -2785,9 +2817,10 @@ async function checkChampion() {
     const place = all.findIndex(r => r.id === RANK.me) + 1;
     SAVE.champSeasons[prev] = place;
     if (REWARD[place]) {
-      SAVE.gold += REWARD[place].gold;
+      const gold = Math.round(REWARD[place].gold * Math.pow(BAL.goldGrowth, SAVE.unlocked)); // inflates like level gold
+      SAVE.gold += gold;
       if (REWARD[place].crown) SAVE.champion = true;
-      showTitleNote(place === 1 ? `지난주 무한 모드 1위! 챔피언 왕관과 황금 공, ${REWARD[1].gold}G를 받았어요` : `지난주 무한 모드 ${place}위! ${REWARD[place].gold}G를 받았어요`);
+      showTitleNote(place === 1 ? `지난주 무한 모드 1위! 챔피언 왕관과 황금 공, ${fmtGold(gold)}를 받았어요` : `지난주 무한 모드 ${place}위! ${fmtGold(gold)}를 받았어요`);
       if (REWARD[place].crown) applyTheme(TH.land);
       refreshTitle();
     }
@@ -2901,9 +2934,9 @@ window.__bm = {
   tick(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) update(dt); },
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
-  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? ENDLESS : levelInfo(stage); newRun(); if (S.pendingLevels > 0) showLevel(); },
+  newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? endlessInfo() : levelInfo(stage); newRun(); if (S.pendingLevels > 0) showLevel(); },
   theme(id) { applyTheme(id); },
-  levelInfo, landOf, LANDS,
+  levelInfo, landOf, LANDS, META, metaCost, clearBonus,
   // render landscape s (with its animated parts) to an image, for galleries
   landShot(s, w = 210, now = 4000) {
     const c = document.createElement('canvas'); c.width = w * 2; c.height = Math.round(w * H / W) * 2;
