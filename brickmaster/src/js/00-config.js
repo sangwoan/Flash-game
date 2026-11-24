@@ -36,6 +36,10 @@ const BAL = {
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   chapterLen: 10, // turns per chapter: boss gold grows with it and the backdrop shifts
+  // A run opens with startRows rows of easy bricks. From turn doubleRowFrom on, a player who keeps
+  // every brick within the top doubleRowDepth+1 rows gets two new rows at once (DOUBLE ROW), at most
+  // once every doubleRowGap turns.
+  startRows: 6, doubleRowFrom: 4, doubleRowDepth: 3, doubleRowGap: 3,
   // Classic bosses come on set turns, each moved by up to +-bossJitter at random: the boss on turn
   // 20 and the main boss on 40 (the 5th level of a stage: 20, 30, then the stage boss on 40).
   // Only one boss at a time: if the previous one is still alive the next waits until bossRest
@@ -59,7 +63,7 @@ const BAL = {
   // v1.7: a run builds up over a long level: about LV 5 by the boss on turn 20 and LV 9 by the main
   // boss on turn 40. XP chests give a whole level.
   xpNeed: lvl => Math.round(5 + 1.5 * lvl + 0.06 * lvl * lvl),
-  xpBrick: 0.5, xpSteel: 2, xpBoss: 15, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  xpBrick: 0.38, xpSteel: 2, xpBoss: 15, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.1, goldPerTurn: 0.5, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 

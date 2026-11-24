@@ -311,6 +311,10 @@ const BAL = {
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   chapterLen: 10, // turns per chapter: boss gold grows with it and the backdrop shifts
+  // A run opens with startRows rows of easy bricks. From turn doubleRowFrom on, a player who keeps
+  // every brick within the top doubleRowDepth+1 rows gets two new rows at once (DOUBLE ROW), at most
+  // once every doubleRowGap turns.
+  startRows: 6, doubleRowFrom: 4, doubleRowDepth: 3, doubleRowGap: 3,
   // Classic bosses come on set turns, each moved by up to +-bossJitter at random: the boss on turn
   // 20 and the main boss on 40 (the 5th level of a stage: 20, 30, then the stage boss on 40).
   // Only one boss at a time: if the previous one is still alive the next waits until bossRest
@@ -334,7 +338,7 @@ const BAL = {
   // v1.7: a run builds up over a long level: about LV 5 by the boss on turn 20 and LV 9 by the main
   // boss on turn 40. XP chests give a whole level.
   xpNeed: lvl => Math.round(5 + 1.5 * lvl + 0.06 * lvl * lvl),
-  xpBrick: 0.5, xpSteel: 2, xpBoss: 15, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  xpBrick: 0.38, xpSteel: 2, xpBoss: 15, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.1, goldPerTurn: 0.5, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
@@ -1015,7 +1019,7 @@ function newRun() {
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
     bricks: [], movers: [], toFire: 0, fireTimer: 0, turnTime: 0, timeScale: 1, blasts: [],
     dmg: dmgMult(m.power), unit: dmgMult(m.power), crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
-    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, bossIdx: 0, bossTurns: null, nextBossTurn: null, lastBossTurn: 0, mainDown: false, gold: 0, comboPulse: 0,
+    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, doubles: 0, lastDouble: 0, bossIdx: 0, bossTurns: null, nextBossTurn: null, lastBossTurn: 0, mainDown: false, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
     camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false, energy: 0, pulse: 0,
@@ -1026,7 +1030,7 @@ function newRun() {
   S.bossTurns = rollBossTurns(); S.nextBossTurn = S.bossTurns ? S.bossTurns[0] : randIn(BAL.endlessFirst);
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = []; shards = [];
   pillars = []; blooms = []; bgFlashes = [];
-  for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
+  for (let i = 0; i < BAL.startRows; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
   rebuildGrid();
 }
 
@@ -1591,6 +1595,14 @@ function endTurn() {
   addGold(BAL.goldPerTurn);
   if (S.worldPending) switchWorld();
   spawnRow(S.turn, true);
+  // the field is being kept clear: a second row drops in at once, so there is always more to break
+  let top = 0;
+  for (const br of S.bricks) if (!br.dead && !isItem(br)) top = Math.max(top, br.r);
+  if (S.hp > 0 && S.turn >= BAL.doubleRowFrom && top <= BAL.doubleRowDepth && S.turn - S.lastDouble >= BAL.doubleRowGap) {
+    for (const br of S.bricks) if (!br.dead) { br.r++; br.oy -= RH; setRect(br); }
+    rebuildGrid(); spawnRow(S.turn, true); S.doubles++; S.lastDouble = S.turn;
+    bigWords.push({ s: 'DOUBLE ROW!', life: 1.1, max: 1.1, y: H * 0.46, size: 18 }); shake(3); sfx.whoosh();
+  }
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   let low = 0;
   for (const br of S.bricks) if (!br.dead && !isItem(br)) low = Math.max(low, br.r);

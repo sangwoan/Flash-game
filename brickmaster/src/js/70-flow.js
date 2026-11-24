@@ -62,6 +62,14 @@ function endTurn() {
   addGold(BAL.goldPerTurn);
   if (S.worldPending) switchWorld();
   spawnRow(S.turn, true);
+  // the field is being kept clear: a second row drops in at once, so there is always more to break
+  let top = 0;
+  for (const br of S.bricks) if (!br.dead && !isItem(br)) top = Math.max(top, br.r);
+  if (S.hp > 0 && S.turn >= BAL.doubleRowFrom && top <= BAL.doubleRowDepth && S.turn - S.lastDouble >= BAL.doubleRowGap) {
+    for (const br of S.bricks) if (!br.dead) { br.r++; br.oy -= RH; setRect(br); }
+    rebuildGrid(); spawnRow(S.turn, true); S.doubles++; S.lastDouble = S.turn;
+    bigWords.push({ s: 'DOUBLE ROW!', life: 1.1, max: 1.1, y: H * 0.46, size: 18 }); shake(3); sfx.whoosh();
+  }
   S.combo = 0; S.timeScale = 1; S.fever = false; S.comboMile = 0;
   let low = 0;
   for (const br of S.bricks) if (!br.dead && !isItem(br)) low = Math.max(low, br.r);
