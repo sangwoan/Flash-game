@@ -150,7 +150,7 @@ function kill(br) {
     if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true;
     // time the next boss: a random gap after this one arrived, and a short rest after this kill
-    if (!S.cleared) S.nextBossTurn = Math.max(S.lastBossTurn + randIn(BAL.bossGap), S.turn + BAL.bossRest);
+    if (!S.cleared) S.nextBossTurn = Math.max(S.bossTurns ? S.bossTurns[S.bossIdx] : S.lastBossTurn + randIn(BAL.endlessGap), S.turn + BAL.bossRest);
     if (!S.cleared) gainXp(BAL.xpBoss); // no level-up popping over the clear
     S.flash = 0.6; S.flashCol = '255,255,255';
     addGold((BAL.goldBoss + BAL.goldChapter(br.chapter)) * (big ? 2 : 1), cx, cy);

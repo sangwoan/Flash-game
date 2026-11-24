@@ -294,7 +294,7 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map((r, i) => `${r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스'}(LV ${lv.bossLv[i]})`).join(' → ')}<br>`
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map((r, i) => `${r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스'}(${(lv.stageBoss ? BAL.stageBossTurns : BAL.bossTurns)[i]}턴 무렵)`).join(' → ')}<br>`
     + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;

@@ -18,7 +18,7 @@ function newRun() {
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
     bricks: [], movers: [], toFire: 0, fireTimer: 0, turnTime: 0, timeScale: 1, blasts: [],
     dmg: dmgMult(m.power), unit: dmgMult(m.power), crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
-    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, bossIdx: 0, nextBossTurn: randIn(BAL.firstBoss), lastBossTurn: 0, mainDown: false, gold: 0, comboPulse: 0,
+    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, bossIdx: 0, bossTurns: null, nextBossTurn: null, lastBossTurn: 0, mainDown: false, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
     camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false, energy: 0, pulse: 0,
@@ -26,6 +26,7 @@ function newRun() {
     world: STG.land, worldPending: false, wipe: 0, score: 0,
     shield: 0, ironLeft: 0, encoreChecked: false, acidDone: false, cleared: false,
   };
+  S.bossTurns = rollBossTurns(); S.nextBossTurn = S.bossTurns ? S.bossTurns[0] : randIn(BAL.endlessFirst);
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = []; shards = [];
   pillars = []; blooms = []; bgFlashes = [];
   for (let i = 0; i < 3; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
@@ -108,12 +109,11 @@ function bossEntrance(rank) {
   // the level-up cards come first; the entrance plays when they are done (see choose)
   if (S.pendingLevels > 0) { S.pendingEntrance = rank; return; }
   sfx.boss();
-  const lv = STG.bossLv ? `LV ${STG.bossLv[S.bossIdx - 1]} 달성 · ` : ''; // the level that called this boss
   if (rank === 'boss') {
-    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : lv + (S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장'), TH.css.hot);
+    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장', TH.css.hot);
     return;
   }
-  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', lv + (rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장'), TH.css.hot);
+  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장', TH.css.hot);
   S.banner.life = S.banner.max = 2.8; S.banner.warn = true; // hazard stripes on the banner
   S.flash = 0.45; S.flashCol = '255,43,106'; S.pulse = 1; S.camZ = Math.max(S.camZ, 0.05); shake(12); buzz(140);
   setTimeout(() => sfx.boss(), 260);
