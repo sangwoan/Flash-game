@@ -59,7 +59,7 @@ const BAL = {
   // so a first-time player with no upgrades gets through 1-1; from 2-1 on it is plain x1.13 per level.
   // classicHp: a run levels up 10+ times before its main boss, so classic bricks start tougher.
   levelHp: g => BAL.classicHp * Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.35 + 0.13 * g),
-  classicHp: 2.5,
+  classicHp: 2.2,
   // v1.7: a run builds up over a long level: about LV 5 by the boss on turn 20 and LV 9 by the main
   // boss on turn 40. XP chests give a whole level.
   xpNeed: lvl => Math.round(5 + 1.5 * lvl + 0.06 * lvl * lvl),

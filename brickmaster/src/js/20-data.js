@@ -2,18 +2,18 @@
 const zapEvery = l => Math.max(4, 10 - l * 2);
 const fmtDmg = d => d >= 100 ? fmtBig(d) : String(Math.round(d * 10) / 10);
 const UPG = {
-  multi:  { tag: 'BALL+3', name: '공 추가',   max: 99, col: '#3ee6ff', w: 3,   desc: () => '발사하는 공 +3개', apply() { S.balls += 3; } },
-  power:  { tag: 'DMG+',   name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +${fmtDmg(S.unit)} (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += S.unit; } },
-  crit:   { tag: 'CRIT',   name: '치명타',    max: 4,  col: '#ffd23f', w: 2,   desc: n => `${12 * n}% 확률로 3배 피해`, apply() { S.crit = 0.12 * S.lv.crit; } },
-  fire:   { tag: 'FIRE',   name: '화염탄',    max: 5,  col: '#ff8a3d', w: 2,   desc: n => `벽돌을 부수면 주변에 불꽃 폭발 (공격력 ×${n + 1})`, apply() {} },
+  multi:  { tag: 'BALL+4', name: '공 추가',   max: 99, col: '#3ee6ff', w: 3,   desc: () => '발사하는 공 +4개', apply() { S.balls += 4; } },
+  power:  { tag: 'DMG+',   name: '공격력',    max: 99, col: '#ff6b6b', w: 3,   desc: () => `모든 공격 피해 +${fmtDmg(S.unit * 0.8)} (현재 ${fmtDmg(S.dmg)})`, apply() { S.dmg += S.unit * 0.8; } },
+  crit:   { tag: 'CRIT',   name: '치명타',    max: 4,  col: '#ffd23f', w: 2,   desc: n => `${15 * n}% 확률로 3배 피해`, apply() { S.crit = 0.15 * S.lv.crit; } },
+  fire:   { tag: 'FIRE',   name: '화염탄',    max: 5,  col: '#ff8a3d', w: 2,   desc: n => `벽돌을 부수면 주변에 불꽃 폭발 (공격력 ×${n + 1.5})`, apply() {} },
   chain:  { tag: 'ZAP',    name: '연쇄 번개', max: 5,  col: '#a5e9ff', w: 2,   desc: n => `${zapEvery(n)}번 맞힐 때마다 가까운 벽돌 ${n + 1}개에 번개가 떨어짐`, apply() {} },
   pierce: { tag: 'PIERCE', name: '관통',      max: 4,  col: '#b98cff', w: 1.5, desc: n => `${15 * n}% 확률로 벽돌을 뚫고 지나감`, apply() { S.pierce = 0.15 * S.lv.pierce; } },
   split:  { tag: 'SPLIT',  name: '분열',      max: 4,  col: '#ff9be0', w: 2,   desc: n => `공이 처음 맞힐 때 ${n + 1}갈래로 갈라짐`, apply() {} },
-  rush:   { tag: 'RUSH',   name: '폭주',      max: 4,  col: '#ff6a3d', w: 2,   desc: n => `벽돌을 맞힐 때마다 그 공의 피해 +${12 * n}%, 속도도 빨라짐`, apply() {} },
-  iron:   { tag: 'IRON',   name: '철구',      max: 3,  col: '#b8c2d9', w: 1.6, desc: n => `매 턴 ${n >= 3 ? '처음 두 공이' : '첫 공이'} 쇠공이 되어 벽돌을 모두 뚫고 ${n + 2}배 피해`, apply() {} },
-  encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `공이 모두 돌아오면 ${15 * n}% 확률로 같은 방향으로 한 번 더 발사`, apply() {} },
-  bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `바닥에 닿은 공이 ${n}번 더 튕겨 오름`, apply() {} },
-  acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힐 때마다 부식이 ${n}씩 쌓이고, 턴이 끝날 때 쌓인 만큼 한꺼번에 피해`, apply() {} },
+  rush:   { tag: 'RUSH',   name: '폭주',      max: 4,  col: '#ff6a3d', w: 2,   desc: n => `벽돌을 맞힐 때마다 그 공의 피해 +${20 * n}%, 속도도 빨라짐`, apply() {} },
+  iron:   { tag: 'IRON',   name: '철구',      max: 3,  col: '#b8c2d9', w: 1.6, desc: n => `매 턴 ${n >= 3 ? '처음 두 공이' : '첫 공이'} 쇠공이 되어 벽돌을 모두 뚫고 ${n + 1}배 피해`, apply() {} },
+  encore: { tag: 'ENCORE', name: '앙코르',    max: 3,  col: '#ffe14d', w: 1.6, desc: n => `${5 - n}턴마다 반드시, 공이 모두 돌아오면 같은 방향으로 한 번 더 발사`, apply() {} },
+  bounce: { tag: 'BOUNCE', name: '바운스 패드', max: 3, col: '#5effa8', w: 1.8, desc: n => `바닥에 닿은 공이 ${25 * n}% 확률로 다시 튕겨 오름 (공마다 최대 ${n}번)`, apply() {} },
+  acid:   { tag: 'ACID',   name: '부식',      max: 4,  col: '#a6ff3d', w: 1.8, desc: n => `맞힐 때마다 부식이 ${n}씩 쌓이고, 턴이 끝날 때 부식 1마다 공격력의 30% 피해`, apply() {} },
   xp:     { tag: 'XP',     name: '학습',      max: 4,  col: '#c6ff5e', w: 1,   desc: n => `경험치 획득 +${40 * n}%`, apply() {} },
 };
 

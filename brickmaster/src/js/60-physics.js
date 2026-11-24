@@ -73,8 +73,8 @@ function moveBall(b, dt) {
     if (b.y < TOP + b.r) { b.y = TOP + b.r; b.vy = Math.abs(b.vy); sfx.wall(); }
     collide(b, 1, py);
     if (b.ghost.size) for (const g of b.ghost) if (g.dead || !overlaps(b, g)) b.ghost.delete(g);
-    if (b.vy > 0 && b.y >= LY && b.fb < S.lv.bounce) {
-      // bounce pad: send the ball back up
+    if (b.vy > 0 && b.y >= LY && b.fb < S.lv.bounce && rnd() < 0.25 * S.lv.bounce) {
+      // bounce pad: 25% a level to send the ball back up, at most once a level per ball
       b.fb++; b.y = LY - 0.5; b.vy = -Math.abs(b.vy);
       rings.push({ x: b.x, y: LY, r: 26, life: 0.22, max: 0.22, col: UPG.bounce.col }); sfx.wall();
     } else if (b.vy > 0 && b.y >= LY) {

@@ -28,6 +28,7 @@ const COMBO_MILES = [8, 15, 25, 40, 60];
 function dealDamage(br, d, crit) {
   if (br.dead || isItem(br)) return;
   br.col = brickColor(br); // colour while still alive, for shards
+  if (S.meter) { S.meter.raw += d; S.meter.eff += Math.min(d, br.hp); } // balance benches only
   br.hp -= d; br.flash = 1;
   br.kx = (br.kx || 0) + (br.kdx || 0) * 2.5; br.ky = (br.ky || 0) + (br.kdy || 0) * 2.5;
   if (crit) texts.push(mkText(br.X + br.Wd / 2, br.Y, 'CRIT ' + fmtDmg(Math.round(d * 10) / 10), TH.css.gold, 0.7, 9));
@@ -167,7 +168,7 @@ function kill(br) {
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(effTurn(S.turn) * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.level++; S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); } // counts toward the boss gates
   if (br.type === 'slime') splitSlime(br);
-  if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
+  if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1.5 + S.lv.fire), kind: 'fire', t: 0.07 });
 }
 
 // A slime splits into up to two small bricks in free neighbouring cells.
@@ -218,7 +219,7 @@ function zap(from) {
     for (let i = 1; i < 6; i++) pts.push([px + (tx - px) * i / 6 + (rnd() - 0.5) * 16, py + (ty - py) * i / 6 + (rnd() - 0.5) * 16]);
     pts.push([tx, ty]);
     bolts.push({ pts, life: 0.16, max: 0.16 });
-    dealDamage(b, S.dmg * 2, false);
+    dealDamage(b, S.dmg * 1.5, false);
     px = tx; py = ty;
   }
   if (cand.length) sfx.zap();
@@ -229,7 +230,7 @@ function acidTick() {
   let any = false;
   for (const br of S.bricks) {
     if (br.dead || isItem(br) || !br.acid) continue;
-    const d = br.acid * S.dmg * 0.5;
+    const d = br.acid * S.dmg * 0.3;
     texts.push(mkText(br.X + br.Wd / 2, br.Y + 4, fmtDmg(Math.round(d * 10) / 10), UPG.acid.col, 0.8, 9));
     burst(br.X + br.Wd / 2, br.Y + br.Ht / 2, UPG.acid.col, 4, 120);
     br.acid = Math.floor(br.acid / 2);
@@ -262,9 +263,9 @@ function hitBrick(br, b) {
     const a = Math.atan2(b.vy, b.vx) + (rnd() - 0.5) * 1.2, v = 260 + rnd() * 220;
     parts.push({ x: b.x, y: b.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.18, max: 0.22, size: 2.4, col: '#ffffff', kind: 'spark', rot: 0, vr: 0, g: 0 });
   }
-  if (b.iron) d *= S.lv.iron + 2;
+  if (b.iron) d *= S.lv.iron + 1;
   if (S.lv.rush) {
-    d *= 1 + b.rush * 0.12 * S.lv.rush;
+    d *= 1 + b.rush * 0.2 * S.lv.rush;
     b.rush = Math.min(20, b.rush + 1);
     if (Math.hypot(b.vx, b.vy) < BAL.ballSpeed * 1.6) { b.vx *= 1.03; b.vy *= 1.03; }
   }

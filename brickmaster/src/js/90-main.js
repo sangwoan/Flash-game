@@ -79,6 +79,8 @@ window.__bm = {
   tick(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) update(dt); },
   shoot(angle) { if (S.phase !== 'aim') return; S.aim = { x: Math.cos(angle), y: Math.sin(angle) }; fire(); },
   pick(i) { if (S.phase === 'levelup' && curChoices[i]) choose(curChoices[i]); },
+  give(k) { S.lv[k]++; UPG[k].apply(); }, // balance benches: add a card without a level-up
+  UPG,
   newRun(meta, stage) { if (meta) Object.assign(SAVE.meta, meta); STG = stage === undefined ? STG : stage < 0 ? endlessInfo() : levelInfo(stage); newRun(); if (S.pendingLevels > 0) showLevel(); },
   theme(id) { applyTheme(id); },
   levelInfo, landOf, LANDS, META, metaCost, clearBonus,
