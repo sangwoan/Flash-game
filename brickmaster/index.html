@@ -305,32 +305,36 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 3 ? 0.01 : 0,
+  chest: t => t > 3 ? 0.015 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   chapterLen: 10, // turns per chapter: boss gold grows with it and the backdrop shifts
-  // Bosses come one at a time. The first arrives on a random turn in firstBoss; each next one
-  // bossGap turns (random) after the previous one arrived, but only once that one is dead and no
-  // sooner than bossRest turns after the kill. Boss HP = that turn's brick HP x the multiplier.
-  firstBoss: [11, 14], bossGap: [8, 10], bossRest: 2,
+  // Bosses come one at a time, and in classic only once the run has levelled up enough (bossLv in
+  // levelInfo: the first boss at POWER LV 5, the final one at LV 9). On top of that the first one
+  // waits for a random turn in firstBoss, each next one bossGap turns (random) after the previous
+  // one arrived, and never sooner than bossRest turns after the previous kill.
+  // Boss HP = that turn's brick HP x the multiplier.
+  firstBoss: [10, 13], bossGap: [6, 8], bossRest: 2,
   // Classic levels run longer because bosses arrive later and spaced out, so there brick HP and row
   // density climb per turn at this fraction of the endless speed (turn 22 plays like turn 15 did).
-  classicPace: 0.68,
-  bossHp: 6, mainBossHp: 8, stageBossHp: 7,
+  classicPace: 1,
+  bossHp: 6, mainBossHp: 9, stageBossHp: 8,
   // Number inflation (classic): brick HP and gold both grow x1.13 per level (x1.84 per stage), so the
   // numbers climb from tens into K, M, B and beyond. 기본 화력 in the workshop multiplies damage by
   // dmgStep per level to keep up.
   hpGrowth: 1.13, goldGrowth: 1.13, dmgStep: 1.25,
-  // Brick HP multiplier for classic level g (0-based). Stage 1 eases in from x0.5 so a first-time
-  // player gets through 1-1 even with fewer level-ups; from 2-1 on it is the plain x1.13 per level.
-  levelHp: g => Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.5 + 0.1 * g),
-  xpNeed: lvl => Math.round(6 + lvl * 5 + 0.8 * Math.pow(lvl, 2.2)),
-  // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
-  // v1.5: classic levels are longer and kill more bricks per turn, so XP per brick and the chest
-  // rate dropped again to keep level-ups per turn at the v1.4 rate (about one every 9-10 turns early).
-  xpBrick: 0.3, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  // Brick HP multiplier for classic level g (0-based). Stage 1 eases in (x0.35 of the curve at 1-1)
+  // so a first-time player with no upgrades gets through 1-1; from 2-1 on it is plain x1.13 per level.
+  // classicHp: runs level up a lot now (about 10 picks a level), so classic bricks start tougher.
+  levelHp: g => BAL.classicHp * Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.35 + 0.13 * g),
+  classicHp: 1.8,
+  // v1.6: a run is about building up before the bosses: XP per level grows slowly so a typical run
+  // reaches LV 5 around turn 13-15 (first boss) and LV 9 around turn 25-28 (final boss).
+  // XP chests give a whole level.
+  xpNeed: lvl => Math.round(6 + 1.6 * lvl + 0.05 * lvl * lvl),
+  xpBrick: 1, xpSteel: 3, xpBoss: 15, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.15, goldPerTurn: 0.7, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
@@ -950,7 +954,9 @@ const GIMMICKS = [
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
   return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: l === LEVELS_PER_STAGE - 1 ? 3 : 2, stageBoss: l === LEVELS_PER_STAGE - 1,
-    bossList: l === LEVELS_PER_STAGE - 1 ? ['boss', 'boss', 'stage'] : ['boss', 'main'], hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+    bossList: l === LEVELS_PER_STAGE - 1 ? ['boss', 'boss', 'stage'] : ['boss', 'main'],
+    bossLv: l === LEVELS_PER_STAGE - 1 ? [5, 7, 9] : [5, 9], // POWER LV each boss waits for
+    hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
 }
 // Endless: one long run; every boss raises the level and moves to the next landscape.
 // Brick HP is scaled by the player's workshop damage multiplier, so 기본 화력 doesn't trivialise it
@@ -964,9 +970,12 @@ let STG = levelInfo(0);
 const BOSS_KIND = { boss: { span: 3, hp: () => BAL.bossHp }, main: { span: 5, hp: () => BAL.mainBossHp }, stage: { span: 5, hp: () => BAL.stageBossHp } };
 // The next boss this level will send (endless: always a plain boss); undefined once all are out.
 const nextBossRank = () => STG.bossList ? STG.bossList[S.bossIdx] : 'boss';
-// The boss that arrives on turn t, if any: its turn has come and no other boss is alive.
+// POWER LV the next boss waits for (0 in endless).
+const nextBossLv = () => STG.bossLv ? STG.bossLv[S.bossIdx] || 0 : 0;
+// The boss that arrives on turn t, if any: its turn has come, the run has levelled up enough and no
+// other boss is alive.
 function bossAt(t) {
-  if (S.nextBossTurn === null || t < S.nextBossTurn) return null;
+  if (S.nextBossTurn === null || t < S.nextBossTurn || S.level < nextBossLv()) return null;
   const rank = nextBossRank();
   if (!rank || S.bricks.some(b => b.type === 'boss' && !b.dead)) return null;
   return { rank, span: BOSS_KIND[rank].span, hpMul: BOSS_KIND[rank].hp() };
@@ -1094,12 +1103,15 @@ function shake(a) { S.shake = Math.min(14, S.shake + a * (RM ? 0.25 : 1)); }
 function showBanner(title, sub, col) { S.banner = { title, sub, col, life: 2, max: 2 }; }
 // Boss arrival. The main boss gets a longer banner, a red flash and a camera punch.
 function bossEntrance(rank) {
+  // the level-up cards come first; the entrance plays when they are done (see choose)
+  if (S.pendingLevels > 0) { S.pendingEntrance = rank; return; }
   sfx.boss();
+  const lv = STG.bossLv ? `LV ${STG.bossLv[S.bossIdx - 1]} 달성 · ` : ''; // the level that called this boss
   if (rank === 'boss') {
-    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장', TH.css.hot);
+    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : lv + (S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장'), TH.css.hot);
     return;
   }
-  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장', TH.css.hot);
+  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', lv + (rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장'), TH.css.hot);
   S.banner.life = S.banner.max = 2.8; S.banner.warn = true; // hazard stripes on the banner
   S.flash = 0.45; S.flashCol = '255,43,106'; S.pulse = 1; S.camZ = Math.max(S.camZ, 0.05); shake(12); buzz(140);
   setTimeout(() => sfx.boss(), 260);
@@ -1273,7 +1285,7 @@ function kill(br) {
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(effTurn(S.turn) * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
-  if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
+  if (br.type === 'chest') { S.level++; S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); } // counts toward the boss gates
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
 }
@@ -1640,7 +1652,12 @@ function pickCard(k, el) {
 }
 function choose(k) {
   S.lv[k]++; UPG[k].apply(); S.pendingLevels--; sfx.pick();
-  if (S.pendingLevels > 0) showLevel(); else { lvlEl.hidden = true; S.phase = 'aim'; }
+  if (S.pendingLevels > 0) showLevel();
+  else {
+    lvlEl.hidden = true; S.phase = 'aim';
+    // a boss that arrived while cards were waiting makes its entrance now
+    if (S.pendingEntrance) { const r = S.pendingEntrance; S.pendingEntrance = null; bossEntrance(r); }
+  }
 }
 
 // ---------- shield offer: once per run, sometimes, when bricks get close ----------
@@ -1807,7 +1824,7 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map(r => r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스').join(' → ')}<br>`
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map((r, i) => `${r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스'}(LV ${lv.bossLv[i]})`).join(' → ')}<br>`
     + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
@@ -2652,10 +2669,11 @@ function drawHud(now, ch) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
       ctx.fillStyle = i < S.bosses ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
     }
-    const alive = S.bricks.find(b => b.type === 'boss' && !b.dead), next = nextBossRank();
-    const left = S.nextBossTurn === null ? null : S.nextBossTurn - S.turn;
-    const txt = alive ? BOSS_LABEL[alive.rank] : next && left !== null ? `${next === 'boss' ? 'BOSS' : next === 'main' ? 'MAIN' : 'STAGE'} IN ${Math.max(1, left)}` : '';
-    ctx.textAlign = 'left'; ctx.fillStyle = alive || (left !== null && left <= 2) ? hd.accent : hd.dim;
+    // next boss: "MAIN AT LV 9" until the run has levelled up enough, then "MAIN IN 2"
+    const alive = S.bricks.find(b => b.type === 'boss' && !b.dead), next = nextBossRank(), need = nextBossLv();
+    const left = S.nextBossTurn === null ? null : S.nextBossTurn - S.turn, nm = next === 'boss' ? 'BOSS' : next === 'main' ? 'MAIN' : 'STAGE';
+    const txt = alive ? BOSS_LABEL[alive.rank] : !next || left === null ? '' : S.level < need ? `${nm} AT LV ${need}` : `${nm} IN ${Math.max(1, left)}`;
+    ctx.textAlign = 'left'; ctx.fillStyle = alive || (next && left !== null && S.level >= need && left <= 2) ? hd.accent : hd.dim;
     ctx.fillText(txt, 46 + (n - 1) * 11 + 10, 72); ctx.textAlign = 'center';
   }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(S.dmg)}  BALL ${S.balls}`, W / 2 + 10, 15);

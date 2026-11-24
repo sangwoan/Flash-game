@@ -697,10 +697,11 @@ function drawHud(now, ch) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
       ctx.fillStyle = i < S.bosses ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
     }
-    const alive = S.bricks.find(b => b.type === 'boss' && !b.dead), next = nextBossRank();
-    const left = S.nextBossTurn === null ? null : S.nextBossTurn - S.turn;
-    const txt = alive ? BOSS_LABEL[alive.rank] : next && left !== null ? `${next === 'boss' ? 'BOSS' : next === 'main' ? 'MAIN' : 'STAGE'} IN ${Math.max(1, left)}` : '';
-    ctx.textAlign = 'left'; ctx.fillStyle = alive || (left !== null && left <= 2) ? hd.accent : hd.dim;
+    // next boss: "MAIN AT LV 9" until the run has levelled up enough, then "MAIN IN 2"
+    const alive = S.bricks.find(b => b.type === 'boss' && !b.dead), next = nextBossRank(), need = nextBossLv();
+    const left = S.nextBossTurn === null ? null : S.nextBossTurn - S.turn, nm = next === 'boss' ? 'BOSS' : next === 'main' ? 'MAIN' : 'STAGE';
+    const txt = alive ? BOSS_LABEL[alive.rank] : !next || left === null ? '' : S.level < need ? `${nm} AT LV ${need}` : `${nm} IN ${Math.max(1, left)}`;
+    ctx.textAlign = 'left'; ctx.fillStyle = alive || (next && left !== null && S.level >= need && left <= 2) ? hd.accent : hd.dim;
     ctx.fillText(txt, 46 + (n - 1) * 11 + 10, 72); ctx.textAlign = 'center';
   }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(S.dmg)}  BALL ${S.balls}`, W / 2 + 10, 15);

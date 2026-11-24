@@ -14,7 +14,9 @@ const GIMMICKS = [
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
   return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: l === LEVELS_PER_STAGE - 1 ? 3 : 2, stageBoss: l === LEVELS_PER_STAGE - 1,
-    bossList: l === LEVELS_PER_STAGE - 1 ? ['boss', 'boss', 'stage'] : ['boss', 'main'], hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+    bossList: l === LEVELS_PER_STAGE - 1 ? ['boss', 'boss', 'stage'] : ['boss', 'main'],
+    bossLv: l === LEVELS_PER_STAGE - 1 ? [5, 7, 9] : [5, 9], // POWER LV each boss waits for
+    hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
 }
 // Endless: one long run; every boss raises the level and moves to the next landscape.
 // Brick HP is scaled by the player's workshop damage multiplier, so 기본 화력 doesn't trivialise it
@@ -28,9 +30,12 @@ let STG = levelInfo(0);
 const BOSS_KIND = { boss: { span: 3, hp: () => BAL.bossHp }, main: { span: 5, hp: () => BAL.mainBossHp }, stage: { span: 5, hp: () => BAL.stageBossHp } };
 // The next boss this level will send (endless: always a plain boss); undefined once all are out.
 const nextBossRank = () => STG.bossList ? STG.bossList[S.bossIdx] : 'boss';
-// The boss that arrives on turn t, if any: its turn has come and no other boss is alive.
+// POWER LV the next boss waits for (0 in endless).
+const nextBossLv = () => STG.bossLv ? STG.bossLv[S.bossIdx] || 0 : 0;
+// The boss that arrives on turn t, if any: its turn has come, the run has levelled up enough and no
+// other boss is alive.
 function bossAt(t) {
-  if (S.nextBossTurn === null || t < S.nextBossTurn) return null;
+  if (S.nextBossTurn === null || t < S.nextBossTurn || S.level < nextBossLv()) return null;
   const rank = nextBossRank();
   if (!rank || S.bricks.some(b => b.type === 'boss' && !b.dead)) return null;
   return { rank, span: BOSS_KIND[rank].span, hpMul: BOSS_KIND[rank].hp() };

@@ -30,32 +30,36 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 3 ? 0.01 : 0,
+  chest: t => t > 3 ? 0.015 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
   chapterLen: 10, // turns per chapter: boss gold grows with it and the backdrop shifts
-  // Bosses come one at a time. The first arrives on a random turn in firstBoss; each next one
-  // bossGap turns (random) after the previous one arrived, but only once that one is dead and no
-  // sooner than bossRest turns after the kill. Boss HP = that turn's brick HP x the multiplier.
-  firstBoss: [11, 14], bossGap: [8, 10], bossRest: 2,
+  // Bosses come one at a time, and in classic only once the run has levelled up enough (bossLv in
+  // levelInfo: the first boss at POWER LV 5, the final one at LV 9). On top of that the first one
+  // waits for a random turn in firstBoss, each next one bossGap turns (random) after the previous
+  // one arrived, and never sooner than bossRest turns after the previous kill.
+  // Boss HP = that turn's brick HP x the multiplier.
+  firstBoss: [10, 13], bossGap: [6, 8], bossRest: 2,
   // Classic levels run longer because bosses arrive later and spaced out, so there brick HP and row
   // density climb per turn at this fraction of the endless speed (turn 22 plays like turn 15 did).
-  classicPace: 0.68,
-  bossHp: 6, mainBossHp: 8, stageBossHp: 7,
+  classicPace: 1,
+  bossHp: 6, mainBossHp: 9, stageBossHp: 8,
   // Number inflation (classic): brick HP and gold both grow x1.13 per level (x1.84 per stage), so the
   // numbers climb from tens into K, M, B and beyond. 기본 화력 in the workshop multiplies damage by
   // dmgStep per level to keep up.
   hpGrowth: 1.13, goldGrowth: 1.13, dmgStep: 1.25,
-  // Brick HP multiplier for classic level g (0-based). Stage 1 eases in from x0.5 so a first-time
-  // player gets through 1-1 even with fewer level-ups; from 2-1 on it is the plain x1.13 per level.
-  levelHp: g => Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.5 + 0.1 * g),
-  xpNeed: lvl => Math.round(6 + lvl * 5 + 0.8 * Math.pow(lvl, 2.2)),
-  // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
-  // v1.5: classic levels are longer and kill more bricks per turn, so XP per brick and the chest
-  // rate dropped again to keep level-ups per turn at the v1.4 rate (about one every 9-10 turns early).
-  xpBrick: 0.3, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  // Brick HP multiplier for classic level g (0-based). Stage 1 eases in (x0.35 of the curve at 1-1)
+  // so a first-time player with no upgrades gets through 1-1; from 2-1 on it is plain x1.13 per level.
+  // classicHp: runs level up a lot now (about 10 picks a level), so classic bricks start tougher.
+  levelHp: g => BAL.classicHp * Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.35 + 0.13 * g),
+  classicHp: 1.8,
+  // v1.6: a run is about building up before the bosses: XP per level grows slowly so a typical run
+  // reaches LV 5 around turn 13-15 (first boss) and LV 9 around turn 25-28 (final boss).
+  // XP chests give a whole level.
+  xpNeed: lvl => Math.round(6 + 1.6 * lvl + 0.05 * lvl * lvl),
+  xpBrick: 1, xpSteel: 3, xpBoss: 15, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
   goldPerKill: 0.15, goldPerTurn: 0.7, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 

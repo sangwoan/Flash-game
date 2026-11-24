@@ -105,12 +105,15 @@ function shake(a) { S.shake = Math.min(14, S.shake + a * (RM ? 0.25 : 1)); }
 function showBanner(title, sub, col) { S.banner = { title, sub, col, life: 2, max: 2 }; }
 // Boss arrival. The main boss gets a longer banner, a red flash and a camera punch.
 function bossEntrance(rank) {
+  // the level-up cards come first; the entrance plays when they are done (see choose)
+  if (S.pendingLevels > 0) { S.pendingEntrance = rank; return; }
   sfx.boss();
+  const lv = STG.bossLv ? `LV ${STG.bossLv[S.bossIdx - 1]} 달성 · ` : ''; // the level that called this boss
   if (rank === 'boss') {
-    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장', TH.css.hot);
+    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : lv + (S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장'), TH.css.hot);
     return;
   }
-  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장', TH.css.hot);
+  showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', lv + (rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장'), TH.css.hot);
   S.banner.life = S.banner.max = 2.8; S.banner.warn = true; // hazard stripes on the banner
   S.flash = 0.45; S.flashCol = '255,43,106'; S.pulse = 1; S.camZ = Math.max(S.camZ, 0.05); shake(12); buzz(140);
   setTimeout(() => sfx.boss(), 260);

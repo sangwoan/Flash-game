@@ -122,7 +122,12 @@ function pickCard(k, el) {
 }
 function choose(k) {
   S.lv[k]++; UPG[k].apply(); S.pendingLevels--; sfx.pick();
-  if (S.pendingLevels > 0) showLevel(); else { lvlEl.hidden = true; S.phase = 'aim'; }
+  if (S.pendingLevels > 0) showLevel();
+  else {
+    lvlEl.hidden = true; S.phase = 'aim';
+    // a boss that arrived while cards were waiting makes its entrance now
+    if (S.pendingEntrance) { const r = S.pendingEntrance; S.pendingEntrance = null; bossEntrance(r); }
+  }
 }
 
 // ---------- shield offer: once per run, sometimes, when bricks get close ----------
@@ -289,7 +294,7 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map(r => r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스').join(' → ')}<br>`
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map((r, i) => `${r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스'}(LV ${lv.bossLv[i]})`).join(' → ')}<br>`
     + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;

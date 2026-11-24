@@ -165,7 +165,7 @@ function kill(br) {
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(effTurn(S.turn) * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
-  if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
+  if (br.type === 'chest') { S.level++; S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); } // counts toward the boss gates
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
 }
