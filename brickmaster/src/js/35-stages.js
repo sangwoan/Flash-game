@@ -2,14 +2,32 @@
 // Every level ends with its main boss: levels 1-4 send a boss and then the main boss, the 5th level
 // of a stage sends two bosses and then the stage boss. Beating them all clears the level.
 // Brick HP grows with the overall level index g, so workshop upgrades carry the player forward.
-// Each stage also gets one of five brick mixes on top of the base chances in BAL.
+// Each stage also gets its own brick mix (GIMMICKS) on top of the base chances in BAL.
 const LEVELS_PER_STAGE = 5;
+// One brick mix per stage of the main campaign (20 stages, four zones). Every 5th stage pays
+// double gold. Past stage 20 the list repeats on tougher numbers.
+const MAIN_STAGES = 20;
 const GIMMICKS = [
   { text: '기본 규칙', mod: {} },
   { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
   { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
   { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
   { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.02, steel: 0.1 }, gold: 2 },
+  { text: '+1 공이 쏟아짐', mod: { orb: 0.35 } },
+  { text: '체력 2배 벽돌이 많음', mod: { doubleHp: 0.25 } },
+  { text: '레이저와 슬라임', mod: { laser: 0.12, slime: 0.1 } },
+  { text: '폭탄 연쇄: 폭탄이 아주 많고 듬성듬성함', mod: { bomb: 0.2, density: -0.1 } },
+  { text: '강철 성벽, 골드 2배', mod: { steel: 0.18, density: 0.04 }, gold: 2 },
+  { text: '슬라임 폭풍', mod: { slime: 0.2, density: 0.04 } },
+  { text: '레이저 격자', mod: { laser: 0.25 } },
+  { text: '체력 2배 벽돌과 폭탄', mod: { bomb: 0.12, doubleHp: 0.2, density: 0.06 } },
+  { text: '+1 공과 슬라임', mod: { orb: 0.3, slime: 0.12 } },
+  { text: 'XP 상자 잔치, 골드 2배', mod: { chest: 0.03, steel: 0.08 }, gold: 2 },
+  { text: '강철과 레이저', mod: { steel: 0.15, laser: 0.15 } },
+  { text: '빽빽한 슬라임과 폭탄', mod: { slime: 0.12, bomb: 0.1, density: 0.08 } },
+  { text: '체력 2배 벽돌과 강철', mod: { doubleHp: 0.3, steel: 0.08 } },
+  { text: '폭탄 연쇄와 +1 공', mod: { bomb: 0.18, orb: 0.3, density: -0.06 } },
+  { text: '최후의 요새: 강철·체력 2배·레이저, 골드 2배', mod: { steel: 0.15, doubleHp: 0.2, density: 0.08, laser: 0.08 }, gold: 2 },
 ];
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];

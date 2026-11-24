@@ -67,7 +67,7 @@ function spawnRow(t, slide = true) {
   let placed = 0;
   for (let c = 0; c < COLS; c++) {
     if (used[c] || rnd() > chance('density', t)) continue;
-    let type = 'n', hp = rnd() < BAL.doubleHp ? h * 2 : h, acc = 0;
+    let type = 'n', hp = rnd() < chance('doubleHp', t) ? h * 2 : h, acc = 0;
     const r = rnd();
     if (r < (acc += chance('bomb', t))) { type = 'bomb'; hp = Math.ceil(h * 0.6); }
     else if (r < (acc += chance('chest', t))) { type = 'chest'; hp = h * 2; }

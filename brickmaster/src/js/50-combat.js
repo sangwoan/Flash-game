@@ -265,7 +265,7 @@ function hitBrick(br, b) {
   }
   if (b.iron) d *= S.lv.iron + 1;
   if (S.lv.rush) {
-    d *= 1 + b.rush * 0.2 * S.lv.rush;
+    d *= 1 + b.rush * 0.25 * S.lv.rush;
     b.rush = Math.min(20, b.rush + 1);
     if (Math.hypot(b.vx, b.vy) < BAL.ballSpeed * 1.6) { b.vx *= 1.03; b.vy *= 1.03; }
   }

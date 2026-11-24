@@ -6,7 +6,7 @@ function fire() {
   S.phase = 'fire'; S.toFire = S.balls; S.fireTimer = 0; S.turnTime = 0; S.timeScale = 1;
   S.combo = 0; S.nextLaunchX = null; S.aiming = false;
   S.encoreChecked = false; S.acidDone = false; S.perfectDone = false; S.burstN = 0;
-  S.encoreCount = (S.encoreCount || 0) + 1; // encore fires for sure every (5 - level) turns
+  S.encoreCount = (S.encoreCount || 0) + 1; // encore fires for sure every (4 - level) turns
   S.ironLeft = S.lv.iron ? (S.lv.iron >= 3 ? 2 : 1) : 0;
 }
 // Encore: every ball fires again from where the first one landed, without spending a turn.
@@ -275,7 +275,8 @@ function openMap(from) {
 function renderMap() {
   const list = $('mapList'); list.innerHTML = '';
   $('mapInfo').textContent = `★ ${totalStars()} · 보유 골드 ${fmtGold(SAVE.gold)}`;
-  const lastStage = Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2; // show a little of what's ahead
+  // the whole main campaign (stages 1-20) is always on the map; past it, a little of what's ahead
+  const lastStage = Math.max(MAIN_STAGES - 1, Math.floor(SAVE.unlocked / LEVELS_PER_STAGE) + 2);
   for (let st = 0; st <= lastStage; st++) {
     const L = landOf(st), R = L.R, open = st * LEVELS_PER_STAGE <= SAVE.unlocked, G = GIMMICKS[st % GIMMICKS.length];
     if (st % STAGES_PER_ZONE === 0) {
@@ -391,7 +392,7 @@ function updateWorld(dt) {
     processBlasts(gdt);
     if (S.toFire === 0 && S.movers.length === 0 && S.blasts.length === 0) {
       // end of a volley: maybe encore, then acid settles, then the turn ends
-      if (!S.encoreChecked && (S.encoreChecked = true) && S.lv.encore && S.encoreCount >= 5 - S.lv.encore) { S.encoreCount = 0; encore(); }
+      if (!S.encoreChecked && (S.encoreChecked = true) && S.lv.encore && S.encoreCount >= 4 - S.lv.encore) { S.encoreCount = 0; encore(); }
       else if (S.lv.acid && !S.acidDone) { S.acidDone = true; acidTick(); }
       else endTurn();
     }
