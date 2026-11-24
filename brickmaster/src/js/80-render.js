@@ -45,7 +45,7 @@ function rr(x, y, w, h, r) {
 function brickColor(br) {
   const sp = TH.special[br.type];
   if (sp) return Array.isArray(sp) ? sp[0] : sp;
-  return TH.ramp(br.hp / (BAL.hp(S.turn) * STG.hpMul * 2.2));
+  return TH.ramp(br.hp / (brickHp(S.turn) * 2.2));
 }
 function ballColor() { return S.lv.fire ? '#ffb36b' : S.lv.chain ? '#bfefff' : TH.ball.core; }
 
@@ -163,7 +163,75 @@ function drawItem(br, now) {
   ctx.beginPath(); ctx.moveTo(L + 6, 0); ctx.lineTo(L, -6); ctx.lineTo(L, 6); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-const BOSS_LABEL = { boss: 'BOSS', sub: 'SUB BOSS', main: 'MAIN BOSS', stage: 'STAGE BOSS' };
+const BOSS_LABEL = { boss: 'BOSS', main: 'MAIN BOSS', stage: 'STAGE BOSS' };
+const rgbaOf = (col, a) => { const h = hexOf(col); return `rgba(${parseInt(h.slice(1, 3), 16)},${parseInt(h.slice(3, 5), 16)},${parseInt(h.slice(5, 7), 16)},${a})`; };
+// A point d along the outline of a w x h rectangle, clockwise from its top-left corner.
+function framePoint(d, w, h) {
+  if (d < w) return [d, 0]; d -= w;
+  if (d < h) return [w, d]; d -= h;
+  if (d < w) return [w - d, h]; d -= w;
+  return [0, h - d];
+}
+function sparkle(x, y, r) {
+  ctx.drawImage(glow(TH.css.gold), x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+  ctx.fillStyle = '#fff6cc'; ctx.beginPath(); ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x, y, x + r, y); ctx.quadraticCurveTo(x, y, x, y + r); ctx.quadraticCurveTo(x, y, x - r, y); ctx.quadraticCurveTo(x, y, x, y - r); ctx.fill();
+}
+// Behind the main boss: slowly turning light rays and a breathing aura.
+function bossUnder(br, w, h, now) {
+  const stage = br.rank === 'stage', R = w * 0.56;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(w / 2, h / 2); ctx.rotate(now / 3200 * (stage ? -1 : 1));
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+  g.addColorStop(0, rgbaOf(TH.css.gold, 0.26)); g.addColorStop(0.55, rgbaOf(stage ? TH.css.hot : TH.css.gold, 0.1)); g.addColorStop(1, rgbaOf(TH.css.gold, 0));
+  ctx.fillStyle = g;
+  for (let i = 0; i < 16; i++) { ctx.rotate(Math.PI / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8, -R); ctx.lineTo(8, -R); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 + 0.2 * Math.sin(now / 260);
+  ctx.drawImage(glow(stage ? TH.css.hot : TH.special.boss[0]), -34, -30, w + 68, h + 60); ctx.restore();
+}
+// A light sweep crossing the main boss's body every 2.6 s (drawn inside its outline).
+function bossSheen(br, w, h, now) {
+  const p = ((now / 2600 + br.id * 0.13) % 1) * (w + 120) - 60;
+  ctx.save(); brickPath(0, 0, w, h); ctx.clip(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createLinearGradient(p - 34, 0, p + 34, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,250,220,.32)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(p - 34, h); ctx.lineTo(p - 8, 0); ctx.lineTo(p + 34, 0); ctx.lineTo(p + 8, h); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// The big crown that sits on the main boss's top edge.
+function bigCrown(cx, by, stage) {
+  ctx.save(); ctx.translate(cx, by); if (stage) ctx.scale(1.18, 1.18);
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; ctx.drawImage(glow(TH.css.gold), -30, -34, 60, 52);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  const g = ctx.createLinearGradient(0, -17, 0, 3); g.addColorStop(0, '#fff6c2'); g.addColorStop(1, '#ffae00');
+  ctx.fillStyle = g; ctx.strokeStyle = 'rgba(90,45,0,.55)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-15, 3); ctx.lineTo(-16, -10); ctx.lineTo(-8, -3); ctx.lineTo(0, -15); ctx.lineTo(8, -3); ctx.lineTo(16, -10); ctx.lineTo(15, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+  for (const [px, py] of [[-16, -11], [0, -16.5], [16, -11]]) { ctx.beginPath(); ctx.arc(px, py, 2.3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = stage ? '#3ee6ff' : '#ff2b6a';
+  ctx.beginPath(); ctx.moveTo(0, -5.5); ctx.lineTo(3.4, -1.5); ctx.lineTo(0, 2.5); ctx.lineTo(-3.4, -1.5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fillRect(-1, -4, 1.4, 1.4);
+  ctx.restore();
+}
+// On top of the other bricks: a double gold frame with corner ornaments and sparks running around
+// it. Drawn after all bricks so neighbours never cover it.
+function drawBossDecor(br, now) {
+  const x = br.X + (br.kx || 0), y = br.Y + br.oy + (br.ky || 0), w = br.Wd, h = br.Ht, gold = TH.css.gold;
+  ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = gold;
+  ctx.globalAlpha = 0.6 + 0.35 * Math.sin(now / 180); ctx.lineWidth = 1.6; brickPath(-3.5, -3.5, w + 7, h + 7); ctx.stroke();
+  ctx.globalAlpha = 0.4; ctx.lineWidth = 1; brickPath(-7, -7, w + 14, h + 14); ctx.stroke();
+  ctx.globalAlpha = 1; ctx.lineWidth = 2.2; ctx.fillStyle = gold;
+  for (const [cx, cy, sx, sy] of [[-7, -7, 1, 1], [w + 7, -7, -1, 1], [-7, h + 7, 1, -1], [w + 7, h + 7, -1, -1]]) {
+    ctx.beginPath(); ctx.moveTo(cx, cy + sy * 13); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx * 13, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - 4); ctx.lineTo(cx + 4, cy); ctx.lineTo(cx, cy + 4); ctx.lineTo(cx - 4, cy); ctx.closePath(); ctx.fill();
+  }
+  const per = 2 * (w + h + 28);
+  for (let i = 0; i < 4; i++) {
+    const [px, py] = framePoint((now / 1000 * 110 + i * per / 4) % per, w + 14, h + 14);
+    sparkle(px - 7, py - 7, 3.5 + 1.8 * Math.sin(now / 110 + i * 1.7));
+  }
+  ctx.restore();
+}
 function crown(x, y) {
   ctx.beginPath(); ctx.moveTo(x, y + 11); ctx.lineTo(x, y + 2); ctx.lineTo(x + 4, y + 6); ctx.lineTo(x + 7.5, y);
   ctx.lineTo(x + 11, y + 6); ctx.lineTo(x + 15, y + 2); ctx.lineTo(x + 15, y + 11); ctx.closePath(); ctx.fill();
@@ -180,15 +248,9 @@ function drawBrick(br, now) {
   if (br.type === 'boss') {
     const g = ctx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, TH.special.boss[0]); g.addColorStop(1, TH.special.boss[1]); col = g;
   }
-  if (big) { // the main boss breathes a hot aura
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + 0.2 * Math.sin(now / 260);
-    ctx.drawImage(glow(TH.special.boss[0]), -26, -24, w + 52, h + 48); ctx.restore();
-  }
+  if (big) bossUnder(br, w, h, now); // rays and aura behind the main boss
   brickBody(br, w, h, col, now);
-  if (big) { // and wears a pulsing gold frame
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = TH.css.gold; ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.55 + 0.35 * Math.sin(now / 180); brickPath(-3.5, -3.5, w + 7, h + 7); ctx.stroke(); ctx.restore();
-  }
+  if (big) bossSheen(br, w, h, now);
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
   if (br.type === 'bomb') {
     ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 5; ctx.beginPath();
@@ -625,19 +687,21 @@ function drawHud(now, ch) {
   }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
   ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `LV ${S.world + 1}` : STG.id, W / 2 - 78, 15);
-  // classic: a pip for the sub-boss and a bigger one for the main boss, then the turns until the next
-  // one arrives; endless: nothing to count, the level is the label
+  // classic: a pip per boss (the last, the main boss, bigger), then the boss on screen or the turns
+  // until the next one; endless: nothing to count, the level is the label
   ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? TH.name : 'BOSS', 16, 72); ctx.textAlign = 'center';
   if (!STG.endless) {
-    for (let i = 0; i < 2; i++) {
-      const x = 46 + i * 11, y = 69, on = i ? S.mainDown : S.subDown, s = i ? 3.6 : 2.6;
+    const n = STG.bosses;
+    for (let i = 0; i < n; i++) {
+      const x = 46 + i * 11, y = 69, s = i === n - 1 ? 3.6 : 2.6;
       ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
+      ctx.fillStyle = i < S.bosses ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
     }
-    const subIn = BAL.subBossTurn - S.turn, mainIn = BAL.mainBossTurn - S.turn, n = subIn > 0 ? subIn : mainIn;
-    const txt = subIn > 0 ? `SUB IN ${subIn}` : mainIn > 0 ? `MAIN IN ${mainIn}` : S.mainDown ? '' : STG.stageBoss ? 'STAGE BOSS' : 'MAIN BOSS';
-    ctx.textAlign = 'left'; ctx.fillStyle = (n > 0 && n <= 2) || (n <= 0 && !S.mainDown) ? hd.accent : hd.dim;
-    ctx.fillText(txt, 66, 72); ctx.textAlign = 'center';
+    const alive = S.bricks.find(b => b.type === 'boss' && !b.dead), next = nextBossRank();
+    const left = S.nextBossTurn === null ? null : S.nextBossTurn - S.turn;
+    const txt = alive ? BOSS_LABEL[alive.rank] : next && left !== null ? `${next === 'boss' ? 'BOSS' : next === 'main' ? 'MAIN' : 'STAGE'} IN ${Math.max(1, left)}` : '';
+    ctx.textAlign = 'left'; ctx.fillStyle = alive || (left !== null && left <= 2) ? hd.accent : hd.dim;
+    ctx.fillText(txt, 46 + (n - 1) * 11 + 10, 72); ctx.textAlign = 'center';
   }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(S.dmg)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;
@@ -671,7 +735,10 @@ function draw(now) {
 
   ctx.save(); ctx.beginPath(); ctx.rect(0, TOP, W, H - TOP); ctx.clip();
   for (const br of S.bricks) if (!br.dead) drawBrick(br, now);
+  for (const br of S.bricks) if (!br.dead && br.type === 'boss' && isBigBoss(br)) drawBossDecor(br, now);
   ctx.restore();
+  // the crown sits on the main boss's top edge, even when that pokes above the field
+  for (const br of S.bricks) if (!br.dead && br.type === 'boss' && isBigBoss(br)) bigCrown(br.X + (br.kx || 0) + br.Wd / 2, br.Y + br.oy + (br.ky || 0) + 1 + Math.sin(now / 320) * 1.5, br.rank === 'stage');
 
   // laser beams
   ctx.globalCompositeOperation = TH.light ? 'source-over' : 'lighter';
@@ -781,6 +848,15 @@ function draw(now) {
     ctx.globalAlpha = a;
     ctx.fillStyle = TH.css.ov; ctx.fillRect(0, H * 0.4 - 46, W, 92);
     ctx.fillStyle = b.col; ctx.fillRect(0, H * 0.4 - 46, W, 4); ctx.fillRect(0, H * 0.4 + 42, W, 4);
+    if (b.warn) { // main boss: hazard stripes scrolling above and below the banner
+      for (const [yy, dir] of [[H * 0.4 - 64, 1], [H * 0.4 + 48, -1]]) {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, yy, W, 16); ctx.clip();
+        ctx.fillStyle = 'rgba(12,0,8,.88)'; ctx.fillRect(0, yy, W, 16); ctx.fillStyle = b.col;
+        const off = (now / 16 * dir) % 28;
+        for (let xx = -56 + off; xx < W + 56; xx += 28) { ctx.beginPath(); ctx.moveTo(xx, yy + 16); ctx.lineTo(xx + 14, yy); ctx.lineTo(xx + 25, yy); ctx.lineTo(xx + 11, yy + 16); ctx.closePath(); ctx.fill(); }
+        ctx.restore();
+      }
+    }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     outlined(b.title, W / 2, H * 0.4 - 12, b.col, 18);
     ctx.font = KO(22); ctx.fillStyle = TH.css.ink; ctx.fillText(b.sub, W / 2, H * 0.4 + 20);

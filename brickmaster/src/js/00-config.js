@@ -30,14 +30,20 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 3 ? 0.015 : 0,
+  chest: t => t > 3 ? 0.01 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
-  bossEvery: 10, bossHp: 6, // endless: a boss every 10 turns. Boss HP = that turn's brick HP x bossHp
-  // classic: a sub-boss (3 cells, x bossHp) on turn 10, then the main boss (5 cells wide) on turn 15
-  subBossTurn: 10, mainBossTurn: 15, mainBossHp: 8, stageBossHp: 10,
+  chapterLen: 10, // turns per chapter: boss gold grows with it and the backdrop shifts
+  // Bosses come one at a time. The first arrives on a random turn in firstBoss; each next one
+  // bossGap turns (random) after the previous one arrived, but only once that one is dead and no
+  // sooner than bossRest turns after the kill. Boss HP = that turn's brick HP x the multiplier.
+  firstBoss: [11, 14], bossGap: [8, 10], bossRest: 2,
+  // Classic levels run longer because bosses arrive later and spaced out, so there brick HP and row
+  // density climb per turn at this fraction of the endless speed (turn 22 plays like turn 15 did).
+  classicPace: 0.68,
+  bossHp: 6, mainBossHp: 8, stageBossHp: 7,
   // Number inflation (classic): brick HP and gold both grow x1.13 per level (x1.84 per stage), so the
   // numbers climb from tens into K, M, B and beyond. 기본 화력 in the workshop multiplies damage by
   // dmgStep per level to keep up.
@@ -47,12 +53,14 @@ const BAL = {
   levelHp: g => Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.5 + 0.1 * g),
   xpNeed: lvl => Math.round(6 + lvl * 5 + 0.8 * Math.pow(lvl, 2.2)),
   // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
-  // v1.4: about 40% fewer level-ups than v1.3 (rarer XP chests, less XP per brick, steeper curve).
-  xpBrick: 0.42, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
-  goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
+  // v1.5: classic levels are longer and kill more bricks per turn, so XP per brick and the chest
+  // rate dropped again to keep level-ups per turn at the v1.4 rate (about one every 9-10 turns early).
+  xpBrick: 0.3, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  goldPerKill: 0.15, goldPerTurn: 0.7, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
-const chapterOf = t => Math.ceil(t / BAL.bossEvery);
+const chapterOf = t => Math.ceil(t / BAL.chapterLen);
+const randIn = ([a, b]) => a + Math.floor(rnd() * (b - a + 1));
 
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');

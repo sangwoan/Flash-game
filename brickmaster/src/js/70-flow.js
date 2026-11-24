@@ -181,7 +181,7 @@ function showResults(cleared = false) {
   $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
   const rows = STG.endless
     ? [['점수', S.score.toLocaleString()], ['도달 레벨', S.world + 1], ['내 최고 점수', SAVE.bestScore.toLocaleString()], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]]
-    : [['레벨', STG.id], ['보스', `서브 ${S.subDown ? '격파' : '—'} · ${STG.stageBoss ? '스테이지' : '메인'} ${S.mainDown ? '격파' : '—'}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
+    : [['레벨', STG.id], ['보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses} 격파`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
   $('earned').textContent = `골드 +${fmtN(runGold)}` + (bonus ? ` (클리어 보너스 ${fmtN(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
@@ -289,7 +289,7 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'}<br>`
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map(r => r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스').join(' → ')}<br>`
     + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
@@ -311,7 +311,7 @@ function startLevel(g) {
   applyTheme(STG.land);
   beginRun();
   if (STG.l === 0 && STG.s % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
-  else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 스테이지 보스` : TH.name, TH.accent);
+  else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 보스 3마리` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = endlessInfo();

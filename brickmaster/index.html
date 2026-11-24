@@ -305,14 +305,20 @@ const BAL = {
   density: t => Math.min(0.82, 0.48 + t * 0.012),
   doubleHp: 0.15,
   bomb: t => t > 2 ? 0.06 : 0,
-  chest: t => t > 3 ? 0.015 : 0,
+  chest: t => t > 3 ? 0.01 : 0,
   steel: t => t > 8 ? 0.05 : 0,
   slime: t => t > 5 ? 0.06 : 0,
   orb: 0.4,
   laser: t => t > 4 ? 0.14 : 0,
-  bossEvery: 10, bossHp: 6, // endless: a boss every 10 turns. Boss HP = that turn's brick HP x bossHp
-  // classic: a sub-boss (3 cells, x bossHp) on turn 10, then the main boss (5 cells wide) on turn 15
-  subBossTurn: 10, mainBossTurn: 15, mainBossHp: 8, stageBossHp: 10,
+  chapterLen: 10, // turns per chapter: boss gold grows with it and the backdrop shifts
+  // Bosses come one at a time. The first arrives on a random turn in firstBoss; each next one
+  // bossGap turns (random) after the previous one arrived, but only once that one is dead and no
+  // sooner than bossRest turns after the kill. Boss HP = that turn's brick HP x the multiplier.
+  firstBoss: [11, 14], bossGap: [8, 10], bossRest: 2,
+  // Classic levels run longer because bosses arrive later and spaced out, so there brick HP and row
+  // density climb per turn at this fraction of the endless speed (turn 22 plays like turn 15 did).
+  classicPace: 0.68,
+  bossHp: 6, mainBossHp: 8, stageBossHp: 7,
   // Number inflation (classic): brick HP and gold both grow x1.13 per level (x1.84 per stage), so the
   // numbers climb from tens into K, M, B and beyond. 기본 화력 in the workshop multiplies damage by
   // dmgStep per level to keep up.
@@ -322,12 +328,14 @@ const BAL = {
   levelHp: g => Math.pow(BAL.hpGrowth, g) * Math.min(1, 0.5 + 0.1 * g),
   xpNeed: lvl => Math.round(6 + lvl * 5 + 0.8 * Math.pow(lvl, 2.2)),
   // XP per kill. Ordinary bricks give little; XP chests (a level each) carry the big moments.
-  // v1.4: about 40% fewer level-ups than v1.3 (rarer XP chests, less XP per brick, steeper curve).
-  xpBrick: 0.42, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
-  goldPerKill: 0.25, goldPerTurn: 1, goldBoss: 25, goldChapter: ch => ch * 15,
+  // v1.5: classic levels are longer and kill more bricks per turn, so XP per brick and the chest
+  // rate dropped again to keep level-ups per turn at the v1.4 rate (about one every 9-10 turns early).
+  xpBrick: 0.3, xpSteel: 2, xpBoss: 12, xpTurnBonus: 0, // xpTurnBonus: +1 XP per that many turns (0 = off)
+  goldPerKill: 0.15, goldPerTurn: 0.7, goldBoss: 25, goldChapter: ch => ch * 15,
 };
 
-const chapterOf = t => Math.ceil(t / BAL.bossEvery);
+const chapterOf = t => Math.ceil(t / BAL.chapterLen);
+const randIn = ([a, b]) => a + Math.floor(rnd() * (b - a + 1));
 
 // DOM
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -927,8 +935,8 @@ function writeSave() {
 
 // ---- 35-stages.js ----
 // Classic mode: stages of 5 levels, without end. Stage s uses landscape s (see 24-landscapes.js).
-// Every level has two bosses: a sub-boss on turn 10, then the wider, tougher main boss on turn 15.
-// Beating both clears the level. On the 5th level of a stage the main boss is the stage boss.
+// Every level ends with its main boss: levels 1-4 send a boss and then the main boss, the 5th level
+// of a stage sends two bosses and then the stage boss. Beating them all clears the level.
 // Brick HP grows with the overall level index g, so workshop upgrades carry the player forward.
 // Each stage also gets one of five brick mixes on top of the base chances in BAL.
 const LEVELS_PER_STAGE = 5;
@@ -937,11 +945,12 @@ const GIMMICKS = [
   { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
   { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
   { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
-  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.025, steel: 0.1 }, gold: 2 },
+  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.02, steel: 0.1 }, gold: 2 },
 ];
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
-  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: 2, stageBoss: l === LEVELS_PER_STAGE - 1, hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: l === LEVELS_PER_STAGE - 1 ? 3 : 2, stageBoss: l === LEVELS_PER_STAGE - 1,
+    bossList: l === LEVELS_PER_STAGE - 1 ? ['boss', 'boss', 'stage'] : ['boss', 'main'], hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
 }
 // Endless: one long run; every boss raises the level and moves to the next landscape.
 // Brick HP is scaled by the player's workshop damage multiplier, so 기본 화력 doesn't trivialise it
@@ -951,18 +960,26 @@ const endlessInfo = () => ({ ...ENDLESS, hpMul: dmgMult(SAVE.meta.power), goldMu
 const ENDLESS_UNLOCK = LEVELS_PER_STAGE; // levels cleared before endless opens
 let STG = levelInfo(0);
 
-// The boss that arrives on turn t, if any. rank: sub / main / stage (classic) or boss (endless).
+// Boss kinds: a plain boss is 3 cells wide, the main and stage bosses 5.
+const BOSS_KIND = { boss: { span: 3, hp: () => BAL.bossHp }, main: { span: 5, hp: () => BAL.mainBossHp }, stage: { span: 5, hp: () => BAL.stageBossHp } };
+// The next boss this level will send (endless: always a plain boss); undefined once all are out.
+const nextBossRank = () => STG.bossList ? STG.bossList[S.bossIdx] : 'boss';
+// The boss that arrives on turn t, if any: its turn has come and no other boss is alive.
 function bossAt(t) {
-  if (STG.endless) return t % BAL.bossEvery === 0 ? { rank: 'boss', span: 3, hpMul: BAL.bossHp } : null;
-  if (t === BAL.subBossTurn) return { rank: 'sub', span: 3, hpMul: BAL.bossHp };
-  if (t === BAL.mainBossTurn) return STG.stageBoss ? { rank: 'stage', span: 5, hpMul: BAL.stageBossHp } : { rank: 'main', span: 5, hpMul: BAL.mainBossHp };
-  return null;
+  if (S.nextBossTurn === null || t < S.nextBossTurn) return null;
+  const rank = nextBossRank();
+  if (!rank || S.bricks.some(b => b.type === 'boss' && !b.dead)) return null;
+  return { rank, span: BOSS_KIND[rank].span, hpMul: BOSS_KIND[rank].hp() };
 }
 const isBigBoss = br => br.rank === 'main' || br.rank === 'stage';
 
+// Turn as the difficulty curves see it: classic levels climb slower (see BAL.classicPace).
+const effTurn = t => STG.endless ? t : t * BAL.classicPace;
+// HP of an ordinary brick spawned on turn t in the current level.
+const brickHp = t => BAL.hp(effTurn(t)) * STG.hpMul;
 // Spawn chance for a brick kind in the current level.
 function chance(k, t) {
-  const base = typeof BAL[k] === 'function' ? BAL[k](t) : BAL[k];
+  const base = typeof BAL[k] === 'function' ? BAL[k](k === 'density' ? effTurn(t) : t) : BAL[k];
   return base + (STG.mod[k] || 0);
 }
 // Clear reward: 60 base gold (x2 the first time), inflated like everything else in the level.
@@ -990,7 +1007,7 @@ function newRun() {
     aim: { x: 0, y: -1 }, aimOk: false, aiming: false,
     bricks: [], movers: [], toFire: 0, fireTimer: 0, turnTime: 0, timeScale: 1, blasts: [],
     dmg: dmgMult(m.power), unit: dmgMult(m.power), crit: 0, pierce: 0, xpBase: 1 + 0.1 * m.xp, lv,
-    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, subDown: false, mainDown: false, gold: 0, comboPulse: 0,
+    combo: 0, maxCombo: 0, hits: 0, kills: 0, bosses: 0, bossIdx: 0, nextBossTurn: randIn(BAL.firstBoss), lastBossTurn: 0, mainDown: false, gold: 0, comboPulse: 0,
     shake: 0, flash: 0, flashCol: '255,255,255', hitstop: 0, dieTimer: 0,
     banner: null, deepest: 0, shieldOffered: false, shieldUsed: false, danger: 0,
     camZ: 0, camR: 0, chroma: 0, slowmo: 0, burstN: 0, burstT: 0, beat: 0, perfectDone: false, energy: 0, pulse: 0,
@@ -1026,12 +1043,13 @@ function shiftDown(slide) {
 }
 
 function spawnRow(t, slide = true) {
-  const h = Math.max(1, Math.round(BAL.hp(t) * STG.hpMul)), used = new Array(COLS).fill(false);
+  const h = Math.max(1, Math.round(brickHp(t))), used = new Array(COLS).fill(false);
   const boss = bossAt(t);
   if (boss) {
     const c = Math.floor(rnd() * (COLS - boss.span + 1));
-    addBrick({ c, r: 0, span: boss.span, type: 'boss', rank: boss.rank, hp: h * boss.hpMul, chapter: chapterOf(t) }, slide);
+    addBrick({ c, r: 0, span: boss.span, type: 'boss', rank: boss.rank, hp: h * boss.hpMul, chapter: chapterOf(effTurn(t)) }, slide);
     for (let k = 0; k < boss.span; k++) used[c + k] = true;
+    S.bossIdx++; S.lastBossTurn = t; S.nextBossTurn = null; // the next one is timed when this one dies
     bossEntrance(boss.rank);
   }
   let placed = 0;
@@ -1077,10 +1095,12 @@ function showBanner(title, sub, col) { S.banner = { title, sub, col, life: 2, ma
 // Boss arrival. The main boss gets a longer banner, a red flash and a camera punch.
 function bossEntrance(rank) {
   sfx.boss();
-  if (rank === 'boss') { showBanner('BOSS', `레벨 ${S.world + 1} 보스 등장`, TH.css.hot); return; }
-  if (rank === 'sub') { showBanner('SUB BOSS', `서브 보스 등장 · 메인 보스는 ${BAL.mainBossTurn}턴`, TH.css.hot); return; }
+  if (rank === 'boss') {
+    showBanner('BOSS', STG.endless ? `레벨 ${S.world + 1} 보스 등장` : S.bossIdx > 1 ? '두 번째 보스 등장' : '보스 등장', TH.css.hot);
+    return;
+  }
   showBanner(rank === 'stage' ? 'STAGE BOSS' : 'MAIN BOSS', rank === 'stage' ? '스테이지 보스 등장' : '메인 보스 등장', TH.css.hot);
-  S.banner.life = S.banner.max = 2.6;
+  S.banner.life = S.banner.max = 2.8; S.banner.warn = true; // hazard stripes on the banner
   S.flash = 0.45; S.flashCol = '255,43,106'; S.pulse = 1; S.camZ = Math.max(S.camZ, 0.05); shake(12); buzz(140);
   setTimeout(() => sfx.boss(), 260);
 }
@@ -1234,23 +1254,25 @@ function kill(br) {
   if (boss) {
     const big = isBigBoss(br);
     S.bosses++; S.hitstop = big ? 0.24 : 0.16;
-    if (br.rank === 'sub') S.subDown = true; else if (big) S.mainDown = true;
+    if (big) S.mainDown = true;
     if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true;
+    // time the next boss: a random gap after this one arrived, and a short rest after this kill
+    if (!S.cleared) S.nextBossTurn = Math.max(S.lastBossTurn + randIn(BAL.bossGap), S.turn + BAL.bossRest);
     if (!S.cleared) gainXp(BAL.xpBoss); // no level-up popping over the clear
     S.flash = 0.6; S.flashCol = '255,255,255';
     addGold((BAL.goldBoss + BAL.goldChapter(br.chapter)) * (big ? 2 : 1), cx, cy);
     if (big) mainBossDown(br);
     if (S.cleared) showBanner('LEVEL CLEAR', `레벨 ${STG.id} 돌파!`, TH.css.gold);
     else if (STG.endless) showBanner(`LEVEL ${S.world + 1} CLEAR`, '보스 격파!', TH.css.gold);
-    else if (br.rank === 'sub') {
-      const left = BAL.mainBossTurn - S.turn;
-      showBanner('SUB BOSS DOWN', left > 0 ? `메인 보스까지 ${left}턴` : '남은 건 메인 보스!', TH.css.gold);
-    } else showBanner(br.rank === 'stage' ? 'STAGE BOSS DOWN' : 'MAIN BOSS DOWN', '서브 보스가 아직 남아 있다', TH.css.gold);
+    else {
+      const next = nextBossRank(), left = S.nextBossTurn - S.turn;
+      showBanner('BOSS DOWN', `${next === 'main' ? '메인 보스' : next === 'stage' ? '스테이지 보스' : '다음 보스'}까지 ${left}턴`, TH.css.gold);
+    }
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
-  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
+  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(effTurn(S.turn) * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
@@ -1677,7 +1699,7 @@ function showResults(cleared = false) {
   $('stars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${0.25 + i * 0.22}s">★</i>`).join('');
   const rows = STG.endless
     ? [['점수', S.score.toLocaleString()], ['도달 레벨', S.world + 1], ['내 최고 점수', SAVE.bestScore.toLocaleString()], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills]]
-    : [['레벨', STG.id], ['보스', `서브 ${S.subDown ? '격파' : '—'} · ${STG.stageBoss ? '스테이지' : '메인'} ${S.mainDown ? '격파' : '—'}`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
+    : [['레벨', STG.id], ['보스', `${Math.min(S.bosses, STG.bosses)}/${STG.bosses} 격파`], ['버틴 턴', reached], ['최대 콤보', S.maxCombo], ['부순 벽돌', S.kills], ['풍경', landOf(STG.s).name]];
   $('stats').innerHTML = rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
   $('build').innerHTML = Object.keys(UPG).filter(k => S.lv[k]).map(k => `<span style="--c:${UPG[k].col}">${UPG[k].tag} ${S.lv[k]}</span>`).join('');
   $('earned').textContent = `골드 +${fmtN(runGold)}` + (bonus ? ` (클리어 보너스 ${fmtN(bonus * STG.gold)}${first ? ' · 첫 클리어 2배' : ''})` : '');
@@ -1785,7 +1807,7 @@ function renderMap() {
   }
   const lv = levelInfo(mapSel), lock = lv.g > SAVE.unlocked, first = !(SAVE.stars[lv.g] > 0);
   applyTheme(lv.land);
-  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · 서브 보스 → ${lv.stageBoss ? '스테이지 보스' : '메인 보스'}<br>`
+  $('mapSelInfo').innerHTML = `<b>LEVEL ${lv.id}</b> · ${lv.bossList.map(r => r === 'main' ? '메인 보스' : r === 'stage' ? '스테이지 보스' : '보스').join(' → ')}<br>`
     + `벽돌 체력 ×${fmtMul(lv.hpMul)} · 내 화력 ×${fmtMul(dmgMult(SAVE.meta.power))} · ${first ? '첫 클리어 보상' : '클리어 보상'} ${fmtGold(clearBonus(lv, first) * lv.gold)}`;
   $('mapPlay').disabled = lock;
   $('mapPlay').textContent = lock ? 'LOCKED' : `PLAY ${lv.id}`;
@@ -1807,7 +1829,7 @@ function startLevel(g) {
   applyTheme(STG.land);
   beginRun();
   if (STG.l === 0 && STG.s % STAGES_PER_ZONE === 0) zoneBanner(TH.zone);
-  else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 스테이지 보스` : TH.name, TH.accent);
+  else showBanner(`LEVEL ${STG.id}`, STG.stageBoss ? `${TH.name} · 보스 3마리` : TH.name, TH.accent);
 }
 function startEndless() {
   STG = endlessInfo();
@@ -1978,7 +2000,7 @@ function rr(x, y, w, h, r) {
 function brickColor(br) {
   const sp = TH.special[br.type];
   if (sp) return Array.isArray(sp) ? sp[0] : sp;
-  return TH.ramp(br.hp / (BAL.hp(S.turn) * STG.hpMul * 2.2));
+  return TH.ramp(br.hp / (brickHp(S.turn) * 2.2));
 }
 function ballColor() { return S.lv.fire ? '#ffb36b' : S.lv.chain ? '#bfefff' : TH.ball.core; }
 
@@ -2096,7 +2118,75 @@ function drawItem(br, now) {
   ctx.beginPath(); ctx.moveTo(L + 6, 0); ctx.lineTo(L, -6); ctx.lineTo(L, 6); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
-const BOSS_LABEL = { boss: 'BOSS', sub: 'SUB BOSS', main: 'MAIN BOSS', stage: 'STAGE BOSS' };
+const BOSS_LABEL = { boss: 'BOSS', main: 'MAIN BOSS', stage: 'STAGE BOSS' };
+const rgbaOf = (col, a) => { const h = hexOf(col); return `rgba(${parseInt(h.slice(1, 3), 16)},${parseInt(h.slice(3, 5), 16)},${parseInt(h.slice(5, 7), 16)},${a})`; };
+// A point d along the outline of a w x h rectangle, clockwise from its top-left corner.
+function framePoint(d, w, h) {
+  if (d < w) return [d, 0]; d -= w;
+  if (d < h) return [w, d]; d -= h;
+  if (d < w) return [w - d, h]; d -= w;
+  return [0, h - d];
+}
+function sparkle(x, y, r) {
+  ctx.drawImage(glow(TH.css.gold), x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+  ctx.fillStyle = '#fff6cc'; ctx.beginPath(); ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x, y, x + r, y); ctx.quadraticCurveTo(x, y, x, y + r); ctx.quadraticCurveTo(x, y, x - r, y); ctx.quadraticCurveTo(x, y, x, y - r); ctx.fill();
+}
+// Behind the main boss: slowly turning light rays and a breathing aura.
+function bossUnder(br, w, h, now) {
+  const stage = br.rank === 'stage', R = w * 0.56;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(w / 2, h / 2); ctx.rotate(now / 3200 * (stage ? -1 : 1));
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+  g.addColorStop(0, rgbaOf(TH.css.gold, 0.26)); g.addColorStop(0.55, rgbaOf(stage ? TH.css.hot : TH.css.gold, 0.1)); g.addColorStop(1, rgbaOf(TH.css.gold, 0));
+  ctx.fillStyle = g;
+  for (let i = 0; i < 16; i++) { ctx.rotate(Math.PI / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8, -R); ctx.lineTo(8, -R); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 + 0.2 * Math.sin(now / 260);
+  ctx.drawImage(glow(stage ? TH.css.hot : TH.special.boss[0]), -34, -30, w + 68, h + 60); ctx.restore();
+}
+// A light sweep crossing the main boss's body every 2.6 s (drawn inside its outline).
+function bossSheen(br, w, h, now) {
+  const p = ((now / 2600 + br.id * 0.13) % 1) * (w + 120) - 60;
+  ctx.save(); brickPath(0, 0, w, h); ctx.clip(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createLinearGradient(p - 34, 0, p + 34, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,250,220,.32)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(p - 34, h); ctx.lineTo(p - 8, 0); ctx.lineTo(p + 34, 0); ctx.lineTo(p + 8, h); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+// The big crown that sits on the main boss's top edge.
+function bigCrown(cx, by, stage) {
+  ctx.save(); ctx.translate(cx, by); if (stage) ctx.scale(1.18, 1.18);
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.8; ctx.drawImage(glow(TH.css.gold), -30, -34, 60, 52);
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  const g = ctx.createLinearGradient(0, -17, 0, 3); g.addColorStop(0, '#fff6c2'); g.addColorStop(1, '#ffae00');
+  ctx.fillStyle = g; ctx.strokeStyle = 'rgba(90,45,0,.55)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-15, 3); ctx.lineTo(-16, -10); ctx.lineTo(-8, -3); ctx.lineTo(0, -15); ctx.lineTo(8, -3); ctx.lineTo(16, -10); ctx.lineTo(15, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+  for (const [px, py] of [[-16, -11], [0, -16.5], [16, -11]]) { ctx.beginPath(); ctx.arc(px, py, 2.3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = stage ? '#3ee6ff' : '#ff2b6a';
+  ctx.beginPath(); ctx.moveTo(0, -5.5); ctx.lineTo(3.4, -1.5); ctx.lineTo(0, 2.5); ctx.lineTo(-3.4, -1.5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.fillRect(-1, -4, 1.4, 1.4);
+  ctx.restore();
+}
+// On top of the other bricks: a double gold frame with corner ornaments and sparks running around
+// it. Drawn after all bricks so neighbours never cover it.
+function drawBossDecor(br, now) {
+  const x = br.X + (br.kx || 0), y = br.Y + br.oy + (br.ky || 0), w = br.Wd, h = br.Ht, gold = TH.css.gold;
+  ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = gold;
+  ctx.globalAlpha = 0.6 + 0.35 * Math.sin(now / 180); ctx.lineWidth = 1.6; brickPath(-3.5, -3.5, w + 7, h + 7); ctx.stroke();
+  ctx.globalAlpha = 0.4; ctx.lineWidth = 1; brickPath(-7, -7, w + 14, h + 14); ctx.stroke();
+  ctx.globalAlpha = 1; ctx.lineWidth = 2.2; ctx.fillStyle = gold;
+  for (const [cx, cy, sx, sy] of [[-7, -7, 1, 1], [w + 7, -7, -1, 1], [-7, h + 7, 1, -1], [w + 7, h + 7, -1, -1]]) {
+    ctx.beginPath(); ctx.moveTo(cx, cy + sy * 13); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx * 13, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - 4); ctx.lineTo(cx + 4, cy); ctx.lineTo(cx, cy + 4); ctx.lineTo(cx - 4, cy); ctx.closePath(); ctx.fill();
+  }
+  const per = 2 * (w + h + 28);
+  for (let i = 0; i < 4; i++) {
+    const [px, py] = framePoint((now / 1000 * 110 + i * per / 4) % per, w + 14, h + 14);
+    sparkle(px - 7, py - 7, 3.5 + 1.8 * Math.sin(now / 110 + i * 1.7));
+  }
+  ctx.restore();
+}
 function crown(x, y) {
   ctx.beginPath(); ctx.moveTo(x, y + 11); ctx.lineTo(x, y + 2); ctx.lineTo(x + 4, y + 6); ctx.lineTo(x + 7.5, y);
   ctx.lineTo(x + 11, y + 6); ctx.lineTo(x + 15, y + 2); ctx.lineTo(x + 15, y + 11); ctx.closePath(); ctx.fill();
@@ -2113,15 +2203,9 @@ function drawBrick(br, now) {
   if (br.type === 'boss') {
     const g = ctx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, TH.special.boss[0]); g.addColorStop(1, TH.special.boss[1]); col = g;
   }
-  if (big) { // the main boss breathes a hot aura
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + 0.2 * Math.sin(now / 260);
-    ctx.drawImage(glow(TH.special.boss[0]), -26, -24, w + 52, h + 48); ctx.restore();
-  }
+  if (big) bossUnder(br, w, h, now); // rays and aura behind the main boss
   brickBody(br, w, h, col, now);
-  if (big) { // and wears a pulsing gold frame
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = TH.css.gold; ctx.lineWidth = 1.5;
-    ctx.globalAlpha = 0.55 + 0.35 * Math.sin(now / 180); brickPath(-3.5, -3.5, w + 7, h + 7); ctx.stroke(); ctx.restore();
-  }
+  if (big) bossSheen(br, w, h, now);
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
   if (br.type === 'bomb') {
     ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 5; ctx.beginPath();
@@ -2558,19 +2642,21 @@ function drawHud(now, ch) {
   }
   ctx.textAlign = 'center'; ctx.font = DISP(7);
   ctx.fillStyle = hd.ch; ctx.fillText(STG.endless ? `LV ${S.world + 1}` : STG.id, W / 2 - 78, 15);
-  // classic: a pip for the sub-boss and a bigger one for the main boss, then the turns until the next
-  // one arrives; endless: nothing to count, the level is the label
+  // classic: a pip per boss (the last, the main boss, bigger), then the boss on screen or the turns
+  // until the next one; endless: nothing to count, the level is the label
   ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(5); ctx.fillText(STG.endless ? TH.name : 'BOSS', 16, 72); ctx.textAlign = 'center';
   if (!STG.endless) {
-    for (let i = 0; i < 2; i++) {
-      const x = 46 + i * 11, y = 69, on = i ? S.mainDown : S.subDown, s = i ? 3.6 : 2.6;
+    const n = STG.bosses;
+    for (let i = 0; i < n; i++) {
+      const x = 46 + i * 11, y = 69, s = i === n - 1 ? 3.6 : 2.6;
       ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = on ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
+      ctx.fillStyle = i < S.bosses ? hd.accent : hd.xpBg; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.restore();
     }
-    const subIn = BAL.subBossTurn - S.turn, mainIn = BAL.mainBossTurn - S.turn, n = subIn > 0 ? subIn : mainIn;
-    const txt = subIn > 0 ? `SUB IN ${subIn}` : mainIn > 0 ? `MAIN IN ${mainIn}` : S.mainDown ? '' : STG.stageBoss ? 'STAGE BOSS' : 'MAIN BOSS';
-    ctx.textAlign = 'left'; ctx.fillStyle = (n > 0 && n <= 2) || (n <= 0 && !S.mainDown) ? hd.accent : hd.dim;
-    ctx.fillText(txt, 66, 72); ctx.textAlign = 'center';
+    const alive = S.bricks.find(b => b.type === 'boss' && !b.dead), next = nextBossRank();
+    const left = S.nextBossTurn === null ? null : S.nextBossTurn - S.turn;
+    const txt = alive ? BOSS_LABEL[alive.rank] : next && left !== null ? `${next === 'boss' ? 'BOSS' : next === 'main' ? 'MAIN' : 'STAGE'} IN ${Math.max(1, left)}` : '';
+    ctx.textAlign = 'left'; ctx.fillStyle = alive || (left !== null && left <= 2) ? hd.accent : hd.dim;
+    ctx.fillText(txt, 46 + (n - 1) * 11 + 10, 72); ctx.textAlign = 'center';
   }
   ctx.fillStyle = hd.dim; ctx.fillText(`DMG ${fmtDmg(S.dmg)}  BALL ${S.balls}`, W / 2 + 10, 15);
   const gs = 1 + S.goldBump * 0.5;
@@ -2604,7 +2690,10 @@ function draw(now) {
 
   ctx.save(); ctx.beginPath(); ctx.rect(0, TOP, W, H - TOP); ctx.clip();
   for (const br of S.bricks) if (!br.dead) drawBrick(br, now);
+  for (const br of S.bricks) if (!br.dead && br.type === 'boss' && isBigBoss(br)) drawBossDecor(br, now);
   ctx.restore();
+  // the crown sits on the main boss's top edge, even when that pokes above the field
+  for (const br of S.bricks) if (!br.dead && br.type === 'boss' && isBigBoss(br)) bigCrown(br.X + (br.kx || 0) + br.Wd / 2, br.Y + br.oy + (br.ky || 0) + 1 + Math.sin(now / 320) * 1.5, br.rank === 'stage');
 
   // laser beams
   ctx.globalCompositeOperation = TH.light ? 'source-over' : 'lighter';
@@ -2714,6 +2803,15 @@ function draw(now) {
     ctx.globalAlpha = a;
     ctx.fillStyle = TH.css.ov; ctx.fillRect(0, H * 0.4 - 46, W, 92);
     ctx.fillStyle = b.col; ctx.fillRect(0, H * 0.4 - 46, W, 4); ctx.fillRect(0, H * 0.4 + 42, W, 4);
+    if (b.warn) { // main boss: hazard stripes scrolling above and below the banner
+      for (const [yy, dir] of [[H * 0.4 - 64, 1], [H * 0.4 + 48, -1]]) {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, yy, W, 16); ctx.clip();
+        ctx.fillStyle = 'rgba(12,0,8,.88)'; ctx.fillRect(0, yy, W, 16); ctx.fillStyle = b.col;
+        const off = (now / 16 * dir) % 28;
+        for (let xx = -56 + off; xx < W + 56; xx += 28) { ctx.beginPath(); ctx.moveTo(xx, yy + 16); ctx.lineTo(xx + 14, yy); ctx.lineTo(xx + 25, yy); ctx.lineTo(xx + 11, yy + 16); ctx.closePath(); ctx.fill(); }
+        ctx.restore();
+      }
+    }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     outlined(b.title, W / 2, H * 0.4 - 12, b.col, 18);
     ctx.font = KO(22); ctx.fillStyle = TH.css.ink; ctx.fillText(b.sub, W / 2, H * 0.4 + 20);

@@ -1,6 +1,6 @@
 // Classic mode: stages of 5 levels, without end. Stage s uses landscape s (see 24-landscapes.js).
-// Every level has two bosses: a sub-boss on turn 10, then the wider, tougher main boss on turn 15.
-// Beating both clears the level. On the 5th level of a stage the main boss is the stage boss.
+// Every level ends with its main boss: levels 1-4 send a boss and then the main boss, the 5th level
+// of a stage sends two bosses and then the stage boss. Beating them all clears the level.
 // Brick HP grows with the overall level index g, so workshop upgrades carry the player forward.
 // Each stage also gets one of five brick mixes on top of the base chances in BAL.
 const LEVELS_PER_STAGE = 5;
@@ -9,11 +9,12 @@ const GIMMICKS = [
   { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
   { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
   { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
-  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.025, steel: 0.1 }, gold: 2 },
+  { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.02, steel: 0.1 }, gold: 2 },
 ];
 function levelInfo(g) {
   const s = Math.floor(g / LEVELS_PER_STAGE), l = g % LEVELS_PER_STAGE, G = GIMMICKS[s % GIMMICKS.length];
-  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: 2, stageBoss: l === LEVELS_PER_STAGE - 1, hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
+  return { g, s, l, id: `${s + 1}-${l + 1}`, bosses: l === LEVELS_PER_STAGE - 1 ? 3 : 2, stageBoss: l === LEVELS_PER_STAGE - 1,
+    bossList: l === LEVELS_PER_STAGE - 1 ? ['boss', 'boss', 'stage'] : ['boss', 'main'], hpMul: BAL.levelHp(g), goldMul: Math.pow(BAL.goldGrowth, g), mod: G.mod, gold: G.gold || 1, text: G.text, land: s };
 }
 // Endless: one long run; every boss raises the level and moves to the next landscape.
 // Brick HP is scaled by the player's workshop damage multiplier, so 기본 화력 doesn't trivialise it
@@ -23,18 +24,26 @@ const endlessInfo = () => ({ ...ENDLESS, hpMul: dmgMult(SAVE.meta.power), goldMu
 const ENDLESS_UNLOCK = LEVELS_PER_STAGE; // levels cleared before endless opens
 let STG = levelInfo(0);
 
-// The boss that arrives on turn t, if any. rank: sub / main / stage (classic) or boss (endless).
+// Boss kinds: a plain boss is 3 cells wide, the main and stage bosses 5.
+const BOSS_KIND = { boss: { span: 3, hp: () => BAL.bossHp }, main: { span: 5, hp: () => BAL.mainBossHp }, stage: { span: 5, hp: () => BAL.stageBossHp } };
+// The next boss this level will send (endless: always a plain boss); undefined once all are out.
+const nextBossRank = () => STG.bossList ? STG.bossList[S.bossIdx] : 'boss';
+// The boss that arrives on turn t, if any: its turn has come and no other boss is alive.
 function bossAt(t) {
-  if (STG.endless) return t % BAL.bossEvery === 0 ? { rank: 'boss', span: 3, hpMul: BAL.bossHp } : null;
-  if (t === BAL.subBossTurn) return { rank: 'sub', span: 3, hpMul: BAL.bossHp };
-  if (t === BAL.mainBossTurn) return STG.stageBoss ? { rank: 'stage', span: 5, hpMul: BAL.stageBossHp } : { rank: 'main', span: 5, hpMul: BAL.mainBossHp };
-  return null;
+  if (S.nextBossTurn === null || t < S.nextBossTurn) return null;
+  const rank = nextBossRank();
+  if (!rank || S.bricks.some(b => b.type === 'boss' && !b.dead)) return null;
+  return { rank, span: BOSS_KIND[rank].span, hpMul: BOSS_KIND[rank].hp() };
 }
 const isBigBoss = br => br.rank === 'main' || br.rank === 'stage';
 
+// Turn as the difficulty curves see it: classic levels climb slower (see BAL.classicPace).
+const effTurn = t => STG.endless ? t : t * BAL.classicPace;
+// HP of an ordinary brick spawned on turn t in the current level.
+const brickHp = t => BAL.hp(effTurn(t)) * STG.hpMul;
 // Spawn chance for a brick kind in the current level.
 function chance(k, t) {
-  const base = typeof BAL[k] === 'function' ? BAL[k](t) : BAL[k];
+  const base = typeof BAL[k] === 'function' ? BAL[k](k === 'density' ? effTurn(t) : t) : BAL[k];
   return base + (STG.mod[k] || 0);
 }
 // Clear reward: 60 base gold (x2 the first time), inflated like everything else in the level.

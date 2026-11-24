@@ -146,23 +146,25 @@ function kill(br) {
   if (boss) {
     const big = isBigBoss(br);
     S.bosses++; S.hitstop = big ? 0.24 : 0.16;
-    if (br.rank === 'sub') S.subDown = true; else if (big) S.mainDown = true;
+    if (big) S.mainDown = true;
     if (STG.endless) { S.worldPending = true; S.score += 500 * (S.world + 1); }
     else if (S.bosses >= STG.bosses) S.cleared = true;
+    // time the next boss: a random gap after this one arrived, and a short rest after this kill
+    if (!S.cleared) S.nextBossTurn = Math.max(S.lastBossTurn + randIn(BAL.bossGap), S.turn + BAL.bossRest);
     if (!S.cleared) gainXp(BAL.xpBoss); // no level-up popping over the clear
     S.flash = 0.6; S.flashCol = '255,255,255';
     addGold((BAL.goldBoss + BAL.goldChapter(br.chapter)) * (big ? 2 : 1), cx, cy);
     if (big) mainBossDown(br);
     if (S.cleared) showBanner('LEVEL CLEAR', `레벨 ${STG.id} 돌파!`, TH.css.gold);
     else if (STG.endless) showBanner(`LEVEL ${S.world + 1} CLEAR`, '보스 격파!', TH.css.gold);
-    else if (br.rank === 'sub') {
-      const left = BAL.mainBossTurn - S.turn;
-      showBanner('SUB BOSS DOWN', left > 0 ? `메인 보스까지 ${left}턴` : '남은 건 메인 보스!', TH.css.gold);
-    } else showBanner(br.rank === 'stage' ? 'STAGE BOSS DOWN' : 'MAIN BOSS DOWN', '서브 보스가 아직 남아 있다', TH.css.gold);
+    else {
+      const next = nextBossRank(), left = S.nextBossTurn - S.turn;
+      showBanner('BOSS DOWN', `${next === 'main' ? '메인 보스' : next === 'stage' ? '스테이지 보스' : '다음 보스'}까지 ${left}턴`, TH.css.gold);
+    }
     sfx.clear();
   } else if (br.type === 'steel') { gainXp(BAL.xpSteel + bonus); addGold(2, cx, cy); }
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
-  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(S.turn * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
+  if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(effTurn(S.turn) * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); }
   if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1 + S.lv.fire), kind: 'fire', t: 0.07 });
