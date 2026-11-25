@@ -43,6 +43,7 @@ function rr(x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 function brickColor(br) {
+  if (br.kid) return TH.special.slime; // slime offspring keep the slime's colour
   const sp = TH.special[br.type];
   if (sp) return Array.isArray(sp) ? sp[0] : sp;
   return TH.ramp(br.hp / (brickHp(S.turn) * 2.2));
@@ -241,7 +242,7 @@ function drawBrick(br, now) {
   const x = br.X + (br.kx || 0), y = br.Y + br.oy + (br.ky || 0), w = br.Wd, h = br.Ht, f = br.flash;
   ctx.save();
   ctx.translate(x + w / 2, y + h / 2);
-  ctx.scale(1 + f * 0.1, 1 - f * 0.06);
+  ctx.scale((1 + f * 0.1) * (1 - (br.pop || 0) * 0.6), (1 - f * 0.06) * (1 - (br.pop || 0) * 0.6));
   ctx.translate(-w / 2, -h / 2);
   let col = brickColor(br);
   const big = br.type === 'boss' && isBigBoss(br);
@@ -258,7 +259,7 @@ function drawBrick(br, now) {
     ctx.stroke();
   } else if (br.type === 'steel') {
     ctx.fillStyle = 'rgba(30,34,48,.75)'; for (const [rx, ry] of [[4, 5], [w - 7, 5], [4, h - 8], [w - 7, h - 8]]) ctx.fillRect(rx, ry, 3, 3);
-  } else if (br.type === 'slime') {
+  } else if (br.type === 'slime' || br.kid) {
     const wob = Math.sin(now / 200 + br.id) * 2; ctx.fillStyle = 'rgba(0,90,40,.35)';
     ctx.fillRect(7, h - 6, 6, 6 + wob); ctx.fillRect(w - 16, h - 6, 6, 4 - wob); ctx.fillRect(w / 2, h - 6, 5, 6);
   } else if (br.type === 'chest') {
@@ -673,8 +674,8 @@ function drawHud(now, ch) {
   ctx.textAlign = 'left'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText('TURN', 16, 22);
   ctx.fillStyle = hd.ink; ctx.font = DISP(18); ctx.fillText(String(S.turn), 16, 48);
   // right: endless shows the score, classic shows the in-run power level
-  ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText(STG.endless ? 'SCORE' : 'POWER LV', W - 16, 22);
-  ctx.fillStyle = hd.accent; ctx.font = DISP(STG.endless ? 15 : 18); ctx.fillText(STG.endless ? S.score.toLocaleString() : String(S.level), W - 16, 48);
+  ctx.textAlign = 'right'; ctx.fillStyle = hd.dim; ctx.font = DISP(8); ctx.fillText(STG.endless ? 'SCORE' : 'POWER LV', W - 60, 22); // right edge leaves room for the pause button
+  ctx.fillStyle = hd.accent; ctx.font = DISP(STG.endless ? 15 : 18); ctx.fillText(STG.endless ? S.score.toLocaleString() : String(S.level), W - 60, 48);
   // one life: a single heart that beats faster as bricks close in
   {
     const bp = 1 + (S.beatPulse || 0) * 0.35;
@@ -787,7 +788,7 @@ function draw(now) {
   ctx.globalAlpha = 1;
   for (const b of bolts) {
     ctx.globalAlpha = b.life / b.max;
-    for (const [col, lw] of [[TH.accent, 5], ['#ffffff', 2]]) {
+    for (const [col, lw] of [[b.col || TH.accent, 5], ['#ffffff', 2]]) {
       ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
       b.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
     }
@@ -872,7 +873,7 @@ function draw(now) {
     ctx.restore();
   }
 
-  drawHud(now, ch);
+  if (S.phase !== 'title') drawHud(now, ch);
 
   if (S.phase === 'fire' && S.timeScale > 1) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

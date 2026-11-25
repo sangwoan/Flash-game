@@ -26,7 +26,6 @@ body{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-selec
 .btn.big:active{transform:translate(calc(var(--s)*2px),calc(var(--s)*2px));box-shadow:calc(var(--s)*2px) calc(var(--s)*2px) 0 var(--hot)}
 .btn.ad{border-color:var(--cool);color:var(--cool)}
 .btn.ad::after{content:"AD";font-family:var(--disp);font-size:calc(var(--s)*7px*var(--dsz));margin-left:calc(var(--s)*8px);padding:calc(var(--s)*3px);background:var(--cool);color:var(--bg);vertical-align:middle}
-#snd{position:absolute;left:calc(var(--s)*14px);bottom:calc(var(--s)*12px)}
 #recall{position:absolute;right:calc(var(--s)*14px);bottom:calc(var(--s)*12px);font-family:var(--ko);font-size:calc(var(--s)*15px);padding:calc(var(--s)*7px) calc(var(--s)*12px)}
 .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--s)*13px);
   background:var(--ov);padding:calc(var(--s)*24px);text-align:center;box-sizing:border-box}
@@ -178,27 +177,96 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
 @keyframes pop{from{transform:translateY(calc(var(--s)*30px)) scale(.8);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 @keyframes bob{50%{transform:translateY(calc(var(--s)*-5px)) rotate(-1.5deg)}}
-@media (prefers-reduced-motion:reduce){.card,.card::after,.btn.big,.logo,#lvl .rays,.lvlNum,.lvlKick{animation:none}}
+/* ---- Home screen ---- */
+#title{justify-content:flex-start;gap:calc(var(--s)*12px);padding:calc(var(--s)*14px) calc(var(--s)*18px) calc(var(--s)*16px);overflow:hidden;
+  background:radial-gradient(120% 70% at 50% 30%,color-mix(in srgb,var(--cool) 14%,transparent),transparent 60%),linear-gradient(rgba(4,5,10,.55),rgba(4,5,10,.86) 70%)}
+#title > *:not(.floaters){position:relative;z-index:1}
+.tTop{width:100%;display:flex;align-items:center;gap:calc(var(--s)*8px)}
+.pill{display:flex;align-items:center;gap:calc(var(--s)*6px);padding:calc(var(--s)*6px) calc(var(--s)*12px) calc(var(--s)*6px) calc(var(--s)*7px);border-radius:999px;
+  background:rgba(8,10,20,.78);border:1px solid rgba(255,255,255,.14);font-family:var(--disp);font-size:calc(var(--s)*13px);color:#fff}
+.pill .coin{width:calc(var(--s)*18px);height:calc(var(--s)*18px);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c2,#ffd000 45%,#c98a00);box-shadow:0 0 calc(var(--s)*10px) rgba(255,208,0,.6)}
+.pill .pstar{font-style:normal;color:#ffd23f;font-size:calc(var(--s)*16px);text-shadow:0 0 calc(var(--s)*8px) rgba(255,210,63,.7)}
+.tTop .iconBtn{margin-left:auto}
+.iconBtn{display:grid;place-items:center;width:calc(var(--s)*40px);height:calc(var(--s)*40px);padding:0;border-radius:calc(var(--s)*12px);cursor:pointer;
+  background:rgba(8,10,20,.78);border:1px solid color-mix(in srgb,var(--cool) 55%,transparent);color:#fff;box-shadow:0 0 calc(var(--s)*12px) color-mix(in srgb,var(--cool) 30%,transparent)}
+.iconBtn svg{width:58%;height:58%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#pauseBtn{position:absolute;right:calc(var(--s)*10px);top:calc(var(--s)*12px);z-index:4}
+#pauseBtn svg{fill:currentColor;stroke:none}
+.iconBtn:active{transform:scale(.94)}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--s)*10px);min-height:0}
+#title .logo{display:flex;flex-direction:column;align-items:center;gap:calc(var(--s)*2px);animation:none}
+#title .logo .l1{font-size:calc(var(--s)*22px);letter-spacing:.5em;margin-right:-.5em;color:var(--cool);text-shadow:0 0 calc(var(--s)*12px) var(--cool)}
+#title .logo .l2{font-size:calc(var(--s)*54px);line-height:1;letter-spacing:.04em;background:linear-gradient(100deg,#fff 10%,var(--cool) 45%,var(--logo2) 90%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;filter:drop-shadow(0 0 calc(var(--s)*10px) color-mix(in srgb,var(--cool) 70%,transparent)) drop-shadow(0 0 calc(var(--s)*26px) color-mix(in srgb,var(--logo2) 55%,transparent));animation:flicker 5s linear infinite}
+.nextCard{width:100%;box-sizing:border-box;display:grid;gap:calc(var(--s)*6px);justify-items:center;padding:calc(var(--s)*14px) calc(var(--s)*14px) calc(var(--s)*16px);border-radius:calc(var(--s)*20px);
+  background:linear-gradient(rgba(6,8,16,.55),rgba(6,8,16,.95) 75%),var(--thumb) center/cover,#06080f;border:1px solid color-mix(in srgb,var(--cool) 50%,transparent);
+  box-shadow:0 0 calc(var(--s)*24px) color-mix(in srgb,var(--cool) 25%,transparent),inset 0 0 calc(var(--s)*30px) rgba(0,0,0,.4)}
+.ncZone{margin:0;font-family:var(--disp);font-size:calc(var(--s)*11px);letter-spacing:.2em;color:var(--cool)}
+.ncName{margin:0;font-size:calc(var(--s)*22px);color:#fff;text-shadow:0 calc(var(--s)*2px) calc(var(--s)*8px) rgba(0,0,0,.8)}
+.ncBar{width:80%;height:calc(var(--s)*6px);border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+.ncBar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--cool),var(--logo2));box-shadow:0 0 calc(var(--s)*10px) var(--cool)}
+.ncProg{margin:0 0 calc(var(--s)*4px);font-size:calc(var(--s)*13px);color:var(--dim)}
+.tiles{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--s)*10px)}
+.tile{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:calc(var(--s)*10px);align-items:center;text-align:left;cursor:pointer;
+  padding:calc(var(--s)*11px) calc(var(--s)*12px);border-radius:calc(var(--s)*16px);background:rgba(8,10,20,.95);color:#fff;font-family:var(--ko);
+  border:1px solid color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 0 calc(var(--s)*14px) color-mix(in srgb,var(--c) 22%,transparent)}
+.tile svg{grid-row:1/3;width:calc(var(--s)*34px);height:calc(var(--s)*34px);padding:calc(var(--s)*7px);box-sizing:border-box;border-radius:50%;fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:0 0 calc(var(--s)*10px) color-mix(in srgb,var(--c) 40%,transparent)}
+.tile b{font-size:calc(var(--s)*16px);font-weight:700}
+.tile span{font-size:calc(var(--s)*12px);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile:active{transform:scale(.97)}
+.tile:disabled{opacity:.45;cursor:default}
+.floaters{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.floaters i{position:absolute;bottom:calc(var(--s)*-60px);width:calc(var(--s)*var(--w)*1px);height:calc(var(--s)*22px);border-radius:calc(var(--s)*6px);
+  border:calc(var(--s)*1.5px) solid var(--fc);box-shadow:0 0 calc(var(--s)*10px) var(--fc),inset 0 0 calc(var(--s)*8px) color-mix(in srgb,var(--fc) 40%,transparent);
+  opacity:.5;animation:floatUp var(--d) linear var(--dl) infinite}
+@keyframes floatUp{from{transform:translateY(0) rotate(var(--r0))}to{transform:translateY(calc(var(--s)*-900px)) rotate(var(--r1))}}
+@keyframes flicker{0%,7%,9%,100%{opacity:1}8%{opacity:.55}62%{opacity:1}63%{opacity:.7}64%{opacity:1}}
+/* ---- Pause, settings, confirm ---- */
+#pause,#settings{gap:calc(var(--s)*16px);z-index:8}
+#confirm{z-index:9;background:rgba(2,3,8,.7)}
+.dialog{width:86%;display:grid;gap:calc(var(--s)*12px);padding:calc(var(--s)*20px) calc(var(--s)*16px);border-radius:calc(var(--s)*18px);background:rgba(10,12,24,.97);
+  border:1px solid color-mix(in srgb,var(--hot) 60%,transparent);box-shadow:0 0 calc(var(--s)*30px) color-mix(in srgb,var(--hot) 30%,transparent);animation:pop .22s ease-out both}
+.dTitle{margin:0;font-size:calc(var(--s)*21px);color:#fff}
+.btn.danger{border-color:var(--hot)!important;color:var(--hot)!important}
+.opts{display:flex;gap:calc(var(--s)*10px)}
+.toggle{min-width:calc(var(--s)*120px);padding:calc(var(--s)*10px) calc(var(--s)*14px);border-radius:calc(var(--s)*12px);cursor:pointer;font-family:var(--ko);font-size:calc(var(--s)*16px);
+  background:rgba(8,10,20,.85);color:var(--dim);border:1px solid rgba(255,255,255,.18)}
+.toggle b{font-family:var(--disp);margin-left:calc(var(--s)*6px);font-size:calc(var(--s)*12px)}
+.toggle.on{color:#fff;border-color:var(--cool);box-shadow:0 0 calc(var(--s)*12px) color-mix(in srgb,var(--cool) 35%,transparent)}
+.toggle.on b{color:var(--cool)}
+@media (prefers-reduced-motion:reduce){.floaters,#title .logo .l2,.card,.card::after,.btn.big,.logo,#lvl .rays,.lvlNum,.lvlKick{animation:none}}
 </style>
 
 <div id="wrap"><div id="stage">
   <canvas id="cv" aria-label="게임 화면"></canvas>
-  <button id="snd" class="btn" type="button">SND ON</button>
+  <button id="pauseBtn" class="iconBtn" type="button" aria-label="일시정지" hidden><svg viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.6" height="14" rx="1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1"/></svg></button>
   <button id="recall" class="btn" type="button" hidden>회수 ▼</button>
 
   <div id="title" class="ov">
-    <p class="logo">BRICK<br>MASTER</p>
-    <p class="sub">벽돌깨기 × 로그라이트</p>
-    <p class="gold" id="titleGold"></p>
-    <button id="start" class="btn big" type="button">PLAY 1-1</button>
-    <p class="note" id="nextInfo"></p>
-    <div class="row">
-      <button id="titleMap" class="btn ko" type="button">스테이지 맵</button>
-      <button id="titleShop" class="btn ko" type="button">작업실</button>
+    <div class="floaters" id="floaters" aria-hidden="true"></div>
+    <div class="tTop">
+      <span class="pill"><i class="coin"></i><b id="titleGold"></b></span>
+      <span class="pill"><i class="pstar">★</i><b id="titleStars"></b></span>
+      <button id="titleSettings" class="iconBtn" type="button" aria-label="설정"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/></svg></button>
     </div>
-    <button id="endless" class="btn ko" type="button">무한 모드</button>
-    <button id="titleRank" class="btn ko" type="button">주간 랭킹</button>
-    <p class="small" id="best"></p>
+    <div class="hero">
+      <p class="logo"><span class="l1">BRICK</span><span class="l2">MASTER</span></p>
+      <p class="sub">벽돌깨기 × 로그라이트</p>
+    </div>
+    <div class="nextCard" id="nextCard">
+      <p class="ncZone" id="ncZone"></p>
+      <p class="ncName" id="ncName"></p>
+      <div class="ncBar"><i id="ncFill"></i></div>
+      <p class="ncProg" id="nextInfo"></p>
+      <button id="start" class="btn big" type="button">PLAY 1-1</button>
+    </div>
+    <div class="tiles">
+      <button id="titleMap" class="tile" type="button" style="--c:var(--cool)"><svg viewBox="0 0 24 24"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg><b>스테이지 맵</b><span id="tMap"></span></button>
+      <button id="titleShop" class="tile" type="button" style="--c:var(--gold)"><svg viewBox="0 0 24 24"><path d="M14.5 6.5l3-3 3 3-3 3"/><path d="M17.5 6.5L7 17"/><path d="M4 20l3-3"/><circle cx="6" cy="6" r="2.6"/><path d="M13 15l5 5"/></svg><b>작업실</b><span id="tShop"></span></button>
+      <button id="endless" class="tile" type="button" style="--c:var(--hot)"><svg viewBox="0 0 24 24"><path d="M6.5 8.5c-2.5 0-4 1.6-4 3.5s1.5 3.5 4 3.5c3.5 0 7.5-7 11-7 2.5 0 4 1.6 4 3.5s-1.5 3.5-4 3.5c-3.5 0-7.5-7-11-7z"/></svg><b>무한 모드</b><span id="tEndless"></span></button>
+      <button id="titleRank" class="tile" type="button" style="--c:#b98cff"><svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v3M8.5 20h7l-1-3h-5z"/></svg><b>주간 랭킹</b><span id="tRank"></span></button>
+    </div>
     <p class="newNote" id="titleNote" hidden></p>
   </div>
 
@@ -234,6 +302,33 @@ h2{font-family:var(--disp);font-size:calc(var(--s)*20px*var(--dsz));color:var(--
       <button id="overMap" class="btn ko" type="button">맵</button>
       <button id="overRank" class="btn ko" type="button" hidden>랭킹</button>
       <button id="overShop" class="btn ko" type="button">작업실</button>
+      <button id="overHome" class="btn ko" type="button">홈</button>
+    </div>
+  </div>
+
+  <div id="pause" class="ov" hidden>
+    <h2>PAUSED</h2>
+    <p class="note" id="pauseInfo"></p>
+    <button id="resume" class="btn big" type="button">계속하기</button>
+    <div class="row">
+      <button id="restart" class="btn ko" type="button">다시 시작</button>
+      <button id="pauseHome" class="btn ko" type="button">홈으로</button>
+    </div>
+    <div class="opts"><button class="toggle optSound" type="button"></button><button class="toggle optVibe" type="button"></button></div>
+  </div>
+
+  <div id="settings" class="ov" hidden>
+    <h2>SETTINGS</h2>
+    <div class="opts"><button class="toggle optSound" type="button"></button><button class="toggle optVibe" type="button"></button></div>
+    <button id="resetSave" class="btn ko danger" type="button">진행 초기화</button>
+    <button id="settingsClose" class="btn ko" type="button">닫기</button>
+  </div>
+
+  <div id="confirm" class="ov" hidden>
+    <div class="dialog">
+      <p class="dTitle" id="confirmTitle"></p>
+      <p class="note" id="confirmText"></p>
+      <div class="row"><button id="confirmNo" class="btn ko" type="button">취소</button><button id="confirmYes" class="btn ko danger" type="button">확인</button></div>
     </div>
   </div>
 

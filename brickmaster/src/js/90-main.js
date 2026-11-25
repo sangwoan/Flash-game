@@ -32,7 +32,39 @@ cv.addEventListener('pointermove', e => { if (S.aiming) setAim(e); });
 cv.addEventListener('pointerup', () => { if (S.aiming) { S.aiming = false; if (S.aimOk && S.phase === 'aim') fire(); } });
 cv.addEventListener('pointercancel', () => { S.aiming = false; });
 
-sndEl.onclick = () => { muted = !muted; sndEl.textContent = muted ? 'SND OFF' : 'SND ON'; ensureAudio(); };
+pauseBtn.onclick = pauseGame;
+$('resume').onclick = resumeGame;
+$('restart').onclick = restartRun;
+$('pauseHome').onclick = quitToHome;
+$('overHome').onclick = goHome;
+$('titleSettings').onclick = openSettings;
+$('settingsClose').onclick = () => { $('settings').hidden = true; };
+$('resetSave').onclick = askReset;
+$('confirmYes').onclick = () => closeConfirm(true);
+$('confirmNo').onclick = () => closeConfirm(false);
+for (const el of document.querySelectorAll('.optSound')) el.onclick = () => toggleOption('sound');
+for (const el of document.querySelectorAll('.optVibe')) el.onclick = () => toggleOption('vibe');
+// Android back button (from the Expo app): close the top-most thing, pause a run, leave from home.
+window.__bmPause = pauseGame;
+window.__bmBack = () => {
+  if (!$('confirm').hidden) return closeConfirm(false);
+  for (const id of ['settings', 'shop', 'map', 'rank']) if (!$(id).hidden) {
+    if (id === 'settings') $('settings').hidden = true; else if (id === 'shop') closeShop(); else if (id === 'map') closeMap(); else closeRank();
+    return;
+  }
+  if (S.phase === 'paused') return resumeGame();
+  if (canPause()) return pauseGame();
+  if (!overEl.hidden && $('claimRow').hidden) return goHome();
+  if (!titleEl.hidden && window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'exit' }));
+};
+// leaving the app (home button, call, tab switch) pauses a run; Escape pauses and resumes
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('confirm').hidden) closeConfirm(false);
+  else if (S.phase === 'paused') resumeGame();
+  else pauseGame();
+});
 recallEl.onclick = recall;
 $('start').onclick = () => startLevel(nextLevelIndex());
 $('again').onclick = againOrNext;
@@ -56,7 +88,8 @@ $('claim2x').onclick = () => claim(2); // ad placeholder
 loadSave();
 STG = levelInfo(nextLevelIndex());
 applyTheme(STG.land);
-newRun(); S.phase = 'title';
+newRun(); S.phase = 'title'; S.bricks = []; rebuildGrid();
+buildFloaters();
 refreshTitle();
 rankInit();
 // #land-7 previews landscape 7 on the title screen (for browsing the places)
@@ -67,6 +100,8 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.033, (now - last) / 1000); last = now;
   update(dt); draw(now);
+  const showPause = canPause(); // the pause button only shows while a run can be paused
+  if (pauseBtn.hidden === showPause) pauseBtn.hidden = !showPause;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

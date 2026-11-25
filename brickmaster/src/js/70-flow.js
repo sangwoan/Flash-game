@@ -67,7 +67,8 @@ function endTurn() {
   let top = 0;
   for (const br of S.bricks) if (!br.dead && !isItem(br)) top = Math.max(top, br.r);
   if (S.hp > 0 && S.turn >= BAL.doubleRowFrom && top <= BAL.doubleRowDepth && S.turn - S.lastDouble >= BAL.doubleRowGap) {
-    for (const br of S.bricks) if (!br.dead) { br.r++; br.oy -= RH; setRect(br); }
+    for (const br of S.bricks) if (!br.dead) { br.r++; br.oy -= RH; setRect(br); if (br.r >= ROWS) br.dead = true; } // only items can be that low
+    S.bricks = S.bricks.filter(b => !b.dead);
     rebuildGrid(); spawnRow(S.turn, true); S.doubles++; S.lastDouble = S.turn;
     bigWords.push({ s: 'DOUBLE ROW!', life: 1.1, max: 1.1, y: H * 0.46, size: 18 }); shake(3); sfx.whoosh();
   }
@@ -95,7 +96,7 @@ function pickUpgrades(n) {
   return out;
 }
 function showLevel() {
-  S.phase = 'levelup';
+  S.phase = 'levelup'; pauseBtn.hidden = true;
   curChoices = pickUpgrades(3);
   cardsEl.innerHTML = '';
   $('lvlNum').textContent = S.level > 0 ? 'LV ' + S.level : 'BONUS';
@@ -127,7 +128,8 @@ function pickCard(k, el) {
   burst(x, y, UPG[k].col.length === 7 ? UPG[k].col : TH.accent, 50, 420);
   rings.push({ x, y, r: 160, life: 0.35, max: 0.35, col: UPG[k].col });
   sfx.clear(); buzz(30);
-  setTimeout(() => choose(k), 230);
+  const run = S; // the pick lands only if this is still the same run, still choosing
+  setTimeout(() => { if (S === run && S.phase === 'levelup') choose(k); }, 230);
 }
 function choose(k) {
   S.lv[k]++; UPG[k].apply(); S.pendingLevels--; sfx.pick();
@@ -207,6 +209,7 @@ function showResults(cleared = false) {
   if (cleared) { sfx.clear(); buzz(80); }
 }
 function claim(mult) {
+  if ($('claimRow').hidden) return; // already claimed (double tap)
   const got = runGold * mult;
   SAVE.gold += got; writeSave(); sfx.coin();
   $('earned').textContent = `골드 +${fmtN(got)} 받음 · 보유 ${fmtGold(SAVE.gold)}`;
@@ -254,13 +257,21 @@ function totalStars() { return Object.values(SAVE.stars).reduce((a, b) => a + b,
 function refreshTitle() {
   const nx = levelInfo(nextLevelIndex());
   applyTheme(nx.land);
-  $('titleGold').textContent = `보유 골드 ${fmtGold(SAVE.gold)} · ★ ${totalStars()}`;
+  const total = MAIN_STAGES * LEVELS_PER_STAGE, done = Math.min(SAVE.unlocked, total);
+  $('titleGold').textContent = fmtN(SAVE.gold);
+  $('titleStars').textContent = totalStars();
   $('start').textContent = `PLAY ${nx.id}`;
-  $('nextInfo').textContent = `ZONE ${TH.zone.n + 1} ${TH.zone.title} · ${TH.name} · 레벨 ${nx.l + 1}/${LEVELS_PER_STAGE}`;
+  $('ncZone').textContent = `ZONE ${TH.zone.n + 1} · ${TH.zone.title}`;
+  $('ncName').textContent = `STAGE ${nx.s + 1} · ${TH.name}`;
+  $('ncFill').style.width = (100 * done / total).toFixed(1) + '%';
+  $('nextInfo').textContent = done >= total ? `메인 캠페인 완료! 계속 도전 중 · 레벨 ${nx.id}` : `메인 캠페인 ${done} / ${total} 레벨`;
+  $('nextCard').style.setProperty('--thumb', `url(${landThumb(nx.s)})`);
+  $('tMap').textContent = `★ ${totalStars()} / ${total * 3}`;
+  $('tShop').textContent = `기본 화력 Lv ${SAVE.meta.power}`;
   const open = SAVE.unlocked >= ENDLESS_UNLOCK;
   $('endless').disabled = !open;
-  $('endless').textContent = open ? '무한 모드' : '무한 모드 (스테이지 1 클리어 시 열림)';
-  $('best').textContent = SAVE.bestScore ? `ENDLESS BEST ${SAVE.bestScore.toLocaleString()}` + (SAVE.champion ? ' · CHAMPION' : '') : '';
+  $('tEndless').textContent = !open ? '스테이지 1을 깨면 열림' : SAVE.bestScore ? `최고 ${SAVE.bestScore.toLocaleString()}${SAVE.champion ? ' · 챔피언' : ''}` : '아직 기록 없음';
+  $('tRank').textContent = '매주 1위 보상';
 }
 
 // ---------- stage map: one card per stage (its landscape), five level nodes each ----------
@@ -314,7 +325,70 @@ function closeMap() {
   if (mapReturn) mapReturn.hidden = false;
   refreshTitle();
 }
-function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map'), $('rank')]) el.hidden = true; hideShieldOffer(); }
+function hideMenus() { for (const el of [titleEl, overEl, shopEl, $('map'), $('rank'), $('pause'), $('settings'), $('confirm')]) el.hidden = true; hideShieldOffer(); }
+
+// ---------- home, pause, settings, confirm ----------
+// Back to the home screen: a fresh, empty board behind the title (no stray bricks).
+function goHome() {
+  hideMenus(); lvlEl.hidden = true; recallEl.hidden = true;
+  STG = levelInfo(nextLevelIndex());
+  newRun(); S.phase = 'title'; S.bricks = []; rebuildGrid();
+  titleEl.hidden = false; refreshTitle();
+}
+const canPause = () => S.phase === 'aim' || S.phase === 'fire';
+function pauseGame() {
+  if (!canPause()) return;
+  S.pausedFrom = S.phase; S.phase = 'paused'; S.aiming = false;
+  $('pauseInfo').textContent = STG.endless ? `무한 모드 · 레벨 ${S.world + 1} · ${S.turn}턴 · 점수 ${S.score.toLocaleString()}`
+    : `LEVEL ${STG.id} · ${S.turn}턴 · POWER LV ${S.level}`;
+  renderOptions(); $('pause').hidden = false; pauseBtn.hidden = true; sfx.pick();
+}
+function resumeGame() {
+  if (S.phase !== 'paused') return;
+  S.phase = S.pausedFrom || 'aim'; $('pause').hidden = true; $('confirm').hidden = true;
+}
+// Restarting or leaving a run always asks first, so a stray tap never throws a run away.
+function restartRun() {
+  askConfirm('처음부터 다시 할까요?', '이번 판에서 쌓은 능력과 골드는 사라집니다.', () => { if (STG.endless) startEndless(); else startLevel(STG.g); });
+}
+function quitToHome() {
+  // endless has no level to lose: leaving ends the run on the current score (it counts for the ranking)
+  if (STG.endless) askConfirm('여기서 끝낼까요?', '지금 점수로 기록하고 결과 화면으로 갑니다.', () => { $('pause').hidden = true; showResults(false); });
+  else askConfirm('홈으로 나갈까요?', '이번 판은 저장되지 않고, 모은 골드도 받지 못합니다.', goHome);
+}
+let confirmYes = null;
+function askConfirm(title, text, yes) {
+  $('confirmTitle').textContent = title; $('confirmText').textContent = text;
+  confirmYes = yes; $('confirm').hidden = false;
+}
+function closeConfirm(ok) {
+  $('confirm').hidden = true;
+  const f = confirmYes; confirmYes = null;
+  if (ok && f) f();
+}
+function renderOptions() {
+  for (const el of document.querySelectorAll('.optSound')) { el.classList.toggle('on', SAVE.settings.sound); el.innerHTML = `소리<b>${SAVE.settings.sound ? 'ON' : 'OFF'}</b>`; }
+  for (const el of document.querySelectorAll('.optVibe')) { el.classList.toggle('on', SAVE.settings.vibe); el.innerHTML = `진동<b>${SAVE.settings.vibe ? 'ON' : 'OFF'}</b>`; }
+}
+function toggleOption(k) {
+  SAVE.settings[k] = !SAVE.settings[k];
+  if (k === 'sound') { muted = !SAVE.settings.sound; ensureAudio(); sfx.pick(); } else buzz(40);
+  writeSave(); renderOptions();
+}
+function openSettings() { renderOptions(); $('settings').hidden = false; }
+function askReset() {
+  askConfirm('진행을 초기화할까요?', '골드, 작업실 강화, 별, 스테이지 진행이 모두 지워집니다. 되돌릴 수 없어요.', () => { resetProgress(); goHome(); });
+}
+// Drifting neon bricks behind the home screen.
+function buildFloaters() {
+  const box = $('floaters'), cols = ['var(--cool)', 'var(--logo2)', 'var(--gold)', 'var(--hot)'];
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElement('i');
+    el.style.cssText = `left:${((i * 8.4 + rnd() * 5) % 94).toFixed(1)}%;--w:${30 + Math.floor(rnd() * 3) * 24};--fc:${cols[i % 4]};`
+      + `--d:${(16 + rnd() * 14).toFixed(1)}s;--dl:${(-rnd() * 30).toFixed(1)}s;--r0:${Math.round((rnd() - 0.5) * 40)}deg;--r1:${Math.round((rnd() - 0.5) * 140)}deg`;
+    box.appendChild(el);
+  }
+}
 function beginRun() {
   ensureAudio();
   hideMenus();
@@ -354,6 +428,7 @@ function switchWorld() {
 
 // ---------- per-frame update ----------
 function update(dt) {
+  if (S.phase === 'paused') return; // frozen until resumed
   if (S.hitstop > 0) { S.hitstop -= dt; updateFx(dt * 0.2); return; }
   // slow motion after big multi-breaks: the world runs at 28%, effects at 45%
   const slow = S.slowmo > 0 ? 0.28 : 1;
@@ -437,6 +512,7 @@ function updateFx(dt) {
   homers = homers.filter(h => !h.done);
   for (const br of S.bricks) {
     if (br.flash > 0) br.flash = Math.max(0, br.flash - dt * 9);
+    if (br.pop > 0) br.pop = Math.max(0, br.pop - dt * 5); // slime offspring grow in
     if (br.oy) { br.oy += (0 - br.oy) * Math.min(1, dt * 14); if (Math.abs(br.oy) < 0.3) br.oy = 0; }
   }
   if (S.banner) { S.banner.life -= dt; if (S.banner.life <= 0) S.banner = null; }

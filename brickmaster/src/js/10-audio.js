@@ -63,6 +63,7 @@ const sfx = {
 };
 let lastBuzz = 0;
 function buzz(ms) {
+  if (SAVE.settings && SAVE.settings.vibe === false) return;
   const t = performance.now(); if (t - lastBuzz < 70) return; lastBuzz = t;
   try {
     // inside the Expo app, native haptics (iOS has no navigator.vibrate)

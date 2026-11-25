@@ -74,4 +74,4 @@ const randIn = ([a, b]) => a + Math.floor(rnd() * (b - a + 1));
 const cv = $('cv'), ctx = cv.getContext('2d');
 const stage = $('stage'), wrap = $('wrap');
 const titleEl = $('title'), lvlEl = $('lvl'), cardsEl = $('cards'), overEl = $('over'), shopEl = $('shop');
-const recallEl = $('recall'), sndEl = $('snd');
+const recallEl = $('recall'), pauseBtn = $('pauseBtn');

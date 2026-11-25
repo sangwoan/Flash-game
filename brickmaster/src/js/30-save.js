@@ -1,7 +1,8 @@
 // Progress lives in this browser only (localStorage). Every access is guarded:
 // private windows and blocked storage must still give a playable game.
 const SAVE_KEY = 'brickmaster.save.v1';
-let SAVE = { gold: 0, bestTurn: 0, bestChapter: 0, bestScore: 0, runs: 0, meta: {}, stars: {}, unlocked: 0, layout: 0, champion: false, champSeasons: {} };
+const freshSave = () => ({ gold: 0, bestTurn: 0, bestChapter: 0, bestScore: 0, runs: 0, meta: {}, stars: {}, unlocked: 0, layout: 2, champion: false, champSeasons: {}, settings: { sound: true, vibe: true } });
+let SAVE = Object.assign(freshSave(), { layout: 0 });
 function loadSave() {
   try {
     // inside the Expo app the native copy (window.__BM_SAVE) wins; it survives WebView storage resets
@@ -23,6 +24,15 @@ function loadSave() {
   }
   delete SAVE.meta.hp;
   for (const k of Object.keys(META)) SAVE.meta[k] = clamp(+SAVE.meta[k] || 0, 0, META[k].max);
+  if (!SAVE.settings || typeof SAVE.settings !== 'object') SAVE.settings = { sound: true, vibe: true };
+  muted = SAVE.settings.sound === false;
+}
+// Settings: wipe all progress (gold, upgrades, stars, stages). Sound/vibration and past ranking
+// payouts are kept, so last week's prize is not paid twice.
+function resetProgress() {
+  SAVE = Object.assign(freshSave(), { settings: SAVE.settings, champSeasons: SAVE.champSeasons });
+  for (const k of Object.keys(META)) SAVE.meta[k] = 0;
+  writeSave();
 }
 function writeSave() {
   const json = JSON.stringify(SAVE);

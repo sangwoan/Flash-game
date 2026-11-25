@@ -180,8 +180,11 @@ function splitSlime(br) {
     if (n >= 2) break;
     const X = c * CW + 2, Y = TOP + r * RH + 2;
     if (S.movers.some(b => b.x + b.r > X && b.x - b.r < X + CW - 4 && b.y + b.r > Y && b.y - b.r < Y + RH - 4)) continue;
-    const kid = addBrick({ c, r, span: 1, type: 'n', hp: Math.max(1, Math.ceil(br.maxHp / 3)) }, false);
+    // a small slime blob (slime-green, pops in) so it reads as the slime splitting, not a stray brick
+    const kid = addBrick({ c, r, span: 1, type: 'n', kid: true, pop: 1, hp: Math.max(1, Math.ceil(br.maxHp / 3)) }, false);
     kid.flash = 1; n++;
+    rings.push({ x: kid.X + kid.Wd / 2, y: kid.Y + kid.Ht / 2, r: 34, life: 0.3, max: 0.3, col: TH.special.slime });
+    bolts.push({ pts: [[br.X + br.Wd / 2, br.Y + br.Ht / 2], [kid.X + kid.Wd / 2, kid.Y + kid.Ht / 2]], life: 0.22, max: 0.22, col: TH.special.slime });
   }
   if (n) { sfx.slime(); burst(br.X + br.Wd / 2, br.Y + br.Ht / 2, '#7dffb0', 10, 160); }
 }
