@@ -10,7 +10,7 @@ const MAIN_STAGES = 20;
 const GIMMICKS = [
   { text: '기본 규칙', mod: {} },
   { text: '레이저 아이템과 강철 벽돌이 많음', mod: { laser: 0.12, steel: 0.05 } },
-  { text: '깨지면 갈라지는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
+  { text: '한 번 깨져도 작아져서 다시 버티는 슬라임이 많음', mod: { slime: 0.12, orb: 0.1 } },
   { text: '폭탄이 많고 벽돌이 빽빽함', mod: { bomb: 0.1, density: 0.06 } },
   { text: 'XP 상자와 강철 벽돌이 많음, 골드 2배', mod: { chest: 0.02, steel: 0.1 }, gold: 2 },
   { text: '+1 공이 쏟아짐', mod: { orb: 0.35 } },

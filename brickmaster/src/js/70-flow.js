@@ -512,7 +512,7 @@ function updateFx(dt) {
   homers = homers.filter(h => !h.done);
   for (const br of S.bricks) {
     if (br.flash > 0) br.flash = Math.max(0, br.flash - dt * 9);
-    if (br.pop > 0) br.pop = Math.max(0, br.pop - dt * 5); // slime offspring grow in
+    if (br.pop > 0) br.pop = Math.max(0, br.pop - dt * 5); // a slime squashing down to its small size
     if (br.oy) { br.oy += (0 - br.oy) * Math.min(1, dt * 14); if (Math.abs(br.oy) < 0.3) br.oy = 0; }
   }
   if (S.banner) { S.banner.life -= dt; if (S.banner.life <= 0) S.banner = null; }

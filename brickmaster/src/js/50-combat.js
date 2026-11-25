@@ -32,7 +32,7 @@ function dealDamage(br, d, crit) {
   br.hp -= d; br.flash = 1;
   br.kx = (br.kx || 0) + (br.kdx || 0) * 2.5; br.ky = (br.ky || 0) + (br.kdy || 0) * 2.5;
   if (crit) texts.push(mkText(br.X + br.Wd / 2, br.Y, 'CRIT ' + fmtDmg(Math.round(d * 10) / 10), TH.css.gold, 0.7, 9));
-  if (br.hp <= 1e-6) kill(br);
+  if (br.hp <= 1e-6) { if (br.type === 'slime' && !br.shrunk) shrinkSlime(br); else kill(br); }
 }
 
 // ---------- break feel ----------
@@ -167,26 +167,19 @@ function kill(br) {
   else { gainXp(BAL.xpBrick + bonus); addGold(BAL.goldPerKill); }
   if (br.type === 'bomb') S.blasts.push({ x: cx, y: cy, rad: CW * 1.6, dmg: Math.ceil(effTurn(S.turn) * 1.5 * STG.hpMul) + S.dmg * 2, kind: 'bomb', t: 0.06 });
   if (br.type === 'chest') { S.level++; S.pendingLevels++; texts.push(mkText(cx, cy, '+LV', TH.css.gold, 1, 14)); sfx.lvl(); } // counts toward the boss gates
-  if (br.type === 'slime') splitSlime(br);
   if (S.lv.fire > 0) S.blasts.push({ x: cx, y: cy, rad: CW * 1.15, dmg: S.dmg * (1.5 + S.lv.fire), kind: 'fire', t: 0.07 });
 }
 
 // A slime splits into up to two small bricks in free neighbouring cells.
-function splitSlime(br) {
-  const cand = [[br.r, br.c - 1], [br.r, br.c + 1], [br.r + 1, br.c], [br.r - 1, br.c]]
-    .filter(([r, c]) => r >= 0 && r < ROWS - 1 && c >= 0 && c < COLS && !grid[r * COLS + c]);
-  let n = 0;
-  for (const [r, c] of cand) {
-    if (n >= 2) break;
-    const X = c * CW + 2, Y = TOP + r * RH + 2;
-    if (S.movers.some(b => b.x + b.r > X && b.x - b.r < X + CW - 4 && b.y + b.r > Y && b.y - b.r < Y + RH - 4)) continue;
-    // a small slime blob (slime-green, pops in) so it reads as the slime splitting, not a stray brick
-    const kid = addBrick({ c, r, span: 1, type: 'n', kid: true, pop: 1, hp: Math.max(1, Math.ceil(br.maxHp / 3)) }, false);
-    kid.flash = 1; n++;
-    rings.push({ x: kid.X + kid.Wd / 2, y: kid.Y + kid.Ht / 2, r: 34, life: 0.3, max: 0.3, col: TH.special.slime });
-    bolts.push({ pts: [[br.X + br.Wd / 2, br.Y + br.Ht / 2], [kid.X + kid.Wd / 2, kid.Y + kid.Ht / 2]], life: 0.22, max: 0.22, col: TH.special.slime });
-  }
-  if (n) { sfx.slime(); burst(br.X + br.Wd / 2, br.Y + br.Ht / 2, '#7dffb0', 10, 160); }
+// A slime's first break doesn't kill it: it shrinks in place with 40% of its HP and holds on.
+// (It used to split into new bricks next to it, which looked like bricks popping up mid-turn.)
+function shrinkSlime(br) {
+  br.shrunk = true; br.maxHp = br.hp = Math.max(1, Math.ceil(br.maxHp * 0.4)); br.pop = 1; br.flash = 1; br.cracks = null;
+  const cx = br.X + br.Wd / 2, cy = br.Y + br.Ht / 2;
+  burst(cx, cy, TH.special.slime, 12, 200);
+  rings.push({ x: cx, y: cy, r: 40, life: 0.3, max: 0.3, col: TH.special.slime });
+  texts.push(mkText(cx, br.Y, 'SPLAT', TH.special.slime, 0.7, 9));
+  sfx.slime(); shake(1.5);
 }
 
 function processBlasts(dt) {

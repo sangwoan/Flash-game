@@ -43,7 +43,6 @@ function rr(x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 function brickColor(br) {
-  if (br.kid) return TH.special.slime; // slime offspring keep the slime's colour
   const sp = TH.special[br.type];
   if (sp) return Array.isArray(sp) ? sp[0] : sp;
   return TH.ramp(br.hp / (brickHp(S.turn) * 2.2));
@@ -242,7 +241,8 @@ function drawBrick(br, now) {
   const x = br.X + (br.kx || 0), y = br.Y + br.oy + (br.ky || 0), w = br.Wd, h = br.Ht, f = br.flash;
   ctx.save();
   ctx.translate(x + w / 2, y + h / 2);
-  ctx.scale((1 + f * 0.1) * (1 - (br.pop || 0) * 0.6), (1 - f * 0.06) * (1 - (br.pop || 0) * 0.6));
+  const sk = br.shrunk ? 0.85 + 0.15 * (br.pop || 0) : 1; // a shrunk slime is drawn smaller (squashing down when it shrinks)
+  ctx.scale((1 + f * 0.1) * sk, (1 - f * 0.06) * sk);
   ctx.translate(-w / 2, -h / 2);
   let col = brickColor(br);
   const big = br.type === 'boss' && isBigBoss(br);
@@ -259,7 +259,7 @@ function drawBrick(br, now) {
     ctx.stroke();
   } else if (br.type === 'steel') {
     ctx.fillStyle = 'rgba(30,34,48,.75)'; for (const [rx, ry] of [[4, 5], [w - 7, 5], [4, h - 8], [w - 7, h - 8]]) ctx.fillRect(rx, ry, 3, 3);
-  } else if (br.type === 'slime' || br.kid) {
+  } else if (br.type === 'slime') {
     const wob = Math.sin(now / 200 + br.id) * 2; ctx.fillStyle = 'rgba(0,90,40,.35)';
     ctx.fillRect(7, h - 6, 6, 6 + wob); ctx.fillRect(w - 16, h - 6, 6, 4 - wob); ctx.fillRect(w / 2, h - 6, 5, 6);
   } else if (br.type === 'chest') {
