@@ -29,7 +29,7 @@ function newRun() {
   S.bossTurns = rollBossTurns(); S.nextBossTurn = S.bossTurns ? S.bossTurns[0] : randIn(BAL.endlessFirst);
   grid.fill(null); parts = []; rings = []; bolts = []; texts = []; beams = []; homers = []; pops = []; bigWords = []; flyers = []; shards = [];
   pillars = []; blooms = []; bgFlashes = [];
-  for (let i = 0; i < BAL.startRows; i++) { shiftDown(false); rebuildGrid(); spawnRow(1, false); }
+  for (let i = 0; i < BAL.startRows; i++) { shiftDown(false); rebuildGrid(); spawnRow(1 + i * BAL.startRowStep, false); }
   rebuildGrid();
 }
 
